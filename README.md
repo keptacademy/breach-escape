@@ -62,3 +62,9 @@ In `levels.js`, change the level's `status` from `'soon'` to `'ready'` and give 
 - four `options`, each with `t` (the choice), `ok` (true for exactly one) and `w` (why it's right or wrong)
 
 Build every level only from primary sources: the company's own post-mortem, official testimony or a government report. List them in `sources`.
+
+## License
+
+© 2026 KEPT Academy. All rights reserved. This repository is public for transparency and security review; it is not open source. Breach scenarios are based on the public primary sources listed in each level.
+
+To report a security issue, see [SECURITY.md](SECURITY.md).

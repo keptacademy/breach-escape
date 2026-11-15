@@ -5,16 +5,41 @@
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
-    "Cross-Origin-Opener-Policy": "same-origin"
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "X-Frame-Options": "DENY"
   },
   "routes": [
-    { "route": "/sw.js", "headers": { "Cache-Control": "no-cache" } },
-    { "route": "/*.js", "headers": { "Cache-Control": "public, max-age=3600" } }
+    {
+      "route": "/.github/*",
+      "statusCode": 404
+    },
+    {
+      "route": "/*.md",
+      "statusCode": 404
+    },
+    {
+      "route": "/.gitignore",
+      "statusCode": 404
+    },
+    {
+      "route": "/sw.js",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    },
+    {
+      "route": "/*.js",
+      "headers": {
+        "Cache-Control": "public, max-age=3600"
+      }
+    }
   ],
   "mimeTypes": {
     ".webmanifest": "application/manifest+json"
   },
   "responseOverrides": {
-    "404": { "rewrite": "/index.html" }
+    "404": {
+      "rewrite": "/index.html"
+    }
   }
 }

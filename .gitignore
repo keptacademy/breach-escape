@@ -1,0 +1,12 @@
+# Never commit secrets or local tooling.
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.publishsettings
+.azure/
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
