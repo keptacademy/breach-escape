@@ -293,7 +293,15 @@
     app.appendChild(topbar(h('button', { class: 'icon-btn glass-btn', text: '\u2039 Map', onclick: renderMap })));
 
     var lq = liquiStandalone('Klar'); setMood(lq, 'curious');
-    var hero = h('div', { class: 'hero intro-hero glass' }, [lq, bubble('Ready? We replay it step by step. Choose fast, it spreads while you think.')]);
+    var pvIcon = h('span', { class: 'pv-icon' });
+    var pvNum = h('span', { class: 'pv-num' });
+    var pvName = h('span', { class: 'pv-name' });
+    var pvTech = h('span', { class: 'pv-tech' });
+    var preview = h('div', { class: 'step-preview', 'aria-hidden': 'true' }, [
+      h('span', { class: 'pv-tile' }, [pvIcon, h('span', { class: 'pv-status', text: 'Under attack' })]),
+      h('span', { class: 'pv-meta' }, [pvNum, pvName, pvTech])
+    ]);
+    var hero = h('div', { class: 'hero intro-hero glass' }, [lq, bubble('Ready? We replay it step by step. Choose fast, it spreads while you think.'), preview]);
 
     var chips = h('div', { class: 'chips' }, [
       h('span', { class: 'chip', text: L.stages.length + ' alerts' }),
@@ -330,6 +338,11 @@
     var heroSay = hero.querySelector('.say'); currentBubble = hero.querySelector('.bubble');
     function onStep(n) {
       var st = L.stages[n], m = st.mitre || {};
+      pvIcon.textContent = ''; pvIcon.appendChild(stepIcon(st.icon));
+      pvNum.textContent = 'Step ' + (n + 1) + ' of ' + L.stages.length;
+      pvName.textContent = st.tile;
+      pvTech.textContent = m.id ? m.id : (m.tactic || '');
+      preview.classList.remove('pv-in'); void preview.offsetWidth; preview.classList.add('pv-in');
       dTitle.textContent = 'Step ' + (n + 1) + ' \u00b7 ' + st.title;
       dTech.textContent = m.id ? 'ATT&CK ' + m.id + (m.name ? ' \u00b7 ' + m.name : '') : (m.tactic || '');
       dTech.hidden = !dTech.textContent;

@@ -1,6 +1,6 @@
 /* Breach Escape service worker: caches the app so it works offline.
    Bump VERSION whenever you deploy changes so players get the new files. */
-const VERSION = 'v13';
+const VERSION = 'v14';
 const CACHE = 'breach-escape-' + VERSION;
 const FILES = [
   './', 'index.html', 'styles.css', 'levels.js', 'app.js', 'manifest.webmanifest',
