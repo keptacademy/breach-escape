@@ -1,0 +1,9 @@
+# Keep the pinned GitHub Actions up to date (opens PRs with new SHAs).
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
