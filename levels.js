@@ -9,6 +9,7 @@ window.LEVELS = [
     year: 2024,
     teaser: 'A forgotten test account opens the door to executive email.',
     status: 'ready',
+    case: 'levels/midnight-blizzard.json',   // v2: Investigate -> Defend. The stages below stay as the classic quiz.
     intro: 'In late 2023 a nation-state group got into Microsoft through an old test account and quietly read executive email until January 2024. Five alerts. Choose the control that stops each step before it spreads.',
     endNote: 'In the real attack, Microsoft detected the intruders on January 12, 2024.',
     sources: [
@@ -195,6 +196,9 @@ window.GLOSSARY = {
   'service principal': 'The identity an app has inside a tenant. It can hold roles and secrets just like a user account.',
   'service principals': 'The identities apps have inside a tenant. They can hold roles and secrets just like user accounts.',
   'app governance': 'A Defender for Cloud Apps capability that watches OAuth apps for risky permissions, odd behaviour and new credentials.',
+  'consent': 'Approval that lets an app use permissions. An admin’s consent can unlock access across the company.',
+  'patient zero': 'The first account or system the attacker successfully got into. Everything else follows from it.',
+  'tenant': 'An organization’s own instance of Microsoft Entra ID and Microsoft 365, with its own users, apps and data. A company can have several.',
   'admin consent': 'An admin approving an app’s permissions for the whole organization. One click can hand an app access to every mailbox.',
   'user consent': 'A regular user approving an app’s access to their own data. Many tenants now disable it.',
   'EWS': 'Exchange Web Services, an older API that apps use to read and send mail in Exchange Online.',

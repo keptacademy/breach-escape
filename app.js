@@ -107,7 +107,9 @@
   function termKey(term) { return function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); defineTerm(term); } }; }
   // The definition is pinned on the bubble (bubble._term) until it times out or the bubble is tapped;
   // the play-screen timer's update() respects the pin instead of repainting over it.
+  var termSink = null;   // v2 case screens show definitions in their own panel instead of Klar's bubble
   function defineTerm(term) {
+    if (termSink && GLOSSARY[term]) return termSink(term, GLOSSARY[term]);
     if (!currentBubble || !GLOSSARY[term]) return;
     if (termTimer) clearTimeout(termTimer);
     var b = currentBubble;
@@ -159,6 +161,16 @@
     pathState = null;
     window.removeEventListener('resize', onPathResize);
     stopLooking();
+    termSink = null;
+    var hooks = leaveHooks; leaveHooks = [];
+    hooks.forEach(function (fn) { try { fn(); } catch (e) { /* ignore */ } });
+  }
+  var leaveHooks = [];   // cleanups registered by other screens (case.js), run on every screen change
+
+  // Level 1+ can be a v2 case (Investigate -> Defend), loaded from JSON by case.js. Falls back to the classic quiz.
+  function openLevel(L) {
+    if (L.case && window.BreachCase) window.BreachCase.start(L);
+    else startIntro(L.id);
   }
 
   /* ---------- screen: Breach Map ---------- */
@@ -180,7 +192,7 @@
     var heroBody = h('div', { class: 'hero-body' }, [bubble(line)]);
     if (next) {
       var nextRec = (progress.levels || {})[next.id];
-      heroBody.appendChild(h('button', { class: 'next-card glass-btn', onclick: function () { startIntro(next.id); } }, [
+      heroBody.appendChild(h('button', { class: 'next-card glass-btn', onclick: function () { openLevel(next); } }, [
         h('span', { class: 'next-kicker', text: nextRec ? 'Replay' : done === 0 ? 'Start here' : 'Up next' }),
         h('span', { class: 'next-name', text: 'Level ' + next.id + ' · ' + next.name }),
         h('span', { class: 'next-sub', text: next.victim + ' · ' + next.year + ' · ' + next.teaser }),
@@ -208,7 +220,7 @@
       list.appendChild(h('button', {
         class: 'level glass-btn' + (isNext ? ' next' : '') + (ready ? '' : ' locked'), disabled: !ready,
         'aria-label': 'Level ' + L.id + ': ' + L.name + ', ' + L.victim + ' ' + L.year + (ready ? '' : ', coming soon') + (rec ? ', ' + rec.stars + ' stars' : '') + (isNext ? ', up next' : ''),
-        onclick: ready ? function () { startIntro(L.id); } : null
+        onclick: ready ? function () { openLevel(L); } : null
       }, [
         h('span', { class: 'num' + (rec ? ' done' : ''), text: rec ? '✓' : String(L.id) }),
         h('span', { class: 'meta' }, [
@@ -656,6 +668,23 @@
     if (!opt && !S.lost && n >= 1 && n <= S.opts.length) { e.preventDefault(); pick(n - 1); }
     if (!opt && !S.lost && (e.key === 'h' || e.key === 'H')) { e.preventDefault(); askHint(); }
   });
+
+  /* ---------- shared API for case.js (the v2 Investigate/Defend engine) ---------- */
+  window.BreachEscape = {
+    app: app,
+    h: h,
+    termify: termify,
+    shuffle: shuffle,
+    reduceMotion: reduceMotion,
+    glossary: GLOSSARY,
+    progress: function () { return progress; },
+    saveProgress: function () { saveProgress(progress); },
+    setTermSink: function (fn) { termSink = fn; },
+    onLeave: function (fn) { leaveHooks.push(fn); },
+    leave: stopTimer,
+    renderMap: renderMap,
+    startClassic: function (id) { startIntro(id); }
+  };
 
   /* ---------- boot ---------- */
   renderMap();

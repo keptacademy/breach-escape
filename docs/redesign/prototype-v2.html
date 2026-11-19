@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breach Escape — playable prototype</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Share+Tech+Mono&display=swap">
+<style>
+:root{
+--bg:#010603;--panel:#04100A;--panel2:#071A0F;
+--g:#39FF7A;--g2:#8BE3A6;--g3:#2F8F4E;--g4:#16402A;
+--txt:#D2FFDD;--mute:#8FC9A2;
+--red:#FF3B4E;--redbg:rgba(255,59,78,.13);--y:#FFD34D;--ybg:rgba(255,211,77,.10);
+--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.55}
+#rain{position:fixed;inset:0;z-index:0;opacity:.16;pointer-events:none}
+#edge{position:fixed;inset:0;z-index:5;pointer-events:none;transition:box-shadow .2s}
+#edge.on{box-shadow:inset 0 0 0 5px var(--red),inset 0 0 70px rgba(255,59,78,.5)}
+main{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:var(--s4) 14px 48px;min-height:100vh;display:flex;flex-direction:column;gap:var(--s3)}
+section{display:flex;flex-direction:column;gap:var(--s3)}
+.hidden{display:none!important}
+
+/* type */
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.display{font-family:'Share Tech Mono',monospace;font-size:30px;line-height:1.08;color:var(--g);margin:0}
+.h2{font-family:'Share Tech Mono',monospace;font-size:22px;line-height:1.15;color:var(--g);margin:0}
+.h3{font-size:13px;font-weight:600;color:var(--txt);margin:0}
+p{margin:0;font-size:13px;line-height:1.6}
+.small{font-size:11px;color:var(--mute)}
+a{color:var(--g)}
+
+/* hud */
+.hud{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mute)}
+.hud .xp{color:var(--bg);background:var(--g);padding:2px 8px;font-weight:600}
+.dots{display:flex;gap:6px}.dots i{width:22px;height:4px;background:var(--g4)}.dots i.on{background:var(--g)}
+
+/* panels */
+.panel{position:relative;border:1px solid var(--g3);background:var(--panel);padding:var(--s4);display:flex;flex-direction:column;gap:var(--s2)}
+.panel.hl{border-color:var(--g)}
+.panel.danger{border-color:var(--red);background:linear-gradient(var(--redbg),var(--redbg)),var(--panel)}
+.panel::before,.panel::after{content:"";position:absolute;width:10px;height:10px;border-color:var(--g)}
+.panel::before{top:-1px;left:-1px;border-top:2px solid;border-left:2px solid}
+.panel::after{bottom:-1px;right:-1px;border-bottom:2px solid;border-right:2px solid}
+.panel.danger::before,.panel.danger::after{border-color:var(--red)}
+.classbar{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.14em;color:var(--bg);background:var(--red);padding:3px 8px;font-weight:600}
+
+/* key-value + facts */
+.kv{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 10px;font-size:12px}
+.kv dt{color:var(--mute)}.kv dd{margin:0;color:var(--txt)}
+.fact{display:flex;gap:10px;align-items:flex-start;font-size:13px}
+.fact svg{flex:none;margin-top:2px}
+.pill{display:inline-block;font-size:10px;font-weight:600;padding:1px 6px;letter-spacing:.06em}
+.pill.r{background:var(--red);color:#fff}.pill.g{background:var(--g);color:var(--bg)}.pill.y{background:var(--y);color:var(--bg)}.pill.o{border:1px solid var(--g3);color:var(--mute)}
+
+/* timeline (briefing) */
+.tl{display:flex;flex-direction:column;gap:0;border-left:1px solid var(--g3);margin-left:6px;padding-left:14px}
+.tl div{position:relative;padding:4px 0 10px;font-size:12px}
+.tl div::before{content:"";position:absolute;left:-19px;top:9px;width:9px;height:9px;background:var(--bg);border:1px solid var(--g)}
+.tl div.r::before{border-color:var(--red);background:var(--red)}
+.tl b{color:var(--g);font-weight:600;display:block;font-size:11px}
+
+/* zone diagram */
+.zone{border:1px dashed var(--g3);padding:10px;display:flex;flex-direction:column;gap:6px}
+.zone .zt{font-size:10px;letter-spacing:.14em;color:var(--mute)}
+.zone.test{border-color:var(--y)}.zone.test .zt{color:var(--y)}
+.zone.corp{border-color:var(--g)}.zone.corp .zt{color:var(--g)}
+.box{border:1px solid var(--g4);background:var(--panel2);padding:6px 8px;font-size:12px;display:flex;align-items:center;gap:8px}
+.arrow{align-self:center;font-size:11px;color:var(--red);letter-spacing:.06em}
+
+/* glossary */
+.term{border:1px solid var(--g4);background:var(--panel2);padding:10px;display:flex;flex-direction:column;gap:4px}
+.term .h3{color:var(--g)}
+
+/* buttons */
+button{font-family:inherit;cursor:pointer;min-height:46px;border-radius:0}
+.btn{width:100%;font-family:'Share Tech Mono',monospace;font-size:17px;letter-spacing:.06em;background:var(--g);color:var(--bg);border:none;padding:13px}
+.btn.red{background:var(--red);color:#fff}
+.btn:disabled{opacity:.5}
+.ghost{background:transparent;color:var(--g);border:1px solid var(--g3);padding:10px 12px;font-size:12px}
+.row2{display:grid;grid-template-columns:1fr 2fr;gap:var(--s2)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2)}
+
+/* act 1 */
+.slots{display:flex;flex-direction:column;gap:6px}
+.slot{border:1px dashed var(--g4);padding:9px 10px;font-size:12px;color:var(--mute);display:flex;gap:8px;align-items:center;min-height:42px}
+.slot .n{color:var(--g3);flex:none}
+.slot.next{border-color:var(--g);color:var(--g2)}
+.slot.filled{border:1px solid var(--g3);background:var(--panel2);color:var(--txt)}.slot.filled .n{color:var(--g)}
+.slot.pz{border:1px solid var(--red);background:var(--redbg)}
+.slot.pickable{cursor:pointer;border-color:var(--y)}
+.slot .tag{margin-left:auto;flex:none}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s2)}
+.card{border:1px solid var(--g4);background:var(--panel);padding:10px;text-align:left;color:var(--txt);font-size:12px;display:flex;flex-direction:column;gap:6px;min-height:84px}
+.card .src{display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.08em;color:var(--mute);text-transform:uppercase}
+.card.sel{border-color:var(--y);box-shadow:0 0 0 1px var(--y)}
+.toast{align-self:center;font-size:12px;padding:6px 12px;font-weight:600;min-height:28px;text-align:center}
+.toast.ok{background:var(--g);color:var(--bg)}.toast.bad{background:var(--red);color:#fff}
+.shake{animation:shake .35s}@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+
+/* act 2 */
+.log{border:1px solid var(--g4);background:var(--panel);padding:10px;font-size:11px;line-height:1.7;min-height:72px;max-height:170px;overflow:auto}
+.log .r{color:var(--red)}.log .k{color:var(--g)}.log .y{color:var(--y)}
+.node{border:1px solid var(--g4);background:var(--panel2);padding:8px 10px;font-size:12px;display:flex;flex-direction:column;gap:5px;transition:background .25s,border-color .25s}
+.node .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.node .mt{font-size:10px;color:var(--mute)}
+.node.breach{border:1px dashed var(--red);background:var(--redbg)}
+.node.block{border:2px solid var(--g);background:rgba(57,255,122,.12)}
+.node.active{border-color:var(--y)}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:10px;border:1px solid var(--g3);color:var(--g2);padding:2px 6px}
+.chip.decoy{border-style:dashed;color:#A9C9B4}
+.link{align-self:center;width:1px;height:10px;background:var(--g3)}
+.deckh{display:flex;justify-content:space-between;align-items:center}
+.deck{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.ctl{border:1px solid var(--g4);background:var(--panel);color:var(--txt);padding:8px 9px;text-align:left;font-size:11px;display:flex;flex-direction:column;gap:4px}
+.ctl .cost{color:var(--g);letter-spacing:1px}
+.ctl .z{font-size:9px;letter-spacing:.1em;color:var(--mute)}
+.ctl.on{border-color:var(--g);background:rgba(57,255,122,.14);color:#fff}
+.meter{height:6px;background:var(--g4);overflow:hidden}.meter>div{height:100%;width:0;background:var(--g);transition:width .4s,background .4s}
+.budget{display:flex;gap:2px}.budget i{width:10px;height:14px;background:var(--g)}.budget i.off{background:transparent;border:1px solid var(--g4)}
+
+/* results */
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s2)}
+.stat{border:1px solid var(--g4);background:var(--panel);padding:10px;display:flex;flex-direction:column;gap:2px}
+.stat .v{font-family:'Share Tech Mono',monospace;font-size:24px;color:var(--g)}
+.stars{display:flex;gap:8px;justify-content:center}
+.stars svg{width:28px;height:28px}
+
+.blink{animation:blink 1s steps(2) infinite}@keyframes blink{50%{opacity:0}}
+.glitch{animation:glitch .4s}@keyframes glitch{25%{transform:translate(-2px,1px)}50%{transform:translate(2px,-1px)}75%{transform:translate(-1px,0)}}
+@media (prefers-reduced-motion: reduce){.shake,.glitch,.blink{animation:none}#edge{transition:none}}
+</style>
+</head>
+<body>
+<canvas id="rain" aria-hidden="true"></canvas>
+<div id="edge" aria-hidden="true"></div>
+<main>
+<div class="hud"><span>root@soc-01:~$</span><span id="act">INTEL</span><span class="xp">XP <span id="xp">0000</span></span></div>
+
+<!-- ================= INTEL BRIEFING (5 pages) ================= -->
+<section id="s-brief">
+<div class="hud"><div class="dots" id="dots"><i class="on"></i><i></i><i></i><i></i><i></i></div><button class="ghost" id="skipBtn" style="min-height:36px;padding:6px 10px">skip intel ›</button></div>
+
+<!-- 1 incident -->
+<div class="bp" data-p="0">
+<div class="panel danger">
+<div class="classbar"><span>INCIDENT ALERT</span><span>SEV 1</span></div>
+<div class="eyebrow">Case 01 · January 12, 2024</div>
+<h1 class="display">Wake up, analyst.</h1>
+<p>Microsoft's security team has detected a nation-state attacker inside its corporate email. Senior leaders' mailboxes have been read.</p>
+<dl class="kv">
+<dt>Victim</dt><dd>Microsoft corporate environment</dd>
+<dt>Discovered</dt><dd>12 Jan 2024</dd>
+<dt>In since</dt><dd class="r" style="color:var(--red)">late Nov 2023 · about 7 weeks</dd>
+<dt>Disclosed</dt><dd>19 Jan 2024 (SEC 8-K)</dd>
+</dl>
+</div>
+<p class="small">Everything in this case comes from Microsoft's own published investigation. Log entries in the game are recreated for training.</p>
+</div>
+
+<!-- 2 actor -->
+<div class="bp hidden" data-p="1">
+<div class="panel">
+<div class="eyebrow">Threat actor profile</div>
+<h2 class="h2">MIDNIGHT_BLIZZARD</h2>
+<dl class="kv">
+<dt>Sponsor</dt><dd>Russian state</dd>
+<dt>Also tracked as</dt><dd>NOBELIUM · APT29 · UNC2452 · Cozy Bear</dd>
+<dt>Goal</dt><dd>Espionage: quiet, long-term intelligence gathering</dd>
+<dt>In this case</dt><dd>Stealthy: misused legitimate sign-ins and app permissions</dd>
+</dl>
+</div>
+<div class="panel">
+<div class="eyebrow">Why this matters to you</div>
+<p>There is no virus to find. The attacker used normal sign-ins and normal app permissions. Your job is to spot legitimate features being misused, which is the hardest kind of attack to see.</p>
+</div>
+</div>
+
+<!-- 3 what we know -->
+<div class="bp hidden" data-p="2">
+<div class="panel">
+<div class="eyebrow">What we know</div>
+<div class="fact"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39FF7A" stroke-width="2" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg><span>Entry was a <b style="color:var(--y)">legacy, non-production test tenant</b> account with <b style="color:var(--red)">no MFA</b>.</span></div>
+<div class="fact"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39FF7A" stroke-width="2" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg><span>The attacker used <b>residential proxies</b> and a <b>low number of attempts</b> to avoid detection.</span></div>
+<div class="fact"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39FF7A" stroke-width="2" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg><span>A small percentage of corporate mailboxes were accessed, including <b>senior leadership, cybersecurity and legal</b>.</span></div>
+<div class="fact"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39FF7A" stroke-width="2" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg><span>They searched for information about <b>Midnight Blizzard itself</b>: what Microsoft knew about them.</span></div>
+</div>
+<div class="panel">
+<div class="eyebrow">Incident timeline</div>
+<div class="tl">
+<div class="r"><b>LATE NOV 2023</b>Attacker gets in. Nobody notices.</div>
+<div class="r"><b>NEXT ~7 WEEKS</b>Undetected access to corporate email.</div>
+<div><b>12 JAN 2024</b>Security team detects the activity.</div>
+<div><b>RESPONSE</b>Attacker's access investigated, disrupted and removed.</div>
+<div><b>19 JAN 2024</b>Public disclosure.</div>
+</div>
+</div>
+</div>
+
+<!-- 4 how it's built -->
+<div class="bp hidden" data-p="3">
+<div class="panel">
+<div class="eyebrow">The battlefield</div>
+<p>Two separate Microsoft tenants. A forgotten test environment had a hidden bridge into the real one.</p>
+<div class="box" style="border-color:var(--red)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF3B4E" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>Internet · residential proxies</div>
+<div class="arrow">▼ password spray</div>
+<div class="zone test"><span class="zt">LEGACY TEST TENANT</span>
+<div class="box">Test account · no MFA</div>
+<div class="box">Legacy-Test-App · elevated access</div>
+</div>
+<div class="arrow">▼ hidden bridge: app had access to the corporate tenant</div>
+<div class="zone corp"><span class="zt">CORPORATE TENANT</span>
+<div class="box">Entra ID · users, apps, consent</div>
+<div class="box">Exchange Online · leadership mailboxes</div>
+</div>
+</div>
+</div>
+
+<!-- 5 concepts + mission -->
+<div class="bp hidden" data-p="4">
+<div class="panel">
+<div class="eyebrow">Field glossary</div>
+<div class="term"><span class="h3">Password spray</span><p>Try a few common passwords against many accounts, slowly, so no single account gets locked out.</p></div>
+<div class="term"><span class="h3">OAuth app</span><p>An app registered in Entra ID that can act with its own permissions, without a user signing in.</p></div>
+<div class="term"><span class="h3">Consent</span><p>Approval that lets an app use permissions. An admin's consent can unlock access across the company.</p></div>
+<div class="term"><span class="h3">full_access_as_app</span><p>An Exchange Online app permission that allows access to mailboxes.</p></div>
+</div>
+<div class="panel hl">
+<div class="eyebrow">Your mission</div>
+<p><b style="color:var(--g)">Act 1 · Investigate:</b> put the evidence in order and find patient zero.</p>
+<p><b style="color:var(--g)">Act 2 · Defend:</b> rewind to October 2023, deploy controls on a budget, and replay the real attack.</p>
+<p class="small">Stars: stop it early, waste nothing on decoys, keep users happy.</p>
+</div>
+</div>
+
+<div class="row2"><button class="ghost" id="backBtn">‹ back</button><button class="btn" id="nextBtn">NEXT ›</button></div>
+</section>
+
+<!-- ================= ACT 1 ================= -->
+<section id="s-act1" class="hidden">
+<div class="panel">
+<div class="eyebrow">Act 1 · Investigate</div>
+<h2 class="h2" id="a1title">Rebuild the timeline</h2>
+<p id="a1help">Tap an evidence card, then add it to the timeline in the order it happened, or mark it as not related.</p>
+</div>
+<div class="slots" id="slots"></div>
+<div class="toast" id="toast1"></div>
+<div id="deckWrap" style="display:flex;flex-direction:column;gap:8px">
+<div class="hud"><span>&gt; ls ./evidence</span><span id="left"></span></div>
+<div class="grid" id="evid"></div>
+<div class="actions"><button class="ghost" id="addBtn">+ add to timeline</button><button class="ghost" id="nrBtn">✕ not related</button></div>
+</div>
+<div id="a1done" class="hidden" style="display:flex;flex-direction:column;gap:12px">
+<div class="panel danger"><div class="eyebrow" style="color:var(--red)">Case finding</div><p id="a1find"></p></div>
+<button class="btn" id="toAct2">&gt; REWIND TO OCTOBER 2023</button>
+</div>
+</section>
+
+<!-- ================= ACT 2 ================= -->
+<section id="s-act2" class="hidden">
+<div class="panel">
+<div class="hud"><span class="eyebrow">Act 2 · Defend</span><span class="budget" id="budget"></span></div>
+<h2 class="h2">Harden the tenant</h2>
+<p>Deploy controls, then run the real attack against your build. You can't afford everything.</p>
+<div class="hud"><span class="small">threat level</span><span class="small" id="threatTxt">idle</span></div>
+<div class="meter"><div id="threat"></div></div>
+</div>
+<div id="map" style="display:flex;flex-direction:column;gap:8px"></div>
+<div class="log" id="log"></div>
+<div class="deckh"><span class="eyebrow">Control deck</span><span class="small">tap to deploy · <span id="bud">10</span> left</span></div>
+<div class="deck" id="deck"></div>
+<button class="btn red" id="runBtn">&gt; EXECUTE ATTACK_SIM</button>
+</section>
+
+<!-- ================= RESULTS ================= -->
+<section id="s-res" class="hidden">
+<div class="panel" id="rPanel" style="text-align:center;align-items:center">
+<div class="eyebrow">Case 01 · Debrief</div>
+<h1 class="display" id="rTitle"></h1>
+<p id="rSub"></p>
+<div class="stars" id="rStars"></div>
+<span class="pill g" id="rRank"></span>
+</div>
+<div class="stats">
+<div class="stat"><span class="small">mailboxes lost</span><span class="v" id="rMail"></span></div>
+<div class="stat"><span class="small">budget used</span><span class="v" id="rBud"></span></div>
+<div class="stat"><span class="small">user friction</span><span class="v" id="rFric"></span></div>
+<div class="stat"><span class="small">decoys bought</span><span class="v" id="rDec"></span></div>
+</div>
+<div class="log" id="rTips"></div>
+<button class="btn" id="retryBtn">&gt; TRY ANOTHER BUILD</button>
+<button class="ghost" id="restartBtn" style="width:100%">./restart --case 01</button>
+<p class="small">Source: <a href="https://www.microsoft.com/en-us/security/blog/2024/01/25/midnight-blizzard-guidance-for-responders-on-nation-state-attack/">Microsoft Security Blog, 25 Jan 2024</a>. Prototype · KEPT Academy.</p>
+</section>
+</main>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let xp=0;
+function addXP(n){xp=Math.max(0,xp+n);$('xp').textContent=String(xp).padStart(4,'0');}
+function flash(){if(reduce)return;const e=$('edge');e.classList.add('on');setTimeout(()=>e.classList.remove('on'),450);}
+
+/* rain */
+const cv=$('rain'),cx=cv.getContext('2d');let cols=[],rainRed=false;
+function size(){cv.width=innerWidth;cv.height=innerHeight;cols=Array(Math.ceil(cv.width/16)).fill(0).map(()=>Math.random()*cv.height/16|0);}
+size();addEventListener('resize',size);
+function rain(){cx.fillStyle='rgba(1,6,3,.2)';cx.fillRect(0,0,cv.width,cv.height);cx.font='14px JetBrains Mono, monospace';
+cols.forEach((y,i)=>{cx.fillStyle=rainRed?'#FF3B4E':'#39FF7A';cx.fillText('0123456789abcdef'[Math.random()*16|0],i*16,y*16);cols[i]=(y*16>cv.height&&Math.random()>.97)?0:y+1;});}
+if(!reduce)setInterval(rain,70);
+
+function show(id,label){['s-brief','s-act1','s-act2','s-res'].forEach(s=>$(s).classList.add('hidden'));$(id).classList.remove('hidden');$('act').textContent=label;scrollTo(0,0);}
+
+/* ===== INTEL ===== */
+let page=0;const pages=[...document.querySelectorAll('.bp')];
+function renderBrief(){pages.forEach((p,i)=>p.classList.toggle('hidden',i!==page));
+[...$('dots').children].forEach((d,i)=>d.classList.toggle('on',i<=page));
+$('backBtn').style.visibility=page?'visible':'hidden';
+$('nextBtn').textContent=page===pages.length-1?'> OPEN THE EVIDENCE':'NEXT ›';scrollTo(0,0);}
+$('nextBtn').onclick=()=>{if(page<pages.length-1){page++;renderBrief();}else startAct1();};
+$('backBtn').onclick=()=>{if(page>0){page--;renderBrief();}};
+$('skipBtn').onclick=startAct1;
+
+/* ===== ACT 1 ===== */
+const ICON={log:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
+mail:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14"/><path d="M3 7l9 6 9-6"/></svg>',
+alert:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>'};
+const EVID=[
+{id:'E1',src:'sign-in log',ic:'log',t:'412 accounts, 1–2 failed logins each, from many home IP addresses',order:1},
+{id:'E2',src:'sign-in log',ic:'log',t:'Login success: svc-test (legacy test tenant), MFA not required',order:2},
+{id:'E3',src:'audit log',ic:'log',t:'New credential added to Legacy-Test-App',order:3},
+{id:'E4',src:'audit log',ic:'log',t:'2 new OAuth apps registered',order:4},
+{id:'E5',src:'audit log',ic:'log',t:'New user created → consent granted to the new apps',order:5},
+{id:'E6',src:'audit log',ic:'log',t:'App role assigned: full_access_as_app (Exchange Online)',order:6},
+{id:'E7',src:'mail activity',ic:'mail',t:'App reading leadership, security and legal mailboxes',order:7},
+{id:'D1',src:'defender alert',ic:'alert',t:'Malware detected on a marketing laptop',order:0},
+{id:'D2',src:'sign-in log',ic:'log',t:'User locked out after forgetting her password',order:0}];
+const HINTS={1:'Look for many accounts with very few attempts each.',2:'Which log shows the first time they actually got in?',3:'Once inside the test tenant, what did they take over?',4:'Next they built their own tools.',5:'Someone had to approve those new apps.',6:'Which permission unlocks the mailboxes?',7:'The goal: email.'};
+let next=1,sel=null,placed=[],phase='order';
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+function renderSlots(){const s=$('slots');s.innerHTML='';
+for(let i=1;i<=7;i++){const e=placed[i-1];const d=document.createElement('div');
+d.className='slot'+(e?' filled':'')+(!e&&i===next&&phase==='order'?' next':'');
+d.innerHTML='<span class="n">'+String(i).padStart(2,'0')+'</span><span>'+(e?e.t:(i===next&&phase==='order'?'awaiting evidence<span class="blink">_</span>':'—'))+'</span>';
+if(e&&phase==='pz'){d.classList.add('pickable');d.setAttribute('role','button');d.tabIndex=0;d.onclick=()=>pickPZ(e);d.onkeydown=ev=>{if(ev.key==='Enter')pickPZ(e);};}
+if(e&&e.pz){d.classList.add('pz');d.insertAdjacentHTML('beforeend','<span class="tag pill r">PATIENT ZERO</span>');}
+s.appendChild(d);}}
+function renderDeck(){const g=$('evid');g.innerHTML='';
+EVID.forEach(e=>{if(e.done)return;const b=document.createElement('button');b.className='card'+(sel===e?' sel':'');
+b.innerHTML='<span class="src">'+ICON[e.ic]+e.src+'</span><span>'+e.t+'</span>';b.onclick=()=>{sel=e;renderDeck();};g.appendChild(b);});
+$('left').textContent=EVID.filter(e=>!e.done).length+' left';}
+function toast(msg,ok){const t=$('toast1');t.textContent=msg;t.className='toast '+(ok?'ok':'bad');}
+function wrong(msg){toast(msg,false);addXP(-20);flash();const s=$('slots');s.classList.remove('shake');void s.offsetWidth;s.classList.add('shake');}
+$('addBtn').onclick=()=>{if(!sel){toast('Select an evidence card first',false);return;}
+if(sel.order===next){sel.done=true;placed.push(sel);next++;addXP(50);toast('+50 XP · sequence valid',true);sel=null;afterMove();}
+else if(sel.order===0)wrong('−20 · not part of this attack');
+else wrong('−20 · wrong order. Hint: '+HINTS[next]);};
+$('nrBtn').onclick=()=>{if(!sel){toast('Select an evidence card first',false);return;}
+if(sel.order===0){sel.done=true;addXP(30);toast('+30 XP · red herring dismissed',true);sel=null;afterMove();}
+else wrong('−20 · this one matters. Look again.');};
+function afterMove(){renderSlots();renderDeck();
+if(EVID.every(e=>e.done)){phase='pz';$('deckWrap').classList.add('hidden');$('a1title').textContent='Find patient zero';
+$('a1help').textContent='Tap the timeline entry that shows the first successful access.';renderSlots();}}
+function pickPZ(e){if(phase!=='pz')return;
+if(e.id==='E2'){e.pz=true;phase='done';addXP(100);toast('+100 XP · patient zero identified',true);renderSlots();
+$('a1title').textContent='Timeline rebuilt';$('a1help').textContent='Seven steps from a forgotten test account to the CEO\'s inbox.';
+$('a1find').textContent='Patient zero was svc-test, a legacy test tenant account with no MFA. The spray used only 1–2 tries per account, so lockouts never fired. From there, an over-privileged test app became the bridge into the corporate tenant.';
+$('a1done').classList.remove('hidden');}
+else wrong('−20 · that is not the first successful access');}
+function startAct1(){shuffle(EVID);renderSlots();renderDeck();show('s-act1','ACT 1');}
+
+/* ===== ACT 2 ===== */
+const ZONES=[{id:'out',name:'OUTSIDE',cls:''},{id:'test',name:'LEGACY TEST TENANT',cls:'test'},{id:'corp',name:'CORPORATE TENANT',cls:'corp'}];
+const STAGES=[
+{n:1,z:'out',name:'Residential proxy swarm',mitre:'T1090'},
+{n:2,z:'test',name:'Password spray on test account',mitre:'T1110.003'},
+{n:3,z:'test',name:'Take over Legacy-Test-App',mitre:'T1078.004'},
+{n:4,z:'corp',name:'Register malicious OAuth apps',mitre:'T1098.003'},
+{n:5,z:'corp',name:'New user · consent to apps',mitre:'T1136.003'},
+{n:6,z:'corp',name:'Grant full_access_as_app',mitre:'T1098.003'},
+{n:7,z:'corp',name:'Read leadership mailboxes',mitre:'T1114.002'}];
+const CTL=[
+{id:'mfa',name:'MFA on all accounts',cost:2,stage:2,fx:'block',fr:0,why:'Spray found the password, but MFA stopped the login.'},
+{id:'decom',name:'Decommission test tenant',cost:2,stage:2,fx:'block',fr:1,why:'No forgotten test tenant, no target.'},
+{id:'idp',name:'ID Protection risk policy',cost:3,stage:2,fx:'detect',fr:1,why:'Risky sign-in flagged. SOC alerted early.'},
+{id:'least',name:'Least privilege for apps',cost:2,stage:6,fx:'block',fr:0,why:'Test app had no right to grant mailbox access.'},
+{id:'consent',name:'Admin consent only',cost:2,stage:5,fx:'block',fr:1,why:'Consent needed approval. Apps never authorized.'},
+{id:'pim',name:'PIM, no standing admin',cost:3,stage:5,fx:'detect',fr:1,why:'Privilege activation triggered an alert.'},
+{id:'appgov',name:'OAuth app governance',cost:3,stage:4,fx:'detect',fr:0,why:'New high-privilege apps raised an alert.'},
+{id:'rbac',name:'Scope app mailbox access',cost:2,stage:7,fx:'limit',fr:0,why:'App could reach only the mailboxes it was scoped to.'},
+{id:'ews',name:'Alert on unusual EWS access',cost:2,stage:7,fx:'detect',fr:0,why:'Mass mailbox reading by an app detected.'},
+{id:'lock',name:'Lockout after 3 tries',cost:1,stage:2,fx:'decoy',fr:1,why:'Spray used only 1–2 tries per account. Lockout never fired.'},
+{id:'geo',name:'Geo-block Russia',cost:1,stage:1,fx:'decoy',fr:0,why:'Residential proxies looked like normal local traffic.'},
+{id:'pwd',name:'Password change every 30 days',cost:1,stage:2,fx:'decoy',fr:1,why:'Spray targets common passwords, not old ones.'},
+{id:'av',name:'Endpoint antivirus upgrade',cost:2,stage:3,fx:'decoy',fr:0,why:'No malware involved. All cloud identity.'},
+{id:'fw',name:'Perimeter firewall rule',cost:2,stage:1,fx:'decoy',fr:0,why:'No network perimeter crossed. All cloud sign-ins.'}];
+let on=new Set(),running=false;
+const stageZone=n=>STAGES.find(s=>s.n===n).z;
+function spent(){let s=0;on.forEach(id=>s+=CTL.find(c=>c.id===id).cost);return s;}
+function renderBudget(){const b=$('budget');b.innerHTML='';for(let i=0;i<10;i++)b.insertAdjacentHTML('beforeend','<i class="'+(i<10-spent()?'':'off')+'"></i>');$('bud').textContent=10-spent();}
+function renderMap(){const m=$('map');m.innerHTML='';
+ZONES.forEach((z,zi)=>{const wrap=document.createElement('div');wrap.className='zone '+z.cls;wrap.innerHTML='<span class="zt">'+z.name+'</span>';
+STAGES.filter(s=>s.z===z.id).forEach((s,i,arr)=>{const d=document.createElement('div');d.className='node';d.id='node'+s.n;
+const chips=CTL.filter(c=>c.stage===s.n&&on.has(c.id)).map(c=>'<span class="chip'+(c.fx==='decoy'?' decoy':'')+'">'+c.name+'</span>').join('');
+d.innerHTML='<div class="top"><span>'+s.n+' · '+s.name+'</span><span class="mt">'+s.mitre+'</span></div>'+(chips?'<div class="chips">'+chips+'</div>':'');
+wrap.appendChild(d);if(i<arr.length-1)wrap.insertAdjacentHTML('beforeend','<div class="link"></div>');});
+m.appendChild(wrap);
+if(zi===1)m.insertAdjacentHTML('beforeend','<div class="arrow">▼ hidden bridge into the corporate tenant</div>');
+else if(zi===0)m.insertAdjacentHTML('beforeend','<div class="arrow">▼ password spray</div>');});}
+function renderCtl(){const k=$('deck');k.innerHTML='';
+CTL.forEach(c=>{const b=document.createElement('button');b.className='ctl'+(on.has(c.id)?' on':'');b.setAttribute('aria-pressed',on.has(c.id));
+b.innerHTML='<span class="z">'+ZONES.find(z=>z.id===stageZone(c.stage)).name.replace('LEGACY ','')+'</span><span>'+(on.has(c.id)?'✓ ':'')+c.name+'</span><span class="cost">'+'█'.repeat(c.cost)+'</span>';
+b.onclick=()=>{if(running)return;if(on.has(c.id))on.delete(c.id);else{if(spent()+c.cost>10){log('<span class="r">[!] over budget: remove a control first</span>');flash();return;}on.add(c.id);}
+renderBudget();renderCtl();renderMap();};k.appendChild(b);});renderBudget();}
+function log(h){const t=$('log');t.insertAdjacentHTML('beforeend','<div>'+h+'</div>');t.scrollTop=t.scrollHeight;}
+function threat(p){const d=$('threat');d.style.width=p+'%';d.style.background=p>66?'var(--red)':p>33?'var(--y)':'var(--g)';$('threatTxt').textContent=p>66?'CRITICAL':p>33?'ELEVATED':p?'LOW':'idle';}
+const wait=ms=>new Promise(r=>setTimeout(r,reduce?60:ms));
+function resetAct2(){$('log').innerHTML='<div>&gt; deploy controls, then execute<span class="blink">_</span></div>';renderMap();renderCtl();threat(0);}
+$('runBtn').onclick=async()=>{if(running)return;running=true;$('runBtn').disabled=true;
+$('log').innerHTML='';renderMap();log('<span class="k">&gt;</span> executing attack_sim :: midnight_blizzard');
+$('map').scrollIntoView({behavior:reduce?'auto':'smooth'});
+let blocked=0,detected=false,limited=false;
+for(const s of STAGES){const node=$('node'+s.n);node.classList.add('active');await wait(700);
+const here=CTL.filter(c=>c.stage===s.n&&on.has(c.id));
+here.filter(c=>c.fx==='decoy').forEach(c=>log('<span class="y">[~] '+c.name+':</span> no effect. '+c.why));
+const det=here.find(c=>c.fx==='detect');if(det){detected=true;log('<span class="k">[+] detected:</span> '+det.why);}
+const lim=here.find(c=>c.fx==='limit');if(lim){limited=true;log('<span class="k">[+] limited:</span> '+lim.why);}
+const blk=here.find(c=>c.fx==='block');node.classList.remove('active');
+if(blk){node.classList.add('block');node.querySelector('.top').insertAdjacentHTML('beforeend','<span class="pill g">✓ BLOCKED</span>');
+log('<span class="k">[✓] blocked at stage '+s.n+':</span> '+blk.why);blocked=s.n;rainRed=false;threat(Math.round(s.n/7*50));break;}
+node.classList.add('breach');node.querySelector('.top').insertAdjacentHTML('beforeend','<span class="pill r">✕ BREACHED</span>');
+if(s.n>1){log('<span class="r">[!!] intrusion · stage '+s.n+' · '+s.name+'</span>');flash();node.classList.add('glitch');rainRed=true;}
+threat(Math.round(s.n/7*100));}
+await wait(1000);rainRed=false;showResults(blocked,detected,limited);running=false;$('runBtn').disabled=false;};
+
+const STAR='<svg viewBox="0 0 24 24" fill="FILL" stroke="STROKE" stroke-width="1.5" stroke-linejoin="round" role="img" aria-label="LBL"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>';
+function showResults(blocked,detected,limited){
+let mail,stars,title,sub;
+if(blocked){mail='0';stars=blocked<=2?3:2;title='Breach stopped';sub='Attack chain broken at stage '+blocked+' of 7.';}
+else if(detected||limited){mail=detected&&limited?'FEW':'SOME';stars=1;title='Breach contained';sub='They reached the mailboxes, but you '+(detected?'caught them early.':'limited the damage.');}
+else{mail='MANY';stars=0;title='Breach succeeded';sub='Like the real incident: weeks of mailbox access before anyone noticed.';}
+const dec=[...on].filter(id=>CTL.find(c=>c.id===id).fx==='decoy').length;
+let fr=0;on.forEach(id=>fr+=CTL.find(c=>c.id===id).fr);
+addXP(stars*150);
+$('rPanel').className='panel'+(stars?' hl':' danger');
+$('rTitle').textContent=title;$('rTitle').style.color=stars?'var(--g)':'var(--red)';$('rSub').textContent=sub;
+let h='';for(let i=0;i<3;i++)h+=i<stars?STAR.replace('FILL','#39FF7A').replace('STROKE','#39FF7A').replace('LBL','Star earned'):STAR.replace('FILL','none').replace('STROKE','#2F8F4E').replace('LBL','Star not earned');
+$('rStars').innerHTML=h;
+$('rRank').textContent='CLEARANCE · '+['INTERN','ANALYST','ENGINEER','ARCHITECT'][stars];$('rRank').className='pill '+(stars?'g':'r');
+$('rMail').textContent=mail;$('rMail').style.color=mail==='0'?'var(--g)':'var(--red)';
+$('rBud').textContent=String(spent()).padStart(2,'0')+'/10';
+$('rFric').textContent=fr<=1?'LOW':fr<=3?'MED':'HIGH';
+$('rDec').textContent=String(dec).padStart(2,'0');$('rDec').style.color=dec?'var(--y)':'var(--g)';
+const tips=[];
+if(stars<3)tips.push('<span class="k">&gt;</span> For 3 stars, stop it at stage 2. One control on the test account keeps them out.');
+if(dec)tips.push('<span class="y">&gt;</span> '+dec+' decoy(s) cost budget but did nothing against this attack.');
+if(fr>3)tips.push('<span class="y">&gt;</span> High friction: users will push back. Find a lighter build.');
+tips.push('<span class="k">&gt;</span> Microsoft\'s published guidance focused on MFA, auditing and least privilege for OAuth apps, and monitoring app consent and mailbox access.');
+$('rTips').innerHTML=tips.map(t=>'<div>'+t+'</div>').join('');
+show('s-res','DEBRIEF');}
+
+$('toAct2').onclick=()=>{resetAct2();show('s-act2','ACT 2');};
+$('retryBtn').onclick=()=>{resetAct2();show('s-act2','ACT 2');};
+$('restartBtn').onclick=()=>{xp=0;addXP(0);next=1;sel=null;placed=[];phase='order';EVID.forEach(e=>{e.done=false;e.pz=false;});on.clear();
+$('deckWrap').classList.remove('hidden');$('a1done').classList.add('hidden');$('a1title').textContent='Rebuild the timeline';
+$('a1help').textContent='Tap an evidence card, then add it to the timeline in the order it happened, or mark it as not related.';$('toast1').textContent='';$('toast1').className='toast';
+page=0;renderBrief();show('s-brief','INTEL');};
+renderBrief();
+})();
+</script>
+</body>
+</html>

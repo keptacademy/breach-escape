@@ -12,6 +12,9 @@ An installable web app (PWA) where Klar, a living drop of liquid glass, replays 
 | `styles.css` | The glass look, layout and all animations. |
 | `levels.js` | **The content.** One entry per breach: stages, answer choices, explanations, sources. |
 | `app.js` | The game: Breach Map, level intro, play screen, results, saved progress. |
+| `case.js` / `case.css` | **v2 case engine** (terminal look): Intel briefing and Act 1 Investigate (evidence board, timeline, patient zero). Reads a level JSON file. |
+| `levels/*.json` | **v2 level data.** One file per breach (briefing, evidence, timeline, map, controls). A level in `levels.js` opts in with `case: 'levels/<id>.json'`; its classic `stages` stay as the quiz. |
+| `docs/redesign/` | v2 spec and prototype. Not served: blocked with a 404 route in `staticwebapp.config.json`. |
 | `manifest.webmanifest` | Makes it installable ("Add to Home Screen"), with name, colors and icons. |
 | `sw.js` | Service worker: caches the app so it works offline. |
 | `icons/` | Klar app icons (192, 512, maskable, Apple touch icon). |
