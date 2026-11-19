@@ -1,4 +1,4 @@
-/* Breach Escape v2 case engine: Intel briefing -> Act 1 Investigate (-> Act 2 Defend, not built yet).
+/* Breach Escape v2 case engine: Intel briefing -> Act 1 Investigate -> Act 2 Defend -> Results.
    Level content comes from a JSON file (see levels/midnight-blizzard.json), so every breach can reuse this engine.
    CSP-safe: no inline script or style attributes, no innerHTML, text via textContent only, same-origin fetch only. */
 (function () {
@@ -370,7 +370,19 @@
         rich(c.e.title, h('span', {}), false)
       ]);
       c.el = b;
-      attachDrag(b, c);
+      attachDrag(b, {
+        can: function () { return A.phase === 'order'; },
+        pick: function () { A.sel = c; },
+        click: function () { select(c); },
+        targets: function () { return [E.slots, E.add, E.nr]; },
+        drop: function (t) {
+          A.sel = c;
+          var kind = t && t.getAttribute('data-drop');
+          if (kind === 'timeline') place();
+          else if (kind === 'nr') dismiss();
+          else { drawAct1(); restart(c.el, 'c-shake'); }   // dropped nowhere: wobble back, stay selected
+        }
+      });
       E.grid.appendChild(b);
     });
     var left = A.cards.filter(function (c) { return !c.done; }).length;
@@ -494,37 +506,388 @@
     });
     box.appendChild(panel('', [eyebrow('The real timeline'), tl]));
 
-    var act2Ready = d.status && d.status.act2 === 'ready';
-    box.appendChild(panel('hl', [eyebrow('Next'), para(d.rewind),
-      act2Ready ? null : h('p', { class: 'c-small', text: 'Act 2 (Defend) is still in the lab. Until it ships, you can defend in the classic quiz.' })]));
-    box.appendChild(h('button', { class: 'c-btn', disabled: !act2Ready, text: act2Ready ? '> REWIND TO OCTOBER 2023' : '> REWIND TO OCTOBER 2023 \u00b7 SOON' }));
-    box.appendChild(h('button', { class: 'c-ghost c-wide', text: '> defend in classic mode', onclick: function () { BE.startClassic(C.L.id); } }));
+    box.appendChild(panel('hl', [eyebrow('Next \u00b7 Act 2'), para(d.rewind)]));
+    box.appendChild(h('button', { class: 'c-btn', text: d.act2.rewindButton, onclick: startAct2 }));
     box.appendChild(h('button', { class: 'c-ghost c-wide', text: './replay --act 1', onclick: function () { C.xp = 0; startAct1(); } }));
     box.appendChild(sourcesLine());
     box.scrollIntoView({ behavior: BE.reduceMotion() ? 'auto' : 'smooth', block: 'start' });
   }
   function stat(label, v, t) { return h('div', { class: 'c-stat' }, [h('span', { class: 'c-small', text: label }), tone(h('span', { class: 'c-v', text: v }), t)]); }
 
-  /* ---------- drag and drop (Pointer Events; tap-to-select + buttons stay as the fallback) ---------- */
+  /* ---------- Act 2: Defend (defense map + control deck + replay) ----------
+     Everything comes from the level JSON: map zones/stages, controls (cost, stage, effect, friction, why),
+     budget, star rules, outcomes, tips and log lines. Effects: block | detect | limit | decoy. */
+  var B = null, F = {};   // Act 2 state (the build survives "try another build") and element refs
+  function fmt(t, v) { return String(t || '').replace(/\{(\w+)\}/g, function (_, k) { return v && v[k] != null ? v[k] : ''; }); }
+  function ctl(id) { return C.d.controls.filter(function (c) { return c.id === id; })[0]; }
+  function stageOf(n) { return C.d.map.stages.filter(function (s) { return s.n === n; })[0]; }
+  function zoneOf(id) { return C.d.map.zones.filter(function (z) { return z.id === id; })[0]; }
+  function ctlZone(c) { return zoneOf(stageOf(c.stage).zone); }
+  // ATT&CK codes for a stage: the Act 1 timeline is the single source, so both acts always match.
+  function stageCodes(n) {
+    var t = (C.d.timeline || []).filter(function (x) { return x.stage === n; })[0];
+    return (t && t.mitre) || stageOf(n).mitre || [];
+  }
+  function deployed() { return C.d.controls.filter(function (c) { return B.on.indexOf(c.id) >= 0; }); }
+  function spent() { return deployed().reduce(function (a, c) { return a + c.cost; }, 0); }
+  function left() { return C.d.budget - spent(); }
+
+  function startAct2() {
+    if (!B) B = { on: [] };
+    if (C.xpAct1 == null) C.xpAct1 = C.xp;
+    C.xp = C.xpAct1;            // each run scores on its own; Act 1 XP is kept
+    B.running = false;
+    renderAct2();
+  }
+
+  function renderAct2() {
+    var a2 = C.d.act2, rec = caseRec();
+    frame('ACT 2');
+    app.classList.add('c-a2screen', 'c-fit');
+    BE.onLeave(stopRun);
+
+    F.title = h('h2', { class: 'c-h2', text: a2.title });
+    var helpBox = h('div', { class: 'c-helpbox', id: 'c-help2', hidden: true }, [para(a2.help)]);
+    var helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How to play', 'aria-expanded': 'false', 'aria-controls': 'c-help2', text: '?', onclick: function () {
+      var open = helpBox.hidden; helpBox.hidden = !open; helpBtn.setAttribute('aria-expanded', String(open));
+    } });
+    var best = rec.act2 && rec.act2.bestStars != null ? h('span', { class: 'c-small c-best', text: 'best ' + rec.act2.bestStars + '/3 ★' }) : null;
+    F.threat = h('div', { class: 'c-meterfill' });
+    F.threatTxt = h('span', { class: 'c-small c-threattxt', text: 'idle' });
+    F.meter = h('div', { class: 'c-meter', role: 'progressbar', 'aria-label': 'Threat level', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': '0' }, [F.threat]);
+    app.appendChild(panel('c-head', [
+      h('div', { class: 'c-headrow' }, [h('div', { class: 'c-headtxt' }, [eyebrow('Act 2 · Defend'), F.title]), best, helpBtn]),
+      para(a2.short, 'c-line'), helpBox,
+      h('div', { class: 'c-threatrow' }, [h('span', { class: 'c-small', text: 'threat level' }), F.meter, F.threatTxt])
+    ]));
+
+    F.map = h('div', { class: 'c-map' });
+    F.log = h('div', { class: 'c-log', role: 'log', 'aria-label': 'Attack log', 'aria-live': 'polite' });
+    F.deck = h('div', { class: 'c-ctlgrid', role: 'group', 'aria-label': 'Control deck' });
+    F.count = h('span', {});
+    var mapBox = F.mapBox = h('div', { class: 'c-a2map' }, [h('div', { class: 'c-hud' }, [h('span', { text: '> map ./tenants' }), h('span', { class: 'c-small', text: 'drop controls on a stage' })]), F.map]);
+    var deckBox = h('div', { class: 'c-deck c-a2deck' }, [h('div', { class: 'c-hud' }, [h('span', { text: '> ls ./controls' }), F.count]), h('div', { class: 'c-gridwrap' }, [F.deck])]);
+    F.main = h('div', { class: 'c-a2' }, [mapBox, F.log, deckBox]);
+    app.appendChild(F.main);
+    app.appendChild(defBox);
+
+    // Pinned bar: budget + last message, reset, EXECUTE.
+    F.budget = h('span', { class: 'c-budget', 'aria-hidden': 'true' });
+    F.left = h('span', { class: 'c-budgetnum' });
+    F.msg = h('span', { class: 'c-msg', role: 'status', 'aria-live': 'polite' });
+    F.status = h('div', { class: 'c-status' }, [h('div', { class: 'c-budgetrow' }, [F.budget, F.left]), F.msg]);
+    F.clear = h('button', { class: 'c-ghost c-clear', text: 'reset build', onclick: function () {
+      if (B.running || !B.on.length) return;
+      B.on = []; say('k', fmt('[-] build cleared')); drawAct2();
+    } });
+    F.run = h('button', { class: 'c-btn red c-run', text: '> EXECUTE ATTACK_SIM', onclick: runAttack });
+    app.appendChild(h('div', { class: 'c-bar c-a2bar', role: 'toolbar', 'aria-label': 'Build actions' }, [h('div', { class: 'c-bar-in' }, [F.status, F.clear, F.run])]));
+
+    F.log.appendChild(h('div', {}, [a2.logs.idle, h('span', { class: 'c-blink', text: '_' })]));
+    threat(0);
+    drawAct2();
+  }
+
+  function drawAct2() { drawMap(); drawDeck(); drawBudget(); }
+
+  function drawMap() {
+    var links = C.d.map.links || {};
+    F.map.textContent = ''; F.nodes = {};
+    C.d.map.zones.forEach(function (z) {
+      var wrap = tone(h('div', { class: 'c-zone c-mzone' }, [h('span', { class: 'c-zt', text: z.name })]), z.tone);
+      var list = C.d.map.stages.filter(function (s) { return s.zone === z.id; });
+      list.forEach(function (s, i) {
+        var chips = deployed().filter(function (c) { return c.stage === s.n; }).map(function (c) { return rich(c.name, h('span', { class: 'c-chip' }), false); });
+        var codes = h('span', { class: 'c-chips' }, stageCodes(s.n).map(function (m) { return h('span', { class: 'c-mt', text: m }); }));
+        var node = h('div', { class: 'c-node', 'data-drop': 'stage', 'data-n': String(s.n), 'data-zone': z.id }, [
+          h('div', { class: 'c-ntop' }, [h('span', { class: 'c-nname' }, [h('b', { class: 'c-nn', text: s.n + ' · ' }), rich(s.name, null, false)]), codes]),
+          chips.length ? h('div', { class: 'c-chips c-nchips' }, chips) : null
+        ]);
+        F.nodes[s.n] = node;
+        wrap.appendChild(node);
+        if (i < list.length - 1) wrap.appendChild(h('div', { class: 'c-link', 'aria-hidden': 'true' }));
+      });
+      F.map.appendChild(wrap);
+      if (links[z.id]) F.map.appendChild(h('div', { class: 'c-arrow', text: links[z.id] }));
+    });
+  }
+  function bars(n, cls) { var b = h('span', { class: cls || 'c-cost', 'aria-hidden': 'true' }); for (var i = 0; i < n; i++) b.appendChild(h('i', {})); return b; }
+  function drawDeck() {
+    F.deck.textContent = '';
+    C.d.controls.forEach(function (c) {
+      var on = B.on.indexOf(c.id) >= 0, z = ctlZone(c);
+      var b = h('button', { class: 'c-ctl' + (on ? ' on' : ''), 'aria-pressed': String(on),
+        'aria-label': plain(c.name) + '. Protects the ' + (z.short || z.name).toLowerCase() + '. Costs ' + c.cost + '.' }, [
+        h('span', { class: 'c-z', text: z.short || z.name }),
+        h('span', { class: 'c-cname' }, [on ? '✓ ' : '', rich(c.name, null, false)]),
+        h('span', { class: 'c-costrow' }, [bars(c.cost), h('span', { class: 'c-small', text: c.cost + ' energy' })])
+      ]);
+      attachDrag(b, {
+        can: function () { return !B.running; },
+        click: function () { toggle(c); },
+        targets: function () { return Object.keys(F.nodes || {}).map(function (k) { return F.nodes[k]; }); },
+        drop: function (t, el) { dropCtl(c, t, el); }
+      });
+      F.deck.appendChild(b);
+    });
+    F.count.textContent = B.on.length + ' deployed';
+  }
+  function drawBudget() {
+    var l = left();
+    F.budget.textContent = '';
+    for (var i = 0; i < C.d.budget; i++) F.budget.appendChild(h('i', { class: i < l ? '' : 'off' }));
+    F.left.textContent = l + ' / ' + C.d.budget + ' energy left';
+    F.clear.disabled = B.running || !B.on.length;
+    F.run.disabled = B.running;
+  }
+  function say(cls, text) {
+    F.msg.textContent = ''; F.msg.className = 'c-msg t-' + cls; rich(text, F.msg, false);
+    logLine(cls, text);
+  }
+  function logLine(cls, strong, rest) {
+    if (F.log.querySelector('.c-blink')) F.log.textContent = '';
+    var line = h('div', {}, [rich(strong, h('span', { class: 't-' + cls }), false)]);
+    if (rest) { line.appendChild(document.createTextNode(' ')); rich(rest, line, false); }
+    F.log.appendChild(line);
+    F.log.scrollTop = F.log.scrollHeight;
+  }
+  function toggle(c) {
+    if (B.running) return;
+    var logs = C.d.act2.logs, i = B.on.indexOf(c.id);
+    if (i >= 0) { B.on.splice(i, 1); say('k', fmt(logs.removed, { name: c.name })); }
+    else if (c.cost > left()) { overBudget(c); return; }
+    else { B.on.push(c.id); say('k', fmt(logs.deployed, { name: c.name, n: c.stage })); }
+    drawAct2();
+  }
+  function overBudget(c) {
+    say('red', fmt(C.d.act2.logs.overBudget, { name: c.name, cost: c.cost, left: left() }));
+    flash(); restart(F.status, 'c-shake');
+  }
+  function dropCtl(c, t, el) {
+    if (!t || t.getAttribute('data-drop') !== 'stage') { restart(el, 'c-shake'); return; }
+    var z = ctlZone(c);
+    if (t.getAttribute('data-zone') !== z.id) {
+      say('red', fmt(C.d.act2.logs.wrongZone, { name: c.name, zone: (z.short || z.name).toLowerCase() }));
+      restart(t, 'c-shake'); return;
+    }
+    if (B.on.indexOf(c.id) < 0) toggle(c);
+  }
+  function threat(p) {
+    F.threat.style.width = p + '%';
+    var lvl = p > 66 ? 'crit' : p > 33 ? 'elev' : p ? 'low' : '';
+    F.threat.className = 'c-meterfill' + (lvl ? ' ' + lvl : '');
+    F.threatTxt.textContent = { crit: 'CRITICAL', elev: 'ELEVATED', low: 'LOW' }[lvl] || 'idle';
+    F.meter.setAttribute('aria-valuenow', String(p));
+  }
+
+  // The attack against the current build, worked out in full before anything animates.
+  function simulate() {
+    var on = deployed(), out = { steps: [], blocked: 0, detected: false, limited: false };
+    C.d.map.stages.forEach(function (s) {
+      if (out.blocked) return;
+      var here = on.filter(function (c) { return c.stage === s.n; });
+      var st = {
+        s: s,
+        decoys: here.filter(function (c) { return c.effect === 'decoy'; }),
+        detect: here.filter(function (c) { return c.effect === 'detect'; })[0],
+        limit: here.filter(function (c) { return c.effect === 'limit'; })[0],
+        block: here.filter(function (c) { return c.effect === 'block'; })[0]
+      };
+      if (st.detect) out.detected = true;
+      if (st.limit) out.limited = true;
+      if (st.block) out.blocked = s.n;
+      out.steps.push(st);
+    });
+    return out;
+  }
+  function score(res) {
+    var a2 = C.d.act2, on = deployed(), total = C.d.map.stages.length, o = a2.outcomes;
+    var decoys = on.filter(function (c) { return c.effect === 'decoy'; }).length;
+    var fr = on.reduce(function (a, c) { return a + (c.friction || 0); }, 0);
+    var r = { decoys: decoys, friction: fr, spent: spent(), total: total };
+    if (res.blocked) {
+      r.stars = res.blocked <= a2.threeStarMaxStage && !decoys ? 3 : 2;
+      r.title = o.blocked.title; r.sub = fmt(o.blocked.sub, { n: res.blocked, total: total }); r.mail = o.blocked.mail;
+    } else if (res.detected || res.limited) {
+      r.stars = 1; r.title = o.contained.title;
+      r.sub = res.detected ? o.contained.subDetected : o.contained.subLimited;
+      r.mail = res.detected && res.limited ? o.contained.mailBoth : o.contained.mailOne;
+    } else { r.stars = 0; r.title = o.succeeded.title; r.sub = o.succeeded.sub; r.mail = o.succeeded.mail; }
+    r.frictionLabel = fr <= a2.friction.low ? 'LOW' : fr <= a2.friction.medium ? 'MED' : 'HIGH';
+    r.rank = C.d.ranks[r.stars];
+    return r;
+  }
+
+  function runAttack() {
+    if (B.running) return;
+    var a2 = C.d.act2, res = simulate();
+    B.running = true; app.classList.add('c-running'); drawBudget();
+    // Reduced motion: no animation. The results screen lists every stage instead.
+    if (BE.reduceMotion()) { finishRun(res); return; }
+    drawMap();
+    F.log.textContent = '';
+    say('k', '> ' + fmt(a2.logs.start, { sim: a2.simName }));
+    if (window.matchMedia('(max-width: 899px)').matches) F.map.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else F.mapBox.scrollTop = 0;
+    var i = 0, total = C.d.map.stages.length;
+    (function next() {
+      var st = res.steps[i], node = F.nodes[st.s.n];
+      node.classList.add('active');
+      follow(node);
+      B.timer = setTimeout(function () {
+        node.classList.remove('active');
+        showStep(st, node, total);
+        follow(node);
+        if (++i >= res.steps.length) { B.timer = setTimeout(function () { finishRun(res); }, 1000); return; }
+        next();
+      }, a2.stepMs);
+    })();
+  }
+  // Keep the stage under attack visible: scroll the map panel on desktop, the page on phones.
+  function follow(node) {
+    var box = F.mapBox;
+    if (box.scrollHeight > box.clientHeight + 1) {
+      var r = node.getBoundingClientRect(), b = box.getBoundingClientRect();
+      if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom + 8;
+      else if (r.top < b.top) box.scrollTop -= b.top - r.top + 8;
+    } else node.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  function pill(node, cls, text) { node.querySelector('.c-ntop').appendChild(h('span', { class: 'c-pill ' + cls, text: text })); }
+  function showStep(st, node, total) {
+    var L = C.d.act2.logs, n = st.s.n;
+    st.decoys.forEach(function (c) { logLine('y', fmt(L.decoy, { name: c.name }), c.why); });
+    if (st.detect) { logLine('k', fmt(L.detect, { n: n }), st.detect.why); pill(node, 'y', '! DETECTED'); }
+    if (st.limit) { logLine('k', fmt(L.limit, { n: n }), st.limit.why); pill(node, 'y', '◐ LIMITED'); }
+    if (st.block) {
+      node.classList.add('block'); pill(node, 'g', '✓ BLOCKED');
+      logLine('k', fmt(L.block, { n: n }), st.block.why);
+      rain.red = false; threat(Math.round(n / total * 50));
+      return;
+    }
+    node.classList.add('breach'); pill(node, 'r', '✕ BREACHED');
+    logLine('red', fmt(L.breach, { n: n, stage: st.s.name }));
+    flash(); restart(node, 'c-glitch'); rain.red = true;
+    threat(Math.round(n / total * 100));
+  }
+  function stopRun() {
+    if (B && B.timer) { clearTimeout(B.timer); B.timer = null; }
+    if (B) B.running = false;
+    rain.red = false;
+  }
+  function finishRun(res) {
+    stopRun();
+    var r = score(res), rec = caseRec(), prev = rec.act2 || {};
+    C.xp = C.xpAct1 + r.stars * C.d.act2.xpPerStar;
+    rec.act2 = {
+      bestStars: Math.max(r.stars, prev.bestStars || 0),
+      bestBuild: r.stars >= (prev.bestStars || 0) ? B.on.slice() : prev.bestBuild,
+      lastStars: r.stars,
+      runs: (prev.runs || 0) + 1
+    };
+    BE.saveProgress();
+    renderResults(res, r, prev.bestStars);
+  }
+
+  /* ---------- Results ---------- */
+  function starRow(n) {
+    var row = h('div', { class: 'c-stars', role: 'img', 'aria-label': n + ' of 3 stars' });
+    for (var i = 0; i < 3; i++) {
+      var s = document.createElementNS(SVGNS, 'svg');
+      s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true'); s.setAttribute('class', i < n ? 'on' : '');
+      var p = document.createElementNS(SVGNS, 'path');
+      p.setAttribute('d', 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z');
+      s.appendChild(p); row.appendChild(s);
+    }
+    return row;
+  }
+  function renderResults(res, r, prevBest) {
+    var a2 = C.d.act2, d = C.d, total = r.total;
+    frame('DEBRIEF');
+    app.classList.add('c-resscreen');
+    var good = r.stars > 0;
+    var newBest = prevBest == null || r.stars > prevBest;
+    app.appendChild(panel((good ? 'hl' : 'danger') + ' c-rescard', [
+      eyebrow('Case ' + d.caseNo + ' · Debrief'),
+      h('h1', { class: 'c-display' + (good ? '' : ' t-red'), text: r.title }),
+      para(r.sub),
+      starRow(r.stars),
+      h('span', { class: 'c-pill ' + (good ? 'g' : 'r'), text: 'CLEARANCE · ' + r.rank }),
+      h('p', { class: 'c-small', text: newBest ? 'New best for this case.' : 'Best so far: ' + caseRec().act2.bestStars + '/3 stars.' })
+    ]));
+    app.appendChild(h('div', { class: 'c-stats' }, [
+      stat('mailboxes lost', r.mail, r.mail === a2.outcomes.blocked.mail ? '' : 'red'),
+      stat('budget used', pad(r.spent, 2) + '/' + d.budget),
+      stat('user friction', r.frictionLabel, r.frictionLabel === 'LOW' ? '' : 'y'),
+      stat('decoys bought', pad(r.decoys, 2), r.decoys ? 'y' : '')
+    ]));
+
+    var tips = [];
+    if (r.stars < 3) tips.push(['k', res.blocked && res.blocked <= a2.threeStarMaxStage && r.decoys ? a2.tips.decoyStar : a2.tips.notThree]);
+    if (r.decoys) tips.push(['y', fmt(a2.tips.decoys, { n: r.decoys })]);
+    if (r.frictionLabel === 'HIGH') tips.push(['y', a2.tips.friction]);
+    tips.push(['k', a2.tips.always]);
+    var tipBox = h('div', { class: 'c-log c-tips' });
+    tips.forEach(function (t) { tipBox.appendChild(h('div', {}, [h('span', { class: 't-' + t[0], text: '> ' }), rich(t[1], null, false)])); });
+    app.appendChild(panel('', [eyebrow('Tips'), tipBox]));
+
+    // Stage by stage: the same results the replay animated (and the only view with reduced motion).
+    var list = h('ol', { class: 'c-replay' });
+    res.steps.forEach(function (st) {
+      var n = st.s.n, li = h('li', { class: st.block ? 'block' : 'breach' }, [
+        h('div', { class: 'c-hud' }, [h('b', {}, [n + ' · ', rich(st.s.name, null, false)]),
+          h('span', { class: 'c-pill ' + (st.block ? 'g' : 'r'), text: st.block ? '✓ BLOCKED' : '✕ BREACHED' })])
+      ]);
+      st.decoys.forEach(function (c) { li.appendChild(h('p', { class: 'c-why' }, [h('span', { class: 't-y', text: '[~] ' }), rich(c.name, null, false), ': no effect. ', rich(c.why, null, false)])); });
+      [['detect', 'detected'], ['limit', 'limited'], ['block', 'blocked']].forEach(function (k) {
+        var c = st[k[0]]; if (c) li.appendChild(h('p', { class: 'c-why' }, [h('span', { class: 't-g', text: '[+] ' + k[1] + ' by ' }), rich(c.name, null, false), ': ', rich(c.why, null, false)]));
+      });
+      list.appendChild(li);
+    });
+    if (!res.blocked) list.appendChild(h('li', { class: 'breach' }, [h('p', { class: 'c-why' }, ['Attack completed: all ' + total + ' stages ran.'])]));
+    app.appendChild(panel('', [eyebrow('Replay · stage by stage'), list]));
+
+    // The build, with what each control actually did and the lesson behind it.
+    var build = h('ul', { class: 'c-buildlist' });
+    deployed().forEach(function (c) {
+      build.appendChild(h('li', {}, [
+        h('div', { class: 'c-hud' }, [rich(c.name, h('b', {}), false), h('span', { class: 'c-pill ' + (c.effect === 'decoy' ? 'y' : 'o'), text: c.effect.toUpperCase() })]),
+        h('p', { class: 'c-why' }, [rich(c.why, null, false), c.teach ? ' ' + c.teach : ''])
+      ]));
+    });
+    if (!B.on.length) build.appendChild(h('li', {}, [h('p', { class: 'c-why', text: 'No controls deployed.' })]));
+    app.appendChild(panel('', [eyebrow('Your build · ' + B.on.length + ' controls'), build]));
+
+    app.appendChild(h('button', { class: 'c-btn', text: '> TRY ANOTHER BUILD', onclick: startAct2 }));
+    app.appendChild(h('button', { class: 'c-ghost c-wide', text: './restart --case ' + d.caseNo, onclick: restartCase }));
+    app.appendChild(sourcesLine());
+  }
+  function restartCase() {
+    C.xp = 0; C.xpAct1 = null; A = null; B = null;
+    renderBrief(0);
+  }
+
+  /* ---------- drag and drop (Pointer Events; tap + buttons stay as the fallback) ----------
+     attachDrag(el, o): o.can() may start, o.pick() on lift, o.click() on a plain tap,
+     o.targets() lists drop zones to highlight, o.drop(zoneOrNull, el) on release. Zones carry data-drop. */
   var D = null;
-  function attachDrag(el, c) {
+  function attachDrag(el, o) {
     el.addEventListener('pointerdown', function (e) {
-      if (A.phase !== 'order' || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      if (!o.can() || (e.pointerType === 'mouse' && e.button !== 0)) return;
       endDrag();
-      D = { c: c, el: el, id: e.pointerId, x: e.clientX, y: e.clientY, on: false, moved: false, type: e.pointerType, hold: null };
-      // Touch and pen: a short press-and-hold picks the card up, so normal swipes still scroll the page.
+      D = { o: o, el: el, id: e.pointerId, x: e.clientX, y: e.clientY, on: false, moved: false, type: e.pointerType, hold: null };
+      // Touch and pen: a short press-and-hold picks the item up, so normal swipes still scroll the page.
       if (e.pointerType !== 'mouse') D.hold = setTimeout(function () { if (D && !D.moved) beginDrag(e.clientX, e.clientY); }, 260);
     });
     el.addEventListener('click', function (e) {
       if (el._dragged) { el._dragged = false; e.preventDefault(); return; }
-      select(c);
+      o.click();
     });
   }
   function beginDrag(x, y) {
     if (!D || D.on) return;
     D.on = true;
     try { D.el.setPointerCapture(D.id); } catch (e) { /* not capturable */ }
-    A.sel = D.c;
+    if (D.o.pick) D.o.pick();
     var r = D.el.getBoundingClientRect();
     D.ox = x - r.left; D.oy = y - r.top;
     D.ghost = D.el.cloneNode(true);
@@ -538,7 +901,7 @@
   function moveGhost(x, y) {
     D.ghost.style.transform = 'translate(' + Math.round(x - D.ox) + 'px,' + Math.round(y - D.oy) + 'px)';
     var t = dropAt(x, y);
-    [E.slots, E.add, E.nr].forEach(function (z) { z.classList.toggle('c-over', t === z); });
+    D.o.targets().forEach(function (z) { if (z) z.classList.toggle('c-over', t === z); });
   }
   function dropAt(x, y) {
     var hit = document.elementFromPoint(x, y);
@@ -555,18 +918,15 @@
     e.preventDefault();
     moveGhost(e.clientX, e.clientY);
   });
-  // While a card is held on a touch screen, stop the page from scrolling under the finger.
+  // While an item is held on a touch screen, stop the page from scrolling under the finger.
   document.addEventListener('touchmove', function (e) { if (D && D.on) e.preventDefault(); }, { passive: false });
   document.addEventListener('pointerup', function (e) {
     if (!D || e.pointerId !== D.id) return;
     if (D.on) {
-      var t = dropAt(e.clientX, e.clientY), c = D.c, el = D.el;
+      var t = dropAt(e.clientX, e.clientY), o = D.o, el = D.el;
       el._dragged = true;
       endDrag();
-      A.sel = c;
-      if (t && t.getAttribute('data-drop') === 'timeline') place();
-      else if (t && t.getAttribute('data-drop') === 'nr') dismiss();
-      else { drawAct1(); restart(c.el, 'c-shake'); }   // dropped nowhere: wobble back, stay selected
+      o.drop(t, el);
       setTimeout(function () { el._dragged = false; }, 0);
     } else endDrag();
   });
@@ -576,14 +936,14 @@
     if (D.hold) clearTimeout(D.hold);
     if (D.ghost) D.ghost.remove();
     if (D.el) D.el.classList.remove('c-lifted');
-    [E.slots, E.add, E.nr].forEach(function (z) { if (z) z.classList.remove('c-over'); });
+    D.o.targets().forEach(function (z) { if (z) z.classList.remove('c-over'); });
     document.body.classList.remove('c-dragging');
     D = null;
   }
 
   /* ---------- keyboard: A adds, X marks not related, H asks for a hint ---------- */
   document.addEventListener('keydown', function (e) {
-    if (!A || !app.classList.contains('case') || A.phase !== 'order' || !E.deck || E.deck.hidden || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (!A || !app.classList.contains('c-a1screen') || A.phase !== 'order' || !E.deck || E.deck.hidden || e.altKey || e.ctrlKey || e.metaKey) return;
     var k = e.key.toLowerCase();
     if (k === 'a') { e.preventDefault(); place(); }
     else if (k === 'x') { e.preventDefault(); dismiss(); }

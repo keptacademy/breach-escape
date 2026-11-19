@@ -6,7 +6,7 @@
   "victim": "Microsoft",
   "status": {
     "act1": "ready",
-    "act2": "soon"
+    "act2": "ready"
   },
   "note": "Facts come from the sources below. Evidence rows are recreated for training and are labelled so in the game. Text in backticks is shown as code. Review before publishing.",
   "sources": [
@@ -495,17 +495,20 @@
     "zones": [
       {
         "id": "out",
-        "name": "OUTSIDE"
+        "name": "OUTSIDE",
+        "short": "OUTSIDE"
       },
       {
         "id": "test",
         "name": "LEGACY TEST TENANT",
-        "tone": "y"
+        "tone": "y",
+        "short": "TEST TENANT"
       },
       {
         "id": "corp",
         "name": "CORPORATE TENANT",
-        "tone": "g"
+        "tone": "g",
+        "short": "CORPORATE"
       }
     ],
     "links": {
@@ -516,46 +519,40 @@
       {
         "n": 1,
         "zone": "out",
-        "name": "Residential proxy swarm",
-        "mitre": "T1090"
+        "name": "Password spray from residential proxies"
       },
       {
         "n": 2,
         "zone": "test",
-        "name": "Password spray on test account",
-        "mitre": "T1110.003"
+        "name": "Guessed password works on the test account"
       },
       {
         "n": 3,
         "zone": "test",
-        "name": "Use Legacy-Test-App",
-        "mitre": "T1550.001"
+        "name": "Use Legacy-Test-App"
       },
       {
         "n": 4,
         "zone": "corp",
-        "name": "Register malicious OAuth apps",
-        "mitre": "T1098.001"
+        "name": "Register malicious OAuth apps"
       },
       {
         "n": 5,
         "zone": "corp",
-        "name": "New user · consent to apps",
-        "mitre": "T1136.003"
+        "name": "New user · consent to apps"
       },
       {
         "n": 6,
         "zone": "corp",
-        "name": "Grant `full_access_as_app`",
-        "mitre": "T1098.003"
+        "name": "Grant `full_access_as_app`"
       },
       {
         "n": 7,
         "zone": "corp",
-        "name": "Read leadership mailboxes",
-        "mitre": "T1114.002"
+        "name": "Read leadership mailboxes"
       }
-    ]
+    ],
+    "note": "ATT&CK codes for each stage come from the timeline above, so Act 1 and Act 2 always match."
   },
   "budget": 10,
   "controls": [
@@ -719,5 +716,58 @@
     "EWS",
     "patient zero",
     "tenant"
-  ]
+  ],
+  "act2": {
+    "title": "Harden the tenant",
+    "short": "October 2023. Deploy controls on a budget, then run the real attack against your build.",
+    "help": "Tap a control to deploy or remove it, or drag it onto a stage in the zone it protects. Each control costs energy and the budget is 10, so you can't buy everything. Then execute the attack: it replays stage by stage against your build, and the log explains every result.",
+    "rewindButton": "> REWIND TO OCTOBER 2023",
+    "simName": "midnight_blizzard",
+    "stepMs": 700,
+    "xpPerStar": 150,
+    "threeStarMaxStage": 2,
+    "friction": {
+      "low": 1,
+      "medium": 3
+    },
+    "outcomes": {
+      "blocked": {
+        "title": "Breach stopped",
+        "sub": "Attack chain broken at stage {n} of {total}.",
+        "mail": "0"
+      },
+      "contained": {
+        "title": "Breach contained",
+        "subDetected": "They reached the mailboxes, but you caught them early.",
+        "subLimited": "They reached the mailboxes, but you limited the damage.",
+        "mailBoth": "FEW",
+        "mailOne": "SOME"
+      },
+      "succeeded": {
+        "title": "Breach succeeded",
+        "sub": "Like the real incident: weeks of mailbox access before anyone noticed.",
+        "mail": "MANY"
+      }
+    },
+    "tips": {
+      "notThree": "For 3 stars, stop it at stage 2 with no decoys. One control on the test account keeps them out.",
+      "decoyStar": "You stopped it early, but decoys cost you the third star.",
+      "decoys": "{n} decoy(s) cost budget but did nothing against this attack.",
+      "friction": "High friction: users will push back. Find a lighter build.",
+      "always": "Microsoft's Jan 25 guidance covers two areas: protecting against password spray, and defending against malicious OAuth apps by auditing privileged apps, consent and mailbox access."
+    },
+    "logs": {
+      "idle": "> deploy controls, then execute",
+      "start": "executing attack_sim :: {sim}",
+      "decoy": "[~] {name}: no effect.",
+      "detect": "[+] detected at stage {n}:",
+      "limit": "[+] limited at stage {n}:",
+      "block": "[✓] blocked at stage {n}:",
+      "breach": "[!!] intrusion · stage {n} · {stage}",
+      "overBudget": "[!] over budget: {name} costs {cost}, you have {left} left. Remove a control first.",
+      "wrongZone": "[!] {name} protects the {zone}. Drop it on a stage there.",
+      "deployed": "[+] deployed: {name} → stage {n}",
+      "removed": "[-] removed: {name}"
+    }
+  }
 }
