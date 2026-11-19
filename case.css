@@ -7,7 +7,7 @@
   --c-txt:#D2FFDD; --c-mute:#8FC9A2;
   --c-red:#FF3B4E; --c-redbg:rgba(255,59,78,.13); --c-y:#FFD34D;
   --c-mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  max-width:480px; gap:12px; color:var(--c-txt); font-family:var(--c-mono); font-size:14px; line-height:1.55;
+  max-width:640px; gap:12px; color:var(--c-txt); font-family:var(--c-mono); font-size:14px; line-height:1.55;
   padding-left:14px; padding-right:14px; padding-bottom:calc(48px + env(safe-area-inset-bottom));
 }
 body.case-mode{background:#010603;color:#D2FFDD}
@@ -122,7 +122,6 @@ body.case-mode .c-edge.on{box-shadow:inset 0 0 0 5px #FF3B4E,inset 0 0 70px rgba
 body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-inspect{border:1px solid var(--c-g3);background:var(--c-panel);padding:10px;display:flex;flex-direction:column;gap:6px}
 .c-rows{font-size:11px;line-height:1.6;color:var(--c-g2);overflow-wrap:anywhere}
-.case .c-hintbtn{width:100%;border-style:dashed;color:var(--c-mute)}
 
 .c-toast{align-self:center;font-size:12px;padding:6px 12px;font-weight:600;min-height:28px;text-align:center}
 .c-toast.ok{background:var(--c-g);color:var(--c-bg)}.c-toast.bad{background:var(--c-red);color:#fff}
@@ -142,12 +141,56 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .case .c-why{font-size:12px;color:var(--c-mute)}
 
 /* wide screens: board and evidence side by side */
+/* ---------- Act 1 layout ----------
+   Phone: compact intro, timeline (folds to the current slot), evidence, pinned action bar.
+   Desktop (900px+): one screen, no page scroll. Timeline left, evidence scrolls in its own panel on the right. */
+.app.case.c-a1screen{max-width:1100px;padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+.c-head{padding:10px 14px;gap:6px}
+.c-headrow{display:flex;align-items:center;gap:10px}
+.c-headtxt{flex:1;min-width:0;display:flex;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.c-head .c-h2{font-size:20px}
+.case p.c-line{font-size:12px;color:var(--c-mute)}
+.c-best{white-space:nowrap}
+.case .c-helpbtn{min-height:36px;min-width:36px;padding:0;font-size:15px;font-weight:600}
+.case .c-helpbtn[aria-expanded="true"]{background:var(--c-g);color:var(--c-bg)}
+.c-helpbox{border:1px dashed var(--c-g3);padding:10px;display:flex;flex-direction:column;gap:6px}
+
 .c-a1{display:flex;flex-direction:column;gap:12px}
+.c-board,.c-deck{display:flex;flex-direction:column;gap:8px}
+.case .c-fold{min-height:32px;padding:4px 10px;font-size:11px}
+.c-slots.c-folded .c-slot:not(.next){display:none}
+.c-deck{border:1px solid var(--c-g4);background:rgba(4,16,10,.6);padding:10px}
+.c-done{width:100%;max-width:760px;align-self:center}
+
+/* dense evidence cards */
+.case .c-card{padding:8px 9px;gap:4px;min-height:0;font-size:11.5px;line-height:1.45}
+.case .c-card .c-cardsrc{font-size:9px}
+
+/* pinned action bar */
+.c-bar{position:fixed;left:0;right:0;bottom:0;z-index:10;background:rgba(1,6,3,.95);border-top:1px solid var(--c-g3);
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+.c-bar-in{max-width:1072px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.8fr);gap:8px}
+.case .c-bar button{min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.25;text-align:center}
+.case .c-bar .c-nr{border-style:dashed;border-width:2px;border-color:var(--c-red);color:var(--c-red)}
+.case .c-bar .c-nr.c-over{background:var(--c-redbg);border-color:var(--c-red);color:#fff}
+.case .c-bar .c-hintbtn{border-style:dashed;color:var(--c-mute)}
+.case .c-bar .c-small{font-size:10px}
+@media (max-width: 519px){ .c-bar .c-nr .c-small{display:none} }
+
 @media (min-width: 900px){
-  .app.case{max-width:980px}
-  .c-a1{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
-  .c-a1 .c-deck{position:sticky;top:16px}
+  .case .c-fold{display:none}
+  .app.case.c-fit{height:100vh;height:100dvh;min-height:0;overflow:hidden}
+  .c-fit .c-a1{flex:1;min-height:0;display:grid;grid-template-columns:minmax(340px,5fr) minmax(0,7fr);gap:16px}
+  .c-fit .c-board{min-height:0;overflow-y:auto;padding-right:2px}
+  .c-fit .c-deck{min-height:0}
+  .c-fit .c-gridwrap{flex:1;min-height:0;overflow-y:auto;padding:2px}
+  .c-fit .c-slot{min-height:38px;padding:7px 10px}
+  .c-fit .c-slot.pickable{padding:0}
+  .c-fit .c-slotbtn{min-height:38px;padding:7px 10px}
+  .c-a1.c-solo{display:flex;width:100%;max-width:680px;align-self:center}
+  .case p.c-line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
+@media (min-width: 1100px){ .c-a1 .c-grid{grid-template-columns:repeat(3,minmax(0,1fr))} }
 
 @media (prefers-reduced-motion: reduce){
   .c-shake,.c-blink{animation:none}

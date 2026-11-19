@@ -77,6 +77,7 @@
 
   "act1": {
     "title": "Rebuild the timeline",
+    "short": "Put the evidence in the order it happened. Red herrings go to Not related.",
     "help": "Drag an evidence card onto the timeline in the order it happened, or onto Not related. You can also tap a card, then use the buttons.",
     "pzTitle": "Find patient zero",
     "pzHelp": "Tap the timeline entry that shows the first successful access.",

@@ -245,7 +245,7 @@
   var A = null, E = {};   // Act 1 state and element refs
   function startAct1() {
     var cards = BE.shuffle(C.d.evidence).map(function (e) { return { e: e, done: false }; });
-    A = { cards: cards, next: 1, sel: null, placed: [], phase: 'order', mistakes: 0, hints: 0, hinted: {}, startedAt: Date.now(), xp0: C.xp };
+    A = { cards: cards, next: 1, sel: null, placed: [], phase: 'order', mistakes: 0, hints: 0, hinted: {}, startedAt: Date.now(), xp0: C.xp, collapsed: null };
     renderAct1();
   }
   function total() { return C.d.evidence.filter(function (e) { return e.order; }).length; }
@@ -253,35 +253,69 @@
   function renderAct1() {
     var a1 = C.d.act1, rec = caseRec();
     frame('ACT 1');
-    E.title = h('h2', { class: 'c-h2', text: a1.title });
-    E.help = para(a1.help);
-    var head = panel('', [eyebrow('Act 1 · Investigate'), E.title, E.help]);
-    if (rec.act1 && rec.act1.bestXp != null) head.appendChild(h('p', { class: 'c-small', text: 'Best so far: ' + rec.act1.bestXp + ' XP' }));
+    app.classList.add('c-a1screen', 'c-fit');   // desktop: one screen, no page scroll
+    if (A.collapsed == null) A.collapsed = window.matchMedia('(max-width: 899px)').matches;
 
-    E.slots = h('ol', { class: 'c-slots', 'data-drop': 'timeline', 'aria-label': 'Attack timeline' });
+    // Compact intro: title, one line, and a "?" button for the full instructions.
+    E.title = h('h2', { class: 'c-h2', text: a1.title });
+    E.line = para(a1.short || a1.help, 'c-line');
+    E.helpBox = h('div', { class: 'c-helpbox', id: 'c-help', hidden: true }, [
+      para(a1.help),
+      h('p', { class: 'c-small', text: 'Keys: A add to timeline · X not related · H hint. Tap a dotted word to see what it means.' })
+    ]);
+    E.helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How to play', 'aria-expanded': 'false', 'aria-controls': 'c-help', text: '?', onclick: function () {
+      var open = E.helpBox.hidden; E.helpBox.hidden = !open; E.helpBtn.setAttribute('aria-expanded', String(open));
+    } });
+    var best = rec.act1 && rec.act1.bestXp != null ? h('span', { class: 'c-small c-best', text: 'best ' + rec.act1.bestXp + ' XP' }) : null;
+    var head = panel('c-head', [
+      h('div', { class: 'c-headrow' }, [h('div', { class: 'c-headtxt' }, [eyebrow('Act 1 · Investigate'), E.title]), best, E.helpBtn]),
+      E.line, E.helpBox
+    ]);
+
+    // Left: the timeline (collapsible on phones to just the current slot).
+    E.count = h('span', {});
+    E.fold = h('button', { class: 'c-ghost c-fold', 'aria-controls': 'c-slots', onclick: function () { A.collapsed = !A.collapsed; drawAct1(); } });
+    E.slots = h('ol', { class: 'c-slots', id: 'c-slots', 'data-drop': 'timeline', 'aria-label': 'Attack timeline' });
     E.toast = h('div', { class: 'c-toast', role: 'status', 'aria-live': 'polite' });
+    var board = h('div', { class: 'c-board' }, [
+      h('div', { class: 'c-hud' }, [h('span', {}, ['> timeline ', E.count]), E.fold]),
+      E.slots, E.toast, defBox
+    ]);
+
+    // Right: the evidence grid scrolls inside its own panel.
     E.left = h('span', {});
     E.grid = h('div', { class: 'c-grid', role: 'group', 'aria-label': 'Evidence cards' });
     E.inspect = h('div', { class: 'c-inspect', hidden: true });
-    E.add = h('button', { class: 'c-ghost', 'data-drop': 'timeline', text: '+ add to timeline', onclick: function () { place(); } });
-    E.nr = h('button', { class: 'c-ghost c-nr', 'data-drop': 'nr', text: '✕ not related', onclick: function () { dismiss(); } });
-    E.hint = h('button', { class: 'c-ghost c-hintbtn', onclick: askHint });
-    E.deck = h('div', { class: 'c-stack c-deck' }, [
+    E.deck = h('div', { class: 'c-deck' }, [
       h('div', { class: 'c-hud' }, [h('span', { text: '> ls ./evidence' }), E.left]),
-      E.grid, E.inspect,
-      h('div', { class: 'c-actions' }, [E.add, E.nr]),
-      E.hint
+      h('div', { class: 'c-gridwrap' }, [E.grid]),
+      E.inspect
     ]);
-    E.done = h('div', { class: 'c-stack', hidden: true });
-    var board = h('div', { class: 'c-stack c-board' }, [E.slots, E.toast, defBox]);
+
+    // Bottom bar, pinned: the Not related drop zone plus the actions.
+    E.nr = h('button', { class: 'c-ghost c-nr', 'data-drop': 'nr', onclick: function () { dismiss(); } },
+      [h('span', { text: '✕ not related' }), h('span', { class: 'c-small', text: 'drop red herrings here' })]);
+    E.add = h('button', { class: 'c-ghost c-add', 'data-drop': 'timeline', text: '+ add to timeline', onclick: function () { place(); } });
+    E.hint = h('button', { class: 'c-ghost c-hintbtn', onclick: askHint });
+    E.bar = h('div', { class: 'c-bar', role: 'toolbar', 'aria-label': 'Evidence actions' }, [h('div', { class: 'c-bar-in' }, [E.nr, E.add, E.hint])]);
+
+    E.main = h('div', { class: 'c-a1' }, [board, E.deck]);
+    E.done = h('div', { class: 'c-stack c-done', hidden: true });
     app.appendChild(head);
-    app.appendChild(h('div', { class: 'c-a1' }, [board, E.deck]));
+    app.appendChild(E.main);
     app.appendChild(E.done);
+    app.appendChild(E.bar);
     drawAct1();
   }
 
   function drawAct1() {
     // timeline slots
+    var folded = A.collapsed && A.phase === 'order';
+    E.slots.classList.toggle('c-folded', folded);
+    E.fold.hidden = A.phase !== 'order';
+    E.fold.textContent = folded ? '▾ show all' : '▴ current only';
+    E.fold.setAttribute('aria-expanded', String(!folded));
+    E.count.textContent = A.placed.length + '/' + total();
     E.slots.textContent = '';
     for (var i = 1; i <= total(); i++) {
       var c = A.placed[i - 1], isNext = !c && i === A.next && A.phase === 'order';
@@ -314,9 +348,12 @@
     E.left.textContent = left + ' left';
     drawInspect();
     var hk = String(A.next), hasHint = A.phase === 'order' && C.d.act1.hints && C.d.act1.hints[hk];
-    E.hint.hidden = !hasHint;
-    E.hint.disabled = !!A.hinted[hk];
-    E.hint.textContent = A.hinted[hk] ? 'hint used for step ' + pad(A.next, 2) : '? hint for step ' + pad(A.next, 2) + ' · ' + C.d.act1.scoring.hint + ' XP';
+    E.hint.disabled = !hasHint || !!A.hinted[hk];
+    E.hint.textContent = '';
+    E.hint.appendChild(h('span', { text: A.hinted[hk] ? 'hint used' : '? hint' }));
+    E.hint.appendChild(h('span', { class: 'c-small', text: 'step ' + pad(A.next, 2) + (A.hinted[hk] ? '' : ' · ' + C.d.act1.scoring.hint + ' XP') }));
+    E.bar.hidden = A.phase !== 'order';
+    E.main.classList.toggle('c-solo', A.phase !== 'order');
   }
   function drawInspect() {
     var c = A.sel;
@@ -371,7 +408,7 @@
       A.phase = 'pz';
       E.deck.hidden = true;
       E.title.textContent = C.d.act1.pzTitle;
-      E.help.textContent = ''; BE.termify(C.d.act1.pzHelp, E.help);
+      E.line.textContent = ''; BE.termify(C.d.act1.pzHelp, E.line);
       drawAct1();
       var first = E.slots.querySelector('.c-slotbtn'); if (first) first.focus({ preventScroll: true });
     }
@@ -383,7 +420,8 @@
     c.pz = true; A.phase = 'done';
     addXP(s.patientZero); toast('+' + s.patientZero + ' XP · patient zero identified', true);
     E.title.textContent = C.d.act1.doneTitle;
-    E.help.textContent = ''; BE.termify(C.d.act1.doneHelp, E.help);
+    E.line.textContent = ''; BE.termify(C.d.act1.doneHelp, E.line);
+    app.classList.remove('c-fit');   // the debrief is a normal scrolling page
     drawAct1();
     saveAct1();
     renderDebrief();
