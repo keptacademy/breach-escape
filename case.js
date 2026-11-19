@@ -69,7 +69,6 @@
     });
   }
   function enterTerminal() {
-    document.body.classList.add('case-mode');
     if (!edge) { edge = h('div', { class: 'c-edge', 'aria-hidden': 'true' }); document.body.appendChild(edge); }
     if (!BE.reduceMotion() && !rain.cv) {
       rain.cv = h('canvas', { class: 'c-rain', 'aria-hidden': 'true' });
@@ -79,10 +78,9 @@
     }
     if (rain.cv && !rain.timer) rain.timer = setInterval(tickRain, 110);
   }
-  // Runs on every screen change; frame() re-enters right away when the next screen is also a case screen.
-  // The canvas stays in the page (hidden by CSS outside case mode) so the rain does not restart on each page.
+  // Runs on every screen change; the next screen re-enters right away (every screen uses the terminal backdrop).
+  // The canvas stays in the page so the rain does not restart on each page.
   function leaveTerminal() {
-    document.body.classList.remove('case-mode');
     if (rain.timer) { clearInterval(rain.timer); rain.timer = null; }
   }
   function flash() {
@@ -94,7 +92,7 @@
   var hud = {};
   function frame(label, opts) {
     opts = opts || {};
-    BE.leave();                         // stops v1 timers and runs previous cleanups
+    BE.leave();                         // runs the previous screen's cleanups
     app.textContent = ''; app.className = 'app case';
     enterTerminal();
     BE.onLeave(leaveTerminal);
@@ -144,9 +142,9 @@
       if (!C || C.L !== L) return;
       app.appendChild(panel('danger', [
         eyebrow('Error'),
-        h('p', { text: 'Could not open the case file. Check your connection and try again, or play the classic version.' }),
+        h('p', { text: 'Could not open the case file. Check your connection and try again.' }),
         h('button', { class: 'c-btn', text: '> RETRY', onclick: function () { start(L); } }),
-        h('button', { class: 'c-ghost c-wide', text: 'Play the classic quiz', onclick: function () { BE.startClassic(L.id); } })
+        h('button', { class: 'c-ghost c-wide', text: '\u2039 back to the Breach Map', onclick: BE.renderMap })
       ]));
     });
   }
@@ -565,7 +563,7 @@
     F.log = h('div', { class: 'c-log', role: 'log', 'aria-label': 'Attack log', 'aria-live': 'polite' });
     F.deck = h('div', { class: 'c-ctlgrid', role: 'group', 'aria-label': 'Control deck' });
     F.count = h('span', {});
-    var mapBox = F.mapBox = h('div', { class: 'c-a2map' }, [h('div', { class: 'c-hud' }, [h('span', { text: '> map ./tenants' }), h('span', { class: 'c-small', text: 'drop controls on a stage' })]), F.map]);
+    var mapBox = F.mapBox = h('div', { class: 'c-a2map' }, [h('div', { class: 'c-hud' }, [h('span', { text: a2.mapCmd || '> map ./network' }), h('span', { class: 'c-small', text: 'drop controls on a stage' })]), F.map]);
     var deckBox = h('div', { class: 'c-deck c-a2deck' }, [h('div', { class: 'c-hud' }, [h('span', { text: '> ls ./controls' }), F.count]), h('div', { class: 'c-gridwrap' }, [F.deck])]);
     F.main = h('div', { class: 'c-a2' }, [mapBox, F.log, deckBox]);
     app.appendChild(F.main);
@@ -705,14 +703,18 @@
     var decoys = on.filter(function (c) { return c.effect === 'decoy'; }).length;
     var fr = on.reduce(function (a, c) { return a + (c.friction || 0); }, 0);
     var r = { decoys: decoys, friction: fr, spent: spent(), total: total };
+    // Outcome by where the chain broke: prevented (blocked at stage <= preventedMaxStage), contained (blocked later),
+    // detected (only detected or limited), succeeded (not stopped).
     if (res.blocked) {
       r.stars = res.blocked <= a2.threeStarMaxStage && !decoys ? 3 : 2;
-      r.title = o.blocked.title; r.sub = fmt(o.blocked.sub, { n: res.blocked, total: total }); r.mail = o.blocked.mail;
+      var oc = res.blocked <= a2.preventedMaxStage ? o.prevented : o.contained;
+      r.kind = oc === o.prevented ? 'prevented' : 'contained';
+      r.title = oc.title; r.sub = fmt(oc.sub, { n: res.blocked, total: total }); r.loss = oc.loss;
     } else if (res.detected || res.limited) {
-      r.stars = 1; r.title = o.contained.title;
-      r.sub = res.detected ? o.contained.subDetected : o.contained.subLimited;
-      r.mail = res.detected && res.limited ? o.contained.mailBoth : o.contained.mailOne;
-    } else { r.stars = 0; r.title = o.succeeded.title; r.sub = o.succeeded.sub; r.mail = o.succeeded.mail; }
+      r.stars = 1; r.kind = 'detected'; r.title = o.detected.title;
+      r.sub = res.detected && res.limited ? o.detected.subBoth : res.detected ? o.detected.subDetected : o.detected.subLimited;
+      r.loss = res.detected && res.limited ? o.detected.lossBoth : o.detected.lossOne;
+    } else { r.stars = 0; r.kind = 'succeeded'; r.title = o.succeeded.title; r.sub = o.succeeded.sub; r.loss = o.succeeded.loss; }
     r.frictionLabel = fr <= a2.friction.low ? 'LOW' : fr <= a2.friction.medium ? 'MED' : 'HIGH';
     r.rank = C.d.ranks[r.stars];
     return r;
@@ -762,6 +764,13 @@
       node.classList.add('block'); pill(node, 'g', '✓ BLOCKED');
       logLine('k', fmt(L.block, { n: n }), st.block.why);
       rain.red = false; threat(Math.round(n / total * 50));
+      return;
+    }
+    // A stage the defender cannot block (e.g. a spray from outside) is shown as attempted, not breached.
+    if (st.s.unblockable) {
+      node.classList.add('attempt'); pill(node, 'y', '⚠ ATTEMPTED');
+      logLine('y', fmt(L.attempted, { n: n, stage: st.s.name }));
+      threat(Math.round(n / total * 100));
       return;
     }
     node.classList.add('breach'); pill(node, 'r', '✕ BREACHED');
@@ -815,7 +824,7 @@
       h('p', { class: 'c-small', text: newBest ? 'New best for this case.' : 'Best so far: ' + caseRec().act2.bestStars + '/3 stars.' })
     ]));
     app.appendChild(h('div', { class: 'c-stats' }, [
-      stat('mailboxes lost', r.mail, r.mail === a2.outcomes.blocked.mail ? '' : 'red'),
+      stat(a2.lossLabel, r.loss, r.loss === a2.outcomes.prevented.loss ? '' : 'red'),
       stat('budget used', pad(r.spent, 2) + '/' + d.budget),
       stat('user friction', r.frictionLabel, r.frictionLabel === 'LOW' ? '' : 'y'),
       stat('decoys bought', pad(r.decoys, 2), r.decoys ? 'y' : '')
@@ -833,10 +842,12 @@
     // Stage by stage: the same results the replay animated (and the only view with reduced motion).
     var list = h('ol', { class: 'c-replay' });
     res.steps.forEach(function (st) {
-      var n = st.s.n, li = h('li', { class: st.block ? 'block' : 'breach' }, [
+      var n = st.s.n, kind = st.block ? 'block' : st.s.unblockable ? 'attempt' : 'breach';
+      var li = h('li', { class: kind }, [
         h('div', { class: 'c-hud' }, [h('b', {}, [n + ' · ', rich(st.s.name, null, false)]),
-          h('span', { class: 'c-pill ' + (st.block ? 'g' : 'r'), text: st.block ? '✓ BLOCKED' : '✕ BREACHED' })])
+          h('span', { class: 'c-pill ' + { block: 'g', attempt: 'y', breach: 'r' }[kind], text: { block: '✓ BLOCKED', attempt: '⚠ ATTEMPTED', breach: '✕ BREACHED' }[kind] })])
       ]);
+      if (kind === 'attempt' && C.d.act2.attemptedNote) li.appendChild(h('p', { class: 'c-why', text: C.d.act2.attemptedNote }));
       st.decoys.forEach(function (c) { li.appendChild(h('p', { class: 'c-why' }, [h('span', { class: 't-y', text: '[~] ' }), rich(c.name, null, false), ': no effect. ', rich(c.why, null, false)])); });
       [['detect', 'detected'], ['limit', 'limited'], ['block', 'blocked']].forEach(function (k) {
         var c = st[k[0]]; if (c) li.appendChild(h('p', { class: 'c-why' }, [h('span', { class: 't-g', text: '[+] ' + k[1] + ' by ' }), rich(c.name, null, false), ': ', rich(c.why, null, false)]));
@@ -951,5 +962,5 @@
     else if (k === 'escape') endDrag();
   });
 
-  window.BreachCase = { start: start };
+  window.BreachCase = { start: start, backdrop: function () { enterTerminal(); BE.onLeave(leaveTerminal); BE.onLeave(endDrag); } };
 })();

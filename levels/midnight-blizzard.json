@@ -519,7 +519,8 @@
       {
         "n": 1,
         "zone": "out",
-        "name": "Password spray from residential proxies"
+        "name": "Password spray from residential proxies",
+        "unblockable": true
       },
       {
         "n": 2,
@@ -731,22 +732,28 @@
       "medium": 3
     },
     "outcomes": {
-      "blocked": {
-        "title": "Breach stopped",
-        "sub": "Attack chain broken at stage {n} of {total}.",
-        "mail": "0"
+      "prevented": {
+        "title": "Breach prevented",
+        "sub": "Attack chain broken at stage {n} of {total}. They never got in.",
+        "loss": "0"
       },
       "contained": {
         "title": "Breach contained",
+        "sub": "They got in, but you stopped them at stage {n} of {total}, before the mailboxes.",
+        "loss": "0"
+      },
+      "detected": {
+        "title": "Breach detected",
         "subDetected": "They reached the mailboxes, but you caught them early.",
         "subLimited": "They reached the mailboxes, but you limited the damage.",
-        "mailBoth": "FEW",
-        "mailOne": "SOME"
+        "subBoth": "They reached the mailboxes, but you caught them early and limited the damage.",
+        "lossBoth": "FEW",
+        "lossOne": "SOME"
       },
       "succeeded": {
         "title": "Breach succeeded",
         "sub": "Like the real incident: weeks of mailbox access before anyone noticed.",
-        "mail": "MANY"
+        "loss": "MANY"
       }
     },
     "tips": {
@@ -767,7 +774,12 @@
       "overBudget": "[!] over budget: {name} costs {cost}, you have {left} left. Remove a control first.",
       "wrongZone": "[!] {name} protects the {zone}. Drop it on a stage there.",
       "deployed": "[+] deployed: {name} → stage {n}",
-      "removed": "[-] removed: {name}"
-    }
+      "removed": "[-] removed: {name}",
+      "attempted": "[~] stage {n} · {stage}: attempted from outside. Can't be blocked here; defense starts at stage 2."
+    },
+    "preventedMaxStage": 2,
+    "lossLabel": "mailboxes lost",
+    "attemptedNote": "Spraying from outside can't be blocked by the defender. Defense starts at stage 2, when a guessed password meets the test account.",
+    "mapCmd": "> map ./tenants"
   }
 }

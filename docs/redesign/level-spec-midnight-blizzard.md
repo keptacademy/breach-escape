@@ -95,7 +95,7 @@ Scoring Act 1: accuracy, hints used, time (soft, no hard timer in Practice mode)
 ### 2.4 Act 2: Defense Map [DESIGN]
 Goal: place controls on a cloud map with a **budget of 10**, then replay the attack.
 
-**Map nodes** (simple SVG, frosted-glass tiles on white):
+**Map nodes** (terminal panels on the dark theme):
 ```
 [Internet / residential proxies]
         │
@@ -198,7 +198,7 @@ Then **"What Microsoft recommended"** (from the Jan 25 blog guidance, [FACT], ve
 Effects: `block` | `detect` | `limit` | `slow` (with `chance`) | `decoy`.
 
 ## 5. Tech notes [DESIGN]
-- Vanilla JS (or the existing stack), SVG for the map, CSS frosted-glass tiles.
+- Vanilla JS (or the existing stack), terminal-theme panels for the map (theme.css).
 - Drag and drop: Pointer Events (works on mouse + touch); tap-to-select, tap-to-place fallback for accessibility.
 - Progress in `localStorage` (wrapped in try/catch); no backend in v1.
 - Keep the strict CSP (no inline script, self-only).

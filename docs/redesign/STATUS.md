@@ -8,44 +8,50 @@ Turn each level into a "case": **Intel briefing → Act 1 Investigate → Act 2 
 terminal look (from `prototype-v2.html`), run by one data-driven engine so every breach is just a JSON file.
 Spec: `level-spec-midnight-blizzard.md` (facts win from the spec, look and flow from the prototype).
 
-## What's built (Level 1, Midnight Blizzard)
+## What's built
 | Screen | State | Commits |
 |---|---|---|
-| Level JSON (`levels/midnight-blizzard.json`) | Done: briefing, evidence, timeline, map, controls, scoring, outcomes, tips, logs | `0c01200`, updated in all later commits |
+| Level 1 JSON (`levels/midnight-blizzard.json`) | Done: briefing, evidence, timeline, map, controls, scoring, outcomes, tips, logs | `0c01200` and later |
+| Level 2 JSON (`levels/colonial-pipeline.json`) | Done (spec build step 5): 5-page briefing, 6 real evidence cards + 2 red herrings, patient zero E2, hints, 4-zone map with 6 stages, 7 controls + 6 decoys, outcomes, tips. Unverified facts carry a `todo` field and are listed in its `verify` array | this pass |
 | Intel briefing (5 pages) | Done. Pinned footer (back / sources toggle / NEXT), BRIEFING tag instead of XP, "‹ exit to map" | `0c01200`, `8dcf21a` |
-| Act 1 Investigate | Done. Evidence cards → 7-slot timeline (drag or tap + buttons, keys A/X/H), red herrings to Not related, hints (−10 XP), patient zero, debrief with the real timeline and sources | `0c01200`, `53baeb2`, `8dcf21a` |
-| Act 2 Defend | Done. 3-zone map with 7 stages, 14-card control deck (budget 10, tap or drag onto a stage), replay ~0.7 s per stage with log | `5126333` |
-| Results | Done. Stars, rank, stats, tips, stage-by-stage replay list, build breakdown, Try another build, Restart case | `5126333` |
-| Classic screens (map, classic quiz) | Unchanged look (light glass + Klar). Klar now built without innerHTML | `8dcf21a` |
-| CI | PR preview deploy + close jobs added; production unchanged | `8dcf21a` |
+| Act 1 Investigate | Done. Evidence cards → timeline (drag or tap + buttons, keys A/X/H), red herrings to Not related, hints (−10 XP), patient zero, debrief with the real timeline and sources | `0c01200`, `53baeb2`, `8dcf21a` |
+| Act 2 Defend | Done. Zone map with stages, control deck (budget 10, tap or drag onto a stage), replay ~0.7 s per stage with log. A stage marked `unblockable` (stage 1 in both cases) shows "⚠ ATTEMPTED" in yellow instead of "✕ BREACHED" | `5126333`, this pass |
+| Results | Done. Title by outcome (see Decisions), stars, rank, stats, tips, stage-by-stage replay list, build breakdown, Try another build, Restart case | `5126333`, this pass |
+| Breach Map | Terminal theme. Stars per level come from `progress.cases[id].act2.bestStars`; a level counts as cleared at 1 star or more | this pass |
+| Old mascot, light theme and classic quiz | **Removed** (code, drawings, icons, CSS, text) | this pass |
+| CI | PR preview deploy + close jobs; production unchanged | `8dcf21a` |
 
-Tested in headless Chromium under the production CSP header at 1280×720, 1920×1080, 1024×700 and 390×844, plus a run with reduced motion on.
-The full flow passes with no console errors, no outside requests, no page scroll on desktop in Act 1 or Act 2, and all text at 4.5:1 or better.
+Tested in headless Chromium under the production CSP header (served locally over http, so without `upgrade-insecure-requests`) at 1280×720, 1920×1080 and 390×844 (iPhone 13 emulation), both cases end to end:
+briefing → Act 1 (first card dragged: mouse on desktop, press-and-hold touch via CDP on the phone) → patient zero → Act 2 (one control dragged onto its stage on desktop) → four builds per case, one per outcome, the first one animated.
+No console errors or warnings, no CSP violations, no outside requests, no page scroll on desktop in Act 1 or Act 2, all visible text at 4.5:1 or better.
+The Breach Map itself scrolls at 720 px high (it lists 7 levels); that's allowed.
 
 ## File map
 | File | What it does |
 |---|---|
-| `index.html` | Shell: loads `styles.css`, `case.css`, `levels.js`, `app.js`, `case.js`. |
-| `app.js` | Breach Map, classic quiz (intro/play/end), Klar (SVG via `createElementNS`), glossary `termify`, progress in localStorage (`breach-escape-progress-v1`). Exposes `window.BreachEscape` (h, termify, shuffle, progress, onLeave, …) for case.js. A level with `case:` opens the v2 engine. |
-| `case.js` | v2 engine: frame/HUD, code rain + red edge flash, briefing renderer (block types: alert, note, panel, facts, timeline, diagram, glossary, mission), Act 1, Act 2 (`simulate()` then animate), results, shared drag-and-drop (Pointer Events, press-and-hold on touch). Text in backticks is rendered as `<code>`. |
-| `case.css` | Terminal theme, scoped to `body.case-mode` / `.app.case` (classes prefixed `c-`). One-screen desktop layouts (`.c-fit`, 900px+), pinned bars, phone layouts. |
-| `styles.css` | Classic glass theme (map, classic quiz). `.term-code` styles identifier glossary terms. |
-| `levels.js` | `window.LEVELS` (map list; Level 1 has `case: 'levels/midnight-blizzard.json'` plus its old quiz `stages`; Level 2 Colonial is still classic-only) and `window.GLOSSARY` (shared by both engines). |
-| `levels/midnight-blizzard.json` | All Level 1 case content and rules. Act 2 stage codes are read from `timeline[].mitre` (single source). |
-| `sw.js` | Offline cache, network-first. Currently `v17`; bump on every deploy. Caches case files too. |
-| `staticwebapp.config.json` | Strict CSP and security headers; 404 for `/docs/*`, `/*.md`, `/.github/*`. |
+| `index.html` | Shell: loads `theme.css`, `levels.js`, `app.js`, `case.js`. `<main class="app case">`. |
+| `theme.css` | The only stylesheet: terminal theme for every screen. Colour tokens on `:root` (`--c-*`), classes prefixed `c-`. One-screen desktop layouts (`.c-fit`, 900px+), pinned bars, phone layouts, Breach Map. `<code>` uses a neutral style; yellow is only for decoys, the test tenant and ATTEMPTED. |
+| `app.js` | App shell: Breach Map, progress in localStorage (`breach-escape-progress-v1`), glossary `termify`, shared helpers. Exposes `window.BreachEscape` (h, termify, shuffle, progress, onLeave, leave, renderMap, …). Boots on `DOMContentLoaded` so `case.js` is loaded first. |
+| `case.js` | Case engine: code rain + red edge flash (`BreachCase.backdrop()` is also used by the map), briefing renderer (block types: alert, note, panel, facts, timeline, diagram, glossary, mission), Act 1, Act 2 (`simulate()` then animate), results, shared drag-and-drop (Pointer Events, press-and-hold on touch). Text in backticks is rendered as `<code>`. |
+| `levels.js` | `window.LEVELS` (map list; playable levels have `case: 'levels/<id>.json'`) and `window.GLOSSARY` (shared by all cases). |
+| `levels/*.json` | All case content and rules. Act 2 stage codes are read from `timeline[].mitre` (single source). Act 2 keys added this pass: `preventedMaxStage`, `lossLabel`, `attemptedNote`, `mapCmd`, `outcomes.{prevented,contained,detected,succeeded}`, `logs.attempted`, `map.stages[].unblockable`. |
+| `icons/` | Terminal-style icons (`>_` in corner brackets), generated offline. |
+| `sw.js` | Offline cache, network-first. Currently `v18`; bump on every deploy. Caches both case files. |
+| `staticwebapp.config.json` | Strict CSP and security headers; 404 for `/docs/*`, `/*.md`, `/.github/*`. Unchanged. |
 | `.github/workflows/deploy.yml` | CodeQL → production deploy (push to main only, `production` environment). PRs: `preview` job deploys an Azure preview environment, and `close_preview` removes it when the PR closes. Fork PRs are skipped. |
 | `.github/dependabot.yml` | Weekly updates for the pinned Actions. |
 | `docs/redesign/` | Spec, prototype, this file. Not served (404 route). |
 
-Saved progress: `progress.cases['midnight-blizzard'] = { briefed, act1: {done, bestXp, bestTime, fewestMistakes}, act2: {bestStars, bestBuild, lastStars, runs} }`.
-Map stars (`progress.levels`) are only written by the classic quiz.
+Saved progress: `progress.cases[caseId] = { briefed, act1: {done, bestXp, bestTime, fewestMistakes}, act2: {bestStars, bestBuild, lastStars, runs} }`.
+Old `progress.levels` (classic quiz stars) is ignored, not migrated.
 
 ## Decisions made
 - **Act 1 scoring:** +50 for each correct placement, +30 per red herring dismissed, −20 per mistake, −10 per hint, +100 for patient zero. XP never goes below 0.
 - **Act 2 scoring:** ID Protection is **detect** (no random chance). **3 stars** = blocked at stage ≤ 2 **and** no decoys; **2** = blocked later (or early with decoys); **1** = only detected or limited; **0** = breach succeeded.
+  - Results title: blocked at stage ≤ `preventedMaxStage` (2) → "Breach prevented"; blocked later → "Breach contained" (Midnight: "…before the mailboxes", Colonial: "…before the pipeline"); only detected or limited → "Breach detected"; not stopped → "Breach succeeded".
+  - Stage 1 in both cases is `unblockable` (it happens outside the defender's network): "⚠ ATTEMPTED" in yellow, no red flash.
   - Each run is worth Act 1 XP + 150 per star; runs don't stack.
-  - Mailboxes lost: 0 if blocked, FEW if detected and limited, SOME if only one of the two, MANY if nothing worked.
+  - Loss stat, labelled by `lossLabel`. Midnight "mailboxes lost": 0 if blocked, FEW if detected and limited, SOME if only one, MANY if nothing worked. Colonial "damage": NONE, IT ONLY (contained), REDUCED / SOME (detected), SEVERE.
   - User friction: sum of `friction` values; LOW ≤ 1, MED ≤ 3, otherwise HIGH.
   - Ranks: INTERN, ANALYST, ENGINEER, ARCHITECT.
 - **Controls:** a drop must land on a stage in the zone the control protects, and it then goes onto its own stage. Decoys look like other controls until the replay.
@@ -76,6 +82,12 @@ Map stars (`progress.levels`) are only written by the classic quiz.
 - **Contrast:**
   - Grey text is `#A9DDBA`; the code rain is at opacity 0.08 and ticks every 110 ms.
   - Red pills, toasts and the EXECUTE button use dark text on red.
+- **Colonial Pipeline content:**
+  - Stages: 1 Attacker gets a valid VPN password (outside, unblockable) · 2 Sign in via the legacy VPN profile · 3 Move through IT systems · 4 Copy data off the share drive · 5 Encrypt IT systems · 6 Pipeline shut down to protect OT.
+  - Winning builds: MFA on every VPN profile, or Disable unused accounts & VPN profiles (block at 2, 3 stars); Segment IT from OT (block at 6, contained); EDR, outbound-transfer alerts and the incident response plan (detect), offline backups (limit).
+  - Decoys: password complexity (Blount: it was already complicated), lockout, geo-block, login banner, disk encryption, cyber insurance.
+  - Checked against Blount's written testimony and his answers in the Senate hearing record. Old quiz facts from Mandiant / the House hearing were dropped (not an allowed source), and so were the April 29 entry date, the 75 / 63.7 bitcoin figures and "no failed attempts".
+  - The Colonial ATT&CK codes (T1589.001, T1133, T1078, TA0008, T1039, T1486, TA0040) are a mapping to review, like Level 1's.
 - **Sources** (primary only; checked 2026-11-19):
   - MSRC, Jan 19 2024: https://www.microsoft.com/en-us/msrc/blog/2024/01/microsoft-actions-following-attack-by-nation-state-actor-midnight-blizzard
   - Microsoft Security Blog, Jan 25 2024: https://www.microsoft.com/en-us/security/blog/2024/01/25/midnight-blizzard-guidance-for-responders-on-nation-state-attack/
@@ -90,17 +102,23 @@ Map stars (`progress.levels`) are only written by the classic quiz.
 - Tip for edits: the Write tool stores `‹`-style escapes as the literal characters. Both work in JS, but patterns you search for must match what's actually in the file.
 
 ## Known issues and open items
+- **Colonial "TODO: verify" facts.** CISA and DOJ refused automated access, so these weren't checked. Each is a `todo` field in the JSON and is listed in its `verify` array:
+  1. DarkSide described as ransomware-as-a-service with affiliates (briefing page 2), against AA21-131A.
+  2. AA21-131A recommends MFA for remote access to IT and OT (Act 2 tip).
+  3. AA21-131A recommends IT/OT segmentation and regular offline backups (Act 2 tip).
+  4. AA21-131A wording on endpoint detection (EDR control) and on monitoring outbound traffic (egress control).
+  5. DOJ announced on June 7, 2021 that it seized part of the ransom (briefing timeline).
+  6. AA21-131A and DOJ titles, dates and URLs.
 - **The PR preview secret isn't set:** the `preview` jobs need `AZURE_STATIC_WEB_APPS_API_TOKEN` in a GitHub environment called `preview` (or as a repository secret). Until then the PR preview run fails.
 - **8-K link:** points to the filings list, not the filing itself. Replace it with the direct document URL once confirmed.
-- **Not tested on real devices:** touch drag (press-and-hold) was only checked in an emulator. iOS Safari and Android Chrome still need a real check.
+- **Not tested on real devices:** touch drag (press-and-hold) was only checked in iPhone 13 emulation. iOS Safari and Android Chrome still need a real check.
 - **Tight fit at 1280×720:** Act 2 uses the inner map scroll; at heights under about 650px, panels get cramped.
 - **Phones:** the page scrolls in Act 1 and Act 2 (accepted).
 - **Not reviewed:** CodeQL and preview results on PR #1 haven't been looked at.
-- **Level 1's old quiz `stages`** in `levels.js` are now only reachable from the case-file loading error screen.
+- **Not built:** share cards, a settings screen and a separate glossary screen don't exist (the spec mentions a shareable score card). Glossary definitions show in the in-case panel.
 
 ## What's next (in order)
-1. Remove Klar and the glass theme completely: drop the Klar SVG code and moods from `app.js`, and the glass and blob styles from `styles.css` and `index.html`.
-2. Terminal theme everywhere: rebuild the Breach Map and any shared screens with the case look. `theme-color` and `manifest.webmanifest` colours should become dark.
-3. Colonial Pipeline on the case engine (spec build step 5): write `levels/colonial-pipeline.json` from its primary sources (see `levels.js` sources), with briefing, evidence, timeline, map, controls and decoys, and test it the same way.
-4. Delete the classic quiz: the play and end screens, `stages`/`options` data, the classic fallback button, and map stars from `progress.levels`. Migrate or ignore old progress.
-5. Then: MITRE bonus chips in Act 1, Practice and Challenge modes, Go Deeper (KQL hunting queries), and a fix for the 8-K link.
+1. Verify the Colonial `todo` facts against AA21-131A and the DOJ release, then remove the `todo` fields.
+2. Review the Colonial content and ATT&CK mapping (Nura).
+3. MITRE bonus chips in Act 1, Practice and Challenge modes, Go Deeper (KQL hunting queries), and a fix for the 8-K link.
+4. Share card for results (spec 2.6), if still wanted.
