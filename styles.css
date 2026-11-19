@@ -313,3 +313,6 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
   .scene svg.stage{max-width:720px}
 }
 @media (prefers-reduced-motion: reduce){ .pv-tile,.step-preview.pv-in{animation:none} }
+
+/* glossary words that are code identifiers (full_access_as_app) */
+.term.term-code{font-family:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace;font-size:.92em}

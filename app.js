@@ -30,31 +30,71 @@
     (kids || []).forEach(function (c) { if (c) el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
     return el;
   }
-  function fromMarkup(markup) { var t = document.createElement('template'); t.innerHTML = markup.trim(); return t.content.firstElementChild; }
+  // SVG built element by element (no innerHTML or markup parsing).
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  function svgEl(tag, attrs, kids) {
+    var el = document.createElementNS(SVG_NS, tag);
+    Object.keys(attrs || {}).forEach(function (k) { el.setAttribute(k, attrs[k]); });
+    (kids || []).forEach(function (c) { el.appendChild(c); });
+    return el;
+  }
 
   /* ---------- Klar ---------- */
   var BLOB = 'M100 30 C 140 30 168 62 168 104 C 168 146 138 176 100 176 C 62 176 32 146 32 104 C 32 62 60 30 100 30 Z';
   var BLOB_ANIM = BLOB + ';M100 26 C 144 32 170 66 166 108 C 162 148 134 178 98 174 C 60 170 30 142 34 100 C 38 60 58 22 100 26 Z;M102 32 C 138 28 172 60 170 102 C 168 144 140 172 102 178 C 64 180 34 150 30 106 C 28 64 64 34 102 32 Z;' + BLOB;
-  function liquiInner(p) {
-    return '<defs>' +
-      '<radialGradient id="' + p + 'body" cx="42%" cy="36%" r="68%"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.6"/><stop offset="0.55" stop-color="#E4F1FB" stop-opacity="0.3"/><stop offset="0.82" stop-color="#B9D8F0" stop-opacity="0.5"/><stop offset="0.95" stop-color="#7FB1DA" stop-opacity="0.78"/><stop offset="1" stop-color="#5E93C4" stop-opacity="0.9"/></radialGradient>' +
-      '<radialGradient id="' + p + 'glow" cx="50%" cy="55%" r="50%"><stop data-role="glow" offset="0" stop-color="#CFEFFF" stop-opacity="0.75"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>' +
-      '</defs>' +
-      '<g class="float"><g data-role="mood" class="m-calm">' +
-      '<path d="' + BLOB + '" fill="url(#' + p + 'body)"><animate attributeName="d" dur="6s" repeatCount="indefinite" values="' + BLOB_ANIM + '"/></path>' +
-      '<ellipse cx="100" cy="120" rx="52" ry="44" fill="url(#' + p + 'glow)"/>' +
-      '<path d="M66 158 Q 100 174 136 154" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.85"/>' +
-      '<circle cx="74" cy="140" r="3" fill="none" stroke="#FFFFFF" stroke-width="1.2" opacity="0.9"><animate attributeName="cy" dur="5s" repeatCount="indefinite" values="150;80;150"/></circle>' +
-      '<circle cx="128" cy="134" r="2.2" fill="#FFFFFF" opacity="0.85"><animate attributeName="cy" dur="3.6s" repeatCount="indefinite" values="160;90;160"/></circle>' +
-      '<g data-role="eyes">' +
-      '<g class="blink"><ellipse data-role="eL" cx="85" cy="104" rx="8.5" ry="12.5" fill="#13233A"/><circle data-role="hL" cx="88" cy="99" r="3.6" fill="#FFFFFF"/></g>' +
-      '<g class="blink blink2"><ellipse data-role="eR" cx="115" cy="104" rx="8.5" ry="12.5" fill="#13233A"/><circle data-role="hR" cx="118" cy="99" r="3.6" fill="#FFFFFF"/></g>' +
-      '</g>' +
-      '<g data-role="sweat" opacity="0"><ellipse class="sw1" cx="146" cy="74" rx="3.6" ry="5.4" fill="#DFF2FF" stroke="#7FB1DA" stroke-width="1.2"/><ellipse class="sw2" cx="156" cy="98" rx="3" ry="4.6" fill="#DFF2FF" stroke="#7FB1DA" stroke-width="1.2"/><ellipse class="sw3" cx="48" cy="100" rx="3" ry="4.6" fill="#DFF2FF" stroke="#7FB1DA" stroke-width="1.2"/></g>' +
-      '<g data-role="happy" opacity="0"><path d="M76 106 Q 85 94 94 106" fill="none" stroke="#13233A" stroke-width="5" stroke-linecap="round"/><path d="M106 106 Q 115 94 124 106" fill="none" stroke="#13233A" stroke-width="5" stroke-linecap="round"/></g>' +
-      '<path d="M58 70 C 64 50 84 38 104 38" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity="0.95"/>' +
-      '<circle cx="56" cy="86" r="4" fill="#FFFFFF"/>' +
-      '</g></g>';
+  // Klar's body: gradients plus the floating, mood-switching group. p prefixes the gradient ids so several Klars can share a page.
+  function liquiParts(p) {
+    return [
+      svgEl("defs", {  }, [
+        svgEl("radialGradient", { "id": p + "body", "cx": "42%", "cy": "36%", "r": "68%" }, [
+          svgEl("stop", { "offset": "0", "stop-color": "#FFFFFF", "stop-opacity": "0.6" }),
+          svgEl("stop", { "offset": "0.55", "stop-color": "#E4F1FB", "stop-opacity": "0.3" }),
+          svgEl("stop", { "offset": "0.82", "stop-color": "#B9D8F0", "stop-opacity": "0.5" }),
+          svgEl("stop", { "offset": "0.95", "stop-color": "#7FB1DA", "stop-opacity": "0.78" }),
+          svgEl("stop", { "offset": "1", "stop-color": "#5E93C4", "stop-opacity": "0.9" })
+        ]),
+        svgEl("radialGradient", { "id": p + "glow", "cx": "50%", "cy": "55%", "r": "50%" }, [
+          svgEl("stop", { "data-role": "glow", "offset": "0", "stop-color": "#CFEFFF", "stop-opacity": "0.75" }),
+          svgEl("stop", { "offset": "1", "stop-color": "#FFFFFF", "stop-opacity": "0" })
+        ])
+      ]),
+      svgEl("g", { "class": "float" }, [
+        svgEl("g", { "data-role": "mood", "class": "m-calm" }, [
+          svgEl("path", { "d": BLOB, "fill": "url(#" + p + "body)" }, [
+            svgEl("animate", { "attributeName": "d", "dur": "6s", "repeatCount": "indefinite", "values": BLOB_ANIM })
+          ]),
+          svgEl("ellipse", { "cx": "100", "cy": "120", "rx": "52", "ry": "44", "fill": "url(#" + p + "glow)" }),
+          svgEl("path", { "d": "M66 158 Q 100 174 136 154", "fill": "none", "stroke": "#FFFFFF", "stroke-width": "3", "stroke-linecap": "round", "opacity": "0.85" }),
+          svgEl("circle", { "cx": "74", "cy": "140", "r": "3", "fill": "none", "stroke": "#FFFFFF", "stroke-width": "1.2", "opacity": "0.9" }, [
+            svgEl("animate", { "attributeName": "cy", "dur": "5s", "repeatCount": "indefinite", "values": "150;80;150" })
+          ]),
+          svgEl("circle", { "cx": "128", "cy": "134", "r": "2.2", "fill": "#FFFFFF", "opacity": "0.85" }, [
+            svgEl("animate", { "attributeName": "cy", "dur": "3.6s", "repeatCount": "indefinite", "values": "160;90;160" })
+          ]),
+          svgEl("g", { "data-role": "eyes" }, [
+            svgEl("g", { "class": "blink" }, [
+              svgEl("ellipse", { "data-role": "eL", "cx": "85", "cy": "104", "rx": "8.5", "ry": "12.5", "fill": "#13233A" }),
+              svgEl("circle", { "data-role": "hL", "cx": "88", "cy": "99", "r": "3.6", "fill": "#FFFFFF" })
+            ]),
+            svgEl("g", { "class": "blink blink2" }, [
+              svgEl("ellipse", { "data-role": "eR", "cx": "115", "cy": "104", "rx": "8.5", "ry": "12.5", "fill": "#13233A" }),
+              svgEl("circle", { "data-role": "hR", "cx": "118", "cy": "99", "r": "3.6", "fill": "#FFFFFF" })
+            ])
+          ]),
+          svgEl("g", { "data-role": "sweat", "opacity": "0" }, [
+            svgEl("ellipse", { "class": "sw1", "cx": "146", "cy": "74", "rx": "3.6", "ry": "5.4", "fill": "#DFF2FF", "stroke": "#7FB1DA", "stroke-width": "1.2" }),
+            svgEl("ellipse", { "class": "sw2", "cx": "156", "cy": "98", "rx": "3", "ry": "4.6", "fill": "#DFF2FF", "stroke": "#7FB1DA", "stroke-width": "1.2" }),
+            svgEl("ellipse", { "class": "sw3", "cx": "48", "cy": "100", "rx": "3", "ry": "4.6", "fill": "#DFF2FF", "stroke": "#7FB1DA", "stroke-width": "1.2" })
+          ]),
+          svgEl("g", { "data-role": "happy", "opacity": "0" }, [
+            svgEl("path", { "d": "M76 106 Q 85 94 94 106", "fill": "none", "stroke": "#13233A", "stroke-width": "5", "stroke-linecap": "round" }),
+            svgEl("path", { "d": "M106 106 Q 115 94 124 106", "fill": "none", "stroke": "#13233A", "stroke-width": "5", "stroke-linecap": "round" })
+          ]),
+          svgEl("path", { "d": "M58 70 C 64 50 84 38 104 38", "fill": "none", "stroke": "#FFFFFF", "stroke-width": "8", "stroke-linecap": "round", "opacity": "0.95" }),
+          svgEl("circle", { "cx": "56", "cy": "86", "r": "4", "fill": "#FFFFFF" })
+        ])
+      ])
+    ];
   }
   var MOODS = {
     calm: { open: 1, rx: 8.5, ry: 12.5, dx: 0, glow: '#CFEFFF' },
@@ -75,7 +115,7 @@
     q('hL').setAttribute('cx', 88 + m.dx); q('hR').setAttribute('cx', 118 + m.dx);
   }
   function liquiStandalone(label) {
-    return fromMarkup('<svg class="liqui" viewBox="0 0 200 200" role="img" aria-label="' + label + '">' + liquiInner('lq') + '</svg>');
+    return svgEl('svg', { class: 'liqui', viewBox: '0 0 200 200', role: 'img', 'aria-label': label }, liquiParts('lq'));
   }
 
   /* ---------- glossary: tap a term, Klar defines it ---------- */
@@ -96,7 +136,7 @@
       if (seen[key]) continue;          // link only the first occurrence per block
       seen[key] = true;
       el.appendChild(document.createTextNode(text.slice(last, start)));
-      el.appendChild(h('span', { class: 'term', role: 'button', tabindex: '0', 'aria-label': 'Define ' + m[2],
+      el.appendChild(h('span', { class: 'term' + (/_/.test(m[2]) ? ' term-code' : ''), role: 'button', tabindex: '0', 'aria-label': 'Define ' + m[2],
         onclick: termClick(termIndex[key]), onkeydown: termKey(termIndex[key]) }, [m[2]]));
       last = start + m[2].length;
     }
@@ -232,7 +272,10 @@
       ]));
     });
     app.appendChild(list);
-    var lock = fromMarkup('<svg class="lock" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>');
+    var lock = svgEl('svg', { class: 'lock', viewBox: '0 0 16 16', 'aria-hidden': 'true' }, [
+      svgEl('rect', { x: '3', y: '7', width: '10', height: '7', rx: '2', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5' }),
+      svgEl('path', { d: 'M5.5 7V5a2.5 2.5 0 0 1 5 0v2', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5' })
+    ]);
     app.appendChild(h('p', { class: 'facts privacy' }, [lock, 'Your progress is saved only on this device. No account, no tracking.']));
   }
 
@@ -333,7 +376,7 @@
       ]);
       steps.appendChild(h('li', { class: 'path-item' }, [stepEls[n]]));
     });
-    var guide = fromMarkup('<svg class="path-guide" viewBox="0 0 200 200" aria-hidden="true">' + liquiInner('pg') + '</svg>');
+    var guide = svgEl('svg', { class: 'path-guide', viewBox: '0 0 200 200', 'aria-hidden': 'true' }, liquiParts('pg'));
     setMood(guide, 'curious');
     steps.appendChild(guide);
 
@@ -390,36 +433,68 @@
   /* ---------- screen: play ---------- */
   var P = {}; // live element refs for the play screen
 
-  function stageMarkup() {
-    return '<svg class="stage" viewBox="0 0 354 280" role="img" aria-label="Attack scene">' +
-      '<defs>' +
-      '<radialGradient id="stDrop" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/><stop offset="0.7" stop-color="#D6EAF8" stop-opacity="0.5"/><stop offset="1" stop-color="#6E9FCC" stop-opacity="0.85"/></radialGradient>' +
-      '<radialGradient id="stHalo" cx="50%" cy="50%" r="50%"><stop data-role="haloStop" offset="0" stop-color="#FF453A" stop-opacity="0.45"/><stop data-role="haloStop2" offset="1" stop-color="#FF453A" stop-opacity="0"/></radialGradient>' +
-      '<linearGradient id="stTile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0.55"/></linearGradient>' +
-      '<filter id="stBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>' +
-      '<filter id="stShadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#1E2846" flood-opacity="0.14"/></filter>' +
-      '</defs>' +
-      '<ellipse data-role="halo" cx="248" cy="134" rx="60" ry="60" fill="url(#stHalo)"/>' +
-      '<g data-role="ripples"><circle class="rp1" cx="248" cy="134" r="52" fill="none" stroke="#FF453A" stroke-width="1.5"/><circle class="rp2" cx="248" cy="134" r="52" fill="none" stroke="#FF453A" stroke-width="1.5"/></g>' +
-      '<g class="hover">' +
-      '<rect x="204" y="90" width="88" height="88" rx="24" fill="url(#stTile)" stroke="#FFFFFF" stroke-width="1.5" filter="url(#stShadow)"/>' +
-      '<rect data-role="tint" x="204" y="90" width="88" height="88" rx="24" fill="#FF453A" opacity="0"/>' +
-      '<rect x="216" y="97" width="44" height="7" rx="3.5" fill="#FFFFFF" opacity="0.9"/>' +
-      '<path data-role="icon" d="" fill="none" stroke="#0A84FF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<g data-role="badge" opacity="0"><g class="pop"><circle cx="286" cy="96" r="14" fill="#30D158" stroke="#FFFFFF" stroke-width="3"/><path d="M279 96 l5 5 l9 -10" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></g></g>' +
-      '</g>' +
-      '<text data-role="tileName" x="248" y="210" text-anchor="middle" font-family="-apple-system, Segoe UI, Inter, sans-serif" font-weight="600" font-size="11" fill="#3A3A3C"></text>' +
-      '<text data-role="tileStatus" x="248" y="226" text-anchor="middle" font-family="-apple-system, Segoe UI, Inter, sans-serif" font-weight="600" font-size="10" fill="#D70015"></text>' +
-      '<g data-role="beam" opacity="0"><circle class="bm1" cx="108" cy="160" r="6" fill="url(#stDrop)"/><circle class="bm2" cx="108" cy="160" r="5" fill="url(#stDrop)"/><circle class="bm3" cx="108" cy="160" r="6.5" fill="url(#stDrop)"/></g>' +
-      '<ellipse cx="87" cy="252" rx="38" ry="6" fill="#1E2846" opacity="0.16" filter="url(#stBlur)"/>' +
-      '<g data-role="liquiWrap" class="klar-wrap">' +
-      '<svg data-role="liqui" x="26" y="116" width="122" height="122" viewBox="0 0 200 200">' + liquiInner('sq') + '</svg>' +
-      '<g class="burst" aria-hidden="true">' +
-        '<circle class="b-1" cx="87" cy="170" r="5" fill="url(#stDrop)"/><circle class="b-2" cx="87" cy="170" r="4" fill="url(#stDrop)"/>' +
-        '<circle class="b-3" cx="87" cy="170" r="5.5" fill="url(#stDrop)"/><circle class="b-4" cx="87" cy="170" r="3.5" fill="url(#stDrop)"/>' +
-        '<circle class="b-5" cx="87" cy="170" r="4.5" fill="url(#stDrop)"/><circle class="b-6" cx="87" cy="170" r="3" fill="url(#stDrop)"/>' +
-      '</g></g>' +
-      '</svg>';
+  function stageSvg() {
+    return (
+    svgEl("svg", { "class": "stage", "viewBox": "0 0 354 280", "role": "img", "aria-label": "Attack scene" }, [
+      svgEl("defs", {  }, [
+        svgEl("radialGradient", { "id": "stDrop", "cx": "38%", "cy": "32%", "r": "70%" }, [
+          svgEl("stop", { "offset": "0", "stop-color": "#FFFFFF", "stop-opacity": "0.95" }),
+          svgEl("stop", { "offset": "0.7", "stop-color": "#D6EAF8", "stop-opacity": "0.5" }),
+          svgEl("stop", { "offset": "1", "stop-color": "#6E9FCC", "stop-opacity": "0.85" })
+        ]),
+        svgEl("radialGradient", { "id": "stHalo", "cx": "50%", "cy": "50%", "r": "50%" }, [
+          svgEl("stop", { "data-role": "haloStop", "offset": "0", "stop-color": "#FF453A", "stop-opacity": "0.45" }),
+          svgEl("stop", { "data-role": "haloStop2", "offset": "1", "stop-color": "#FF453A", "stop-opacity": "0" })
+        ]),
+        svgEl("linearGradient", { "id": "stTile", "x1": "0", "y1": "0", "x2": "1", "y2": "1" }, [
+          svgEl("stop", { "offset": "0", "stop-color": "#FFFFFF", "stop-opacity": "0.95" }),
+          svgEl("stop", { "offset": "1", "stop-color": "#FFFFFF", "stop-opacity": "0.55" })
+        ]),
+        svgEl("filter", { "id": "stBlur", "x": "-50%", "y": "-50%", "width": "200%", "height": "200%" }, [
+          svgEl("feGaussianBlur", { "stdDeviation": "6" })
+        ]),
+        svgEl("filter", { "id": "stShadow", "x": "-30%", "y": "-30%", "width": "160%", "height": "160%" }, [
+          svgEl("feDropShadow", { "dx": "0", "dy": "8", "stdDeviation": "9", "flood-color": "#1E2846", "flood-opacity": "0.14" })
+        ])
+      ]),
+      svgEl("ellipse", { "data-role": "halo", "cx": "248", "cy": "134", "rx": "60", "ry": "60", "fill": "url(#stHalo)" }),
+      svgEl("g", { "data-role": "ripples" }, [
+        svgEl("circle", { "class": "rp1", "cx": "248", "cy": "134", "r": "52", "fill": "none", "stroke": "#FF453A", "stroke-width": "1.5" }),
+        svgEl("circle", { "class": "rp2", "cx": "248", "cy": "134", "r": "52", "fill": "none", "stroke": "#FF453A", "stroke-width": "1.5" })
+      ]),
+      svgEl("g", { "class": "hover" }, [
+        svgEl("rect", { "x": "204", "y": "90", "width": "88", "height": "88", "rx": "24", "fill": "url(#stTile)", "stroke": "#FFFFFF", "stroke-width": "1.5", "filter": "url(#stShadow)" }),
+        svgEl("rect", { "data-role": "tint", "x": "204", "y": "90", "width": "88", "height": "88", "rx": "24", "fill": "#FF453A", "opacity": "0" }),
+        svgEl("rect", { "x": "216", "y": "97", "width": "44", "height": "7", "rx": "3.5", "fill": "#FFFFFF", "opacity": "0.9" }),
+        svgEl("path", { "data-role": "icon", "d": "", "fill": "none", "stroke": "#0A84FF", "stroke-width": "4", "stroke-linecap": "round", "stroke-linejoin": "round" }),
+        svgEl("g", { "data-role": "badge", "opacity": "0" }, [
+          svgEl("g", { "class": "pop" }, [
+            svgEl("circle", { "cx": "286", "cy": "96", "r": "14", "fill": "#30D158", "stroke": "#FFFFFF", "stroke-width": "3" }),
+            svgEl("path", { "d": "M279 96 l5 5 l9 -10", "fill": "none", "stroke": "#FFFFFF", "stroke-width": "3.2", "stroke-linecap": "round", "stroke-linejoin": "round" })
+          ])
+        ])
+      ]),
+      svgEl("text", { "data-role": "tileName", "x": "248", "y": "210", "text-anchor": "middle", "font-family": "-apple-system, Segoe UI, Inter, sans-serif", "font-weight": "600", "font-size": "11", "fill": "#3A3A3C" }),
+      svgEl("text", { "data-role": "tileStatus", "x": "248", "y": "226", "text-anchor": "middle", "font-family": "-apple-system, Segoe UI, Inter, sans-serif", "font-weight": "600", "font-size": "10", "fill": "#D70015" }),
+      svgEl("g", { "data-role": "beam", "opacity": "0" }, [
+        svgEl("circle", { "class": "bm1", "cx": "108", "cy": "160", "r": "6", "fill": "url(#stDrop)" }),
+        svgEl("circle", { "class": "bm2", "cx": "108", "cy": "160", "r": "5", "fill": "url(#stDrop)" }),
+        svgEl("circle", { "class": "bm3", "cx": "108", "cy": "160", "r": "6.5", "fill": "url(#stDrop)" })
+      ]),
+      svgEl("ellipse", { "cx": "87", "cy": "252", "rx": "38", "ry": "6", "fill": "#1E2846", "opacity": "0.16", "filter": "url(#stBlur)" }),
+      svgEl("g", { "data-role": "liquiWrap", "class": "klar-wrap" }, [
+        svgEl("svg", { "data-role": "liqui", "x": "26", "y": "116", "width": "122", "height": "122", "viewBox": "0 0 200 200" }, liquiParts('sq')),
+        svgEl("g", { "class": "burst", "aria-hidden": "true" }, [
+          svgEl("circle", { "class": "b-1", "cx": "87", "cy": "170", "r": "5", "fill": "url(#stDrop)" }),
+          svgEl("circle", { "class": "b-2", "cx": "87", "cy": "170", "r": "4", "fill": "url(#stDrop)" }),
+          svgEl("circle", { "class": "b-3", "cx": "87", "cy": "170", "r": "5.5", "fill": "url(#stDrop)" }),
+          svgEl("circle", { "class": "b-4", "cx": "87", "cy": "170", "r": "3.5", "fill": "url(#stDrop)" }),
+          svgEl("circle", { "class": "b-5", "cx": "87", "cy": "170", "r": "4.5", "fill": "url(#stDrop)" }),
+          svgEl("circle", { "class": "b-6", "cx": "87", "cy": "170", "r": "3", "fill": "url(#stDrop)" })
+        ])
+      ])
+    ])
+    );
   }
 
   /* ---------- Klar's voice: varied lines, never the same twice in a row ---------- */
@@ -488,7 +563,7 @@
     P.alarm.style.color = 'var(--muted)';
 
     var scene = h('div', { class: 'scene glass' });
-    P.stage = fromMarkup(stageMarkup());
+    P.stage = stageSvg();
     scene.appendChild(P.stage);
     P.bubble = bubble(st.say);
     scene.appendChild(P.bubble);

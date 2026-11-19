@@ -35,6 +35,19 @@
   function pad(n, w) { var s = String(Math.max(0, n)); while (s.length < (w || 4)) s = '0' + s; return s; }
   function cap(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
   function restart(el, cls) { if (!el || BE.reduceMotion()) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+  // Text from level JSON: `backticks` mark code (shown in <code>), the rest gets tappable glossary terms.
+  // terms=false for text inside buttons (cards, timeline slots), where nested controls are not allowed.
+  function rich(text, el, terms) {
+    el = el || h('span', {});
+    String(text || '').split('`').forEach(function (part, i) {
+      if (!part) return;
+      if (i % 2) el.appendChild(terms === false ? h('code', { text: part }) : BE.termify(part, h('code', {})));
+      else if (terms === false) el.appendChild(document.createTextNode(part));
+      else el.appendChild(BE.termify(part, h('span', {})));
+    });
+    return el;
+  }
+  function plain(text) { return String(text || '').replace(/`/g, ''); }
   function srcById(id) { return (C.d.sources || []).filter(function (s) { return s.id === id; })[0]; }
 
   /* ---------- terminal backdrop: code rain + red edge flash ---------- */
@@ -64,7 +77,7 @@
       document.body.insertBefore(rain.cv, document.body.firstChild);
       sizeRain(); window.addEventListener('resize', sizeRain);
     }
-    if (rain.cv && !rain.timer) rain.timer = setInterval(tickRain, 70);
+    if (rain.cv && !rain.timer) rain.timer = setInterval(tickRain, 110);
   }
   // Runs on every screen change; frame() re-enters right away when the next screen is also a case screen.
   // The canvas stays in the page (hidden by CSS outside case mode) so the rain does not restart on each page.
@@ -79,17 +92,19 @@
 
   /* ---------- screen frame ---------- */
   var hud = {};
-  function frame(label) {
+  function frame(label, opts) {
+    opts = opts || {};
     BE.leave();                         // stops v1 timers and runs previous cleanups
     app.textContent = ''; app.className = 'app case';
     enterTerminal();
     BE.onLeave(leaveTerminal);
     BE.onLeave(endDrag);
     hud.act = h('span', { class: 'c-act', text: label });
-    hud.xp = h('span', { class: 'c-xp', text: 'XP ' + pad(C.xp) });
+    // During the briefing there is no score yet: show a BRIEFING tag instead of the XP badge.
+    hud.xp = opts.briefing ? null : h('span', { class: 'c-xp', text: 'XP ' + pad(C.xp) });
     app.appendChild(h('div', { class: 'c-hud' }, [
-      h('button', { class: 'c-ghost c-exit', 'aria-label': 'Exit to the Breach Map', onclick: BE.renderMap }, ['‹ root@soc-01:~$']),
-      hud.act, hud.xp
+      h('button', { class: 'c-ghost c-exit', onclick: BE.renderMap }, ['\u2039 exit to map']),
+      hud.act, hud.xp || h('span', { class: 'c-tagb', text: 'BRIEFING' })
     ]));
     // Glossary taps on this screen show their definition in a terminal panel.
     defBox = h('div', { class: 'c-def', role: 'status', hidden: true, onclick: function () { defBox.hidden = true; } });
@@ -109,7 +124,7 @@
   function addXP(n) { C.xp = Math.max(0, C.xp + n); if (hud.xp) hud.xp.textContent = 'XP ' + pad(C.xp); }
   function panel(cls, kids) { return h('div', { class: 'c-panel' + (cls ? ' ' + cls : '') }, kids); }
   function eyebrow(t, cls) { return h('div', { class: 'c-eyebrow' + (cls ? ' ' + cls : ''), text: t }); }
-  function para(t, cls) { return BE.termify(t, h('p', { class: cls || '' })); }
+  function para(t, cls) { return rich(t, h('p', { class: cls || '' })); }
 
   /* ---------- load + start ---------- */
   function start(L) {
@@ -146,7 +161,8 @@
   /* ---------- Intel briefing ---------- */
   function renderBrief(page) {
     var pages = C.d.briefing.pages;
-    frame('INTEL');
+    frame('INTEL', { briefing: true });
+    app.classList.add('c-briefscreen');
     var dots = h('div', { class: 'c-dots', role: 'progressbar', 'aria-label': 'Briefing page', 'aria-valuemin': '1', 'aria-valuemax': String(pages.length), 'aria-valuenow': String(page + 1) });
     pages.forEach(function (_, i) { dots.appendChild(h('i', { class: i <= page ? 'on' : '' })); });
     app.appendChild(h('div', { class: 'c-hud' }, [dots, h('button', { class: 'c-ghost c-skip', text: 'skip intel ›', onclick: finishBrief })]));
@@ -154,13 +170,19 @@
     pages[page].blocks.forEach(function (b) { body.appendChild(block(b)); });
     app.appendChild(body);
     app.appendChild(defBox);
+
+    // Pinned footer: back, a small sources toggle, NEXT.
     var last = page === pages.length - 1;
     var back = h('button', { class: 'c-ghost', text: '‹ back', onclick: function () { renderBrief(page - 1); } });
-    if (!page) back.classList.add('c-invisible');
-    app.appendChild(h('div', { class: 'c-row2' }, [back,
+    if (!page) { back.disabled = true; back.classList.add('c-invisible'); }
+    var srcBox = h('div', { class: 'c-srcbox', id: 'c-sources', hidden: true }, [sourcesLine()]);
+    var srcBtn = h('button', { class: 'c-ghost c-srcbtn', 'aria-expanded': 'false', 'aria-controls': 'c-sources', text: 'sources', onclick: function () {
+      var open = srcBox.hidden; srcBox.hidden = !open; srcBtn.setAttribute('aria-expanded', String(open));
+    } });
+    app.appendChild(h('div', { class: 'c-bar c-briefbar' }, [h('div', { class: 'c-bar-in' }, [
+      srcBox, back, srcBtn,
       h('button', { class: 'c-btn', text: last ? '> OPEN THE EVIDENCE' : 'NEXT ›', onclick: function () { if (last) finishBrief(); else renderBrief(page + 1); } })
-    ]));
-    app.appendChild(sourcesLine());
+    ])]));
   }
   function finishBrief() {
     caseRec().briefed = true; BE.saveProgress();
@@ -169,7 +191,12 @@
   function tone(el, t) { if (t) el.classList.add('t-' + t); return el; }
   function kvList(kv) {
     var dl = h('dl', { class: 'c-kv' });
-    kv.forEach(function (r) { dl.appendChild(h('dt', { text: r.k })); dl.appendChild(tone(h('dd', { text: r.v }), r.tone)); });
+    kv.forEach(function (r) {
+      dl.appendChild(h('dt', { text: r.k }));
+      var dd = tone(rich(r.v, h('dd', {})), r.tone), src = r.source && srcById(r.source);
+      if (src) dd.appendChild(h('a', { class: 'c-small c-cite', href: src.url, target: '_blank', rel: 'noopener noreferrer', text: 'source: ' + src.title }));
+      dl.appendChild(dd);
+    });
     return dl;
   }
   function block(b) {
@@ -194,7 +221,7 @@
         kids.push(eyebrow(b.eyebrow));
         b.items.forEach(function (segs) {
           var line = h('span', {});
-          segs.forEach(function (s) { line.appendChild(s.tone ? tone(h('b', { text: s.t }), s.tone) : document.createTextNode(s.t)); });
+          segs.forEach(function (s) { line.appendChild(s.tone ? tone(rich(s.t, h('b', {}), false), s.tone) : rich(s.t, null, false)); });
           kids.push(h('div', { class: 'c-fact' }, [svg(ICON.check, 16, 'c-ok'), line]));
         });
         return panel('', kids);
@@ -209,6 +236,7 @@
         if (b.text) kids.push(para(b.text));
         b.flow.forEach(function (f) {
           if (f.arrow) kids.push(h('div', { class: 'c-arrow', text: f.arrow }));
+          else if (f.teaser) kids.push(h('div', { class: 'c-teaser', text: f.teaser }));
           else if (f.box) kids.push(tone(h('div', { class: 'c-box' }, [svg(ICON.globe, 16), f.box]), f.tone));
           else if (f.zone) {
             var z = tone(h('div', { class: 'c-zone' }, [h('span', { class: 'c-zt', text: f.zone })]), f.tone);
@@ -220,8 +248,9 @@
       case 'glossary':
         kids.push(eyebrow(b.eyebrow));
         b.terms.forEach(function (t) {
-          var def = BE.glossary[t] || BE.glossary[Object.keys(BE.glossary).filter(function (k) { return k.toLowerCase() === t.toLowerCase(); })[0]];
-          if (def) kids.push(h('div', { class: 'c-term' }, [h('span', { class: 'c-h3', text: cap(t) }), h('p', { text: def })]));
+          var code = t.charAt(0) === '`', key = plain(t);
+          var def = BE.glossary[key] || BE.glossary[Object.keys(BE.glossary).filter(function (k) { return k.toLowerCase() === key.toLowerCase(); })[0]];
+          if (def) kids.push(h('div', { class: 'c-term' }, [code ? h('code', { class: 'c-h3', text: key }) : h('span', { class: 'c-h3', text: cap(key) }), h('p', { text: def })]));
         });
         return panel('', kids);
       case 'mission':
@@ -235,7 +264,7 @@
   function sourcesLine() {
     var p = h('p', { class: 'c-small c-src' }, ['Sources: ']);
     (C.d.sources || []).forEach(function (s, n) {
-      if (n) p.appendChild(document.createTextNode(' · '));
+      if (n) p.appendChild(document.createTextNode(' \u00b7 '));
       p.appendChild(h('a', { href: s.url, target: '_blank', rel: 'noopener noreferrer', text: s.title }));
     });
     return p;
@@ -261,14 +290,14 @@
     E.line = para(a1.short || a1.help, 'c-line');
     E.helpBox = h('div', { class: 'c-helpbox', id: 'c-help', hidden: true }, [
       para(a1.help),
-      h('p', { class: 'c-small', text: 'Keys: A add to timeline · X not related · H hint. Tap a dotted word to see what it means.' })
+      h('p', { class: 'c-small', text: 'Keys: A add to timeline \u00b7 X not related \u00b7 H hint. Tap a dotted word to see what it means.' })
     ]);
     E.helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How to play', 'aria-expanded': 'false', 'aria-controls': 'c-help', text: '?', onclick: function () {
       var open = E.helpBox.hidden; E.helpBox.hidden = !open; E.helpBtn.setAttribute('aria-expanded', String(open));
     } });
     var best = rec.act1 && rec.act1.bestXp != null ? h('span', { class: 'c-small c-best', text: 'best ' + rec.act1.bestXp + ' XP' }) : null;
     var head = panel('c-head', [
-      h('div', { class: 'c-headrow' }, [h('div', { class: 'c-headtxt' }, [eyebrow('Act 1 · Investigate'), E.title]), best, E.helpBtn]),
+      h('div', { class: 'c-headrow' }, [h('div', { class: 'c-headtxt' }, [eyebrow('Act 1 \u00b7 Investigate'), E.title]), best, E.helpBtn]),
       E.line, E.helpBox
     ]);
 
@@ -294,7 +323,7 @@
 
     // Bottom bar, pinned: the Not related drop zone plus the actions.
     E.nr = h('button', { class: 'c-ghost c-nr', 'data-drop': 'nr', onclick: function () { dismiss(); } },
-      [h('span', { text: '✕ not related' }), h('span', { class: 'c-small', text: 'drop red herrings here' })]);
+      [h('span', { text: '\u2715 not related' }), h('span', { class: 'c-small', text: 'drop red herrings here' })]);
     E.add = h('button', { class: 'c-ghost c-add', 'data-drop': 'timeline', text: '+ add to timeline', onclick: function () { place(); } });
     E.hint = h('button', { class: 'c-ghost c-hintbtn', onclick: askHint });
     E.bar = h('div', { class: 'c-bar', role: 'toolbar', 'aria-label': 'Evidence actions' }, [h('div', { class: 'c-bar-in' }, [E.nr, E.add, E.hint])]);
@@ -313,7 +342,7 @@
     var folded = A.collapsed && A.phase === 'order';
     E.slots.classList.toggle('c-folded', folded);
     E.fold.hidden = A.phase !== 'order';
-    E.fold.textContent = folded ? '▾ show all' : '▴ current only';
+    E.fold.textContent = folded ? '\u25be show all' : '\u25b4 current only';
     E.fold.setAttribute('aria-expanded', String(!folded));
     E.count.textContent = A.placed.length + '/' + total();
     E.slots.textContent = '';
@@ -321,12 +350,12 @@
       var c = A.placed[i - 1], isNext = !c && i === A.next && A.phase === 'order';
       var li = h('li', { class: 'c-slot' + (c ? ' filled' : '') + (isNext ? ' next' : '') });
       li.appendChild(h('span', { class: 'c-n', text: pad(i, 2) }));
-      if (c) li.appendChild(h('span', { text: c.e.title }));
+      if (c) li.appendChild(rich(c.e.title, h('span', {}), false));
       else if (isNext) li.appendChild(h('span', {}, ['awaiting evidence', h('span', { class: 'c-blink', text: '_' })]));
-      else li.appendChild(h('span', { text: '—' }));
+      else li.appendChild(h('span', { text: '\u2014' }));
       if (c && c.pz) { li.classList.add('pz'); li.appendChild(h('span', { class: 'c-pill r c-tag', text: 'PATIENT ZERO' })); }
       if (c && A.phase === 'pz') {
-        var btn = h('button', { class: 'c-slotbtn', 'aria-label': 'Mark step ' + i + ' as patient zero: ' + c.e.title, onclick: pickPZ.bind(null, c) });
+        var btn = h('button', { class: 'c-slotbtn', 'aria-label': 'Mark step ' + i + ' as patient zero: ' + plain(c.e.title), onclick: pickPZ.bind(null, c) });
         while (li.firstChild) btn.appendChild(li.firstChild);
         li.appendChild(btn); li.classList.add('pickable');
       }
@@ -338,7 +367,7 @@
       if (c.done) return;
       var b = h('button', { class: 'c-card' + (A.sel === c ? ' sel' : ''), 'aria-pressed': A.sel === c ? 'true' : 'false' }, [
         h('span', { class: 'c-cardsrc' }, [svg(ICON[c.e.type] || ICON.signin), c.e.src]),
-        h('span', { text: c.e.title })
+        rich(c.e.title, h('span', {}), false)
       ]);
       c.el = b;
       attachDrag(b, c);
@@ -351,7 +380,7 @@
     E.hint.disabled = !hasHint || !!A.hinted[hk];
     E.hint.textContent = '';
     E.hint.appendChild(h('span', { text: A.hinted[hk] ? 'hint used' : '? hint' }));
-    E.hint.appendChild(h('span', { class: 'c-small', text: 'step ' + pad(A.next, 2) + (A.hinted[hk] ? '' : ' · ' + C.d.act1.scoring.hint + ' XP') }));
+    E.hint.appendChild(h('span', { class: 'c-small', text: 'step ' + pad(A.next, 2) + (A.hinted[hk] ? '' : ' \u00b7 ' + C.d.act1.scoring.hint + ' XP') }));
     E.bar.hidden = A.phase !== 'order';
     E.main.classList.toggle('c-solo', A.phase !== 'order');
   }
@@ -371,7 +400,7 @@
   function wrong(msg, el) {
     var s = C.d.act1.scoring;
     A.mistakes++; addXP(s.wrong);
-    toast(s.wrong + ' · ' + msg, false); flash();
+    toast(s.wrong + ' \u00b7 ' + msg, false); flash();
     restart(el || E.slots, 'c-shake');
   }
   function needSel() { if (!A.sel) { toast('Select an evidence card first', false); return true; } return false; }
@@ -381,7 +410,7 @@
     var c = A.sel, s = C.d.act1.scoring, w = C.d.act1.wrongLines;
     if (c.e.order === A.next) {
       c.done = true; A.placed.push(c); A.next++; A.sel = null;
-      addXP(s.place); toast('+' + s.place + ' XP · sequence valid', true);
+      addXP(s.place); toast('+' + s.place + ' XP \u00b7 sequence valid', true);
       afterMove();
     } else if (!c.e.order) wrong(w.decoy, c.el);
     else wrong(w.early, c.el);
@@ -391,7 +420,7 @@
     var c = A.sel, s = C.d.act1.scoring;
     if (!c.e.order) {
       c.done = true; A.sel = null;
-      addXP(s.dismiss); toast('+' + s.dismiss + ' XP · red herring dismissed', true);
+      addXP(s.dismiss); toast('+' + s.dismiss + ' XP \u00b7 red herring dismissed', true);
       afterMove();
     } else wrong(C.d.act1.wrongLines.dismissReal, c.el);
   }
@@ -408,7 +437,7 @@
       A.phase = 'pz';
       E.deck.hidden = true;
       E.title.textContent = C.d.act1.pzTitle;
-      E.line.textContent = ''; BE.termify(C.d.act1.pzHelp, E.line);
+      E.line.textContent = ''; rich(C.d.act1.pzHelp, E.line);
       drawAct1();
       var first = E.slots.querySelector('.c-slotbtn'); if (first) first.focus({ preventScroll: true });
     }
@@ -418,9 +447,9 @@
     var s = C.d.act1.scoring;
     if (c.e.id !== C.d.patientZero) { wrong(C.d.act1.wrongLines.pz); return; }
     c.pz = true; A.phase = 'done';
-    addXP(s.patientZero); toast('+' + s.patientZero + ' XP · patient zero identified', true);
+    addXP(s.patientZero); toast('+' + s.patientZero + ' XP \u00b7 patient zero identified', true);
     E.title.textContent = C.d.act1.doneTitle;
-    E.line.textContent = ''; BE.termify(C.d.act1.doneHelp, E.line);
+    E.line.textContent = ''; rich(C.d.act1.doneHelp, E.line);
     app.classList.remove('c-fit');   // the debrief is a normal scrolling page
     drawAct1();
     saveAct1();
@@ -455,10 +484,10 @@
     d.timeline.forEach(function (t) {
       var src = srcById(t.source);
       var li = h('li', {}, [
-        h('div', { class: 'c-hud' }, [h('b', { text: 'STAGE ' + t.stage + (t.date ? ' · ' + t.date.toUpperCase() : '') }),
+        h('div', { class: 'c-hud' }, [h('b', { text: 'STAGE ' + t.stage + (t.date ? ' \u00b7 ' + t.date.toUpperCase() : '') }),
           h('span', { class: 'c-chips' }, (t.mitre || []).map(function (m) { return h('span', { class: 'c-chip', text: m }); }))]),
         para(t.text),
-        h('p', { class: 'c-why' }, [h('span', { class: 't-g', text: 'why it worked: ' }), BE.termify(t.why, h('span', {}))])
+        h('p', { class: 'c-why' }, [h('span', { class: 't-g', text: 'why it worked: ' }), rich(t.why)])
       ]);
       if (src) li.appendChild(h('a', { class: 'c-small', href: src.url, target: '_blank', rel: 'noopener noreferrer', text: 'source: ' + src.title }));
       tl.appendChild(li);
@@ -468,7 +497,7 @@
     var act2Ready = d.status && d.status.act2 === 'ready';
     box.appendChild(panel('hl', [eyebrow('Next'), para(d.rewind),
       act2Ready ? null : h('p', { class: 'c-small', text: 'Act 2 (Defend) is still in the lab. Until it ships, you can defend in the classic quiz.' })]));
-    box.appendChild(h('button', { class: 'c-btn', disabled: !act2Ready, text: act2Ready ? '> REWIND TO OCTOBER 2023' : '> REWIND TO OCTOBER 2023 · SOON' }));
+    box.appendChild(h('button', { class: 'c-btn', disabled: !act2Ready, text: act2Ready ? '> REWIND TO OCTOBER 2023' : '> REWIND TO OCTOBER 2023 \u00b7 SOON' }));
     box.appendChild(h('button', { class: 'c-ghost c-wide', text: '> defend in classic mode', onclick: function () { BE.startClassic(C.L.id); } }));
     box.appendChild(h('button', { class: 'c-ghost c-wide', text: './replay --act 1', onclick: function () { C.xp = 0; startAct1(); } }));
     box.appendChild(sourcesLine());

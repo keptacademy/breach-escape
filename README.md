@@ -55,6 +55,7 @@ python3 -m http.server 8080
 1. Edit the files (usually just `levels.js`).
 2. In `sw.js`, bump `VERSION` (for example `v1` → `v2`) so installed copies pick up the change.
 3. Push to GitHub; Azure deploys automatically.
+4. Pull requests to `main` get their own Azure preview environment (URL posted on the PR), removed when the PR closes. Production only deploys on push to `main`. The preview jobs run in a GitHub environment called `preview` and need the same `AZURE_STATIC_WEB_APPS_API_TOKEN` secret available there (or as a repository secret).
 
 ## Add a new level
 
