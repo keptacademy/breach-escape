@@ -69,5 +69,16 @@ window.GLOSSARY = {
   'share drive': 'A shared network folder where teams keep files. Attackers copy it before encrypting, to threaten a leak.',
   'offline backup': 'A copy of your data kept disconnected from the network, so ransomware cannot reach or encrypt it.',
   'incident response plan': 'A written, rehearsed playbook for who does what when an attack is found, from the first alert to recovery.',
-  'stop work authority': 'Colonial’s rule that anyone, from the CEO to an operator in the field, may halt operations if they believe safety is at risk.'
+  'stop work authority': 'Colonial’s rule that anyone, from the CEO to an operator in the field, may halt operations if they believe safety is at risk.',
+  'MFA fatigue': 'Sending sign-in approval requests again and again until the tired or confused account owner accepts one.',
+  'approval request': 'A push prompt that asks the account owner to approve or deny a sign-in. A plain yes/no prompt can be approved without checking.',
+  'approval requests': 'Push prompts that ask the account owner to approve or deny a sign-in. A plain yes/no prompt can be approved without checking.',
+  'number matching': 'An MFA setting where the sign-in screen shows a number that the user must type into their app, so a blind “approve” no longer works.',
+  'dark web': 'Hidden websites and marketplaces where stolen passwords and data are bought and sold.',
+  'malware': 'Malicious software. Some kinds quietly collect saved passwords from a device and send them to criminals.',
+  'managed device': 'A laptop or phone the company enrolls and controls, so it can check the device is healthy before allowing sign-in.',
+  'EXT contractor': 'Uber’s label for an external contractor: someone who works with the company but isn’t an employee.',
+  'OpenDNS': 'A DNS service companies use to control which sites people reach. Whoever controls its settings can redirect what users see.',
+  'HackerOne': 'A bug bounty platform where outside researchers report security flaws to companies.',
+  'key rotation': 'Replacing secret keys with new ones, so any copy an attacker took stops working.'
 };

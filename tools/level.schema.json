@@ -54,7 +54,8 @@
     "theme": {
       "enum": [
         "green",
-        "amber"
+        "amber",
+        "violet"
       ]
     },
     "status": {
