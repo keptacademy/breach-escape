@@ -513,10 +513,11 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
   .c-fit .c-a2 .c-log{grid-area:deck;display:none;height:auto;max-height:none}
   .c-running .c-a2 .c-log{display:block}
   .c-running .c-a2 .c-a2deck{display:none}
-  .c-a2deck{padding:8px}
+  .c-a2deck{padding:8px;gap:5px}
+  .c-a2deck .c-z{letter-spacing:.06em}
   .c-a2deck .c-gridwrap{overflow-y:auto}
-  .c-a2deck .c-ctlgrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
-  .case .c-a2deck .c-ctl{font-size:max(0.7188rem,var(--fs-l));line-height:1.3;padding:5px 7px;gap:2px}
+  .c-a2deck .c-ctlgrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+  .case .c-a2deck .c-ctl{font-size:max(0.7188rem,var(--fs-l));line-height:1.3;padding:4px 7px;gap:2px}
   .case .c-ctl .c-costrow{display:none}
   .c-costtop{display:inline-flex}
   .c-a2screen .c-head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 24px;align-items:center;padding:10px 14px}

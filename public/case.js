@@ -807,9 +807,10 @@
     C.d.controls.forEach(function (c) {
       var on = B.on.indexOf(c.id) >= 0, z = ctlZone(c), lock = locked(c);
       var b = h('button', { class: 'c-ctl' + (on ? ' on' : '') + (lock ? ' locked' : ''), 'aria-pressed': String(on),
-        'aria-label': plain(c.name) + '. Protects the ' + (z.short || z.name).toLowerCase() + '. Costs ' + c.cost + '.' + (lock ? ' Needs discovery first.' : '') }, [
+        'aria-label': plain(c.name) + '. ' + (c.scope ? 'Scoped to ' + c.scope + ' only; goes on stage ' + c.stage + '.' : 'Protects the ' + (z.short || z.name).toLowerCase() + '.') +
+          ' Costs ' + c.cost + '.' + (lock ? ' Needs discovery first.' : '') }, [
         // Desktop: zone label and cost share the top row (the cost row below is hidden) so the whole deck fits on one screen.
-        h('span', { class: 'c-ztop' }, [h('span', { class: 'c-z', text: (z.short || z.name) + (c.effect === 'reveal' ? ' · DISCOVERY' : '') }),
+        h('span', { class: 'c-ztop' }, [h('span', { class: 'c-z', text: zoneLabel(c, z) }),
           h('span', { class: 'c-costtop', 'aria-hidden': 'true' }, [bars(c.cost), h('span', { class: 'c-small', text: String(c.cost) })])]),
         h('span', { class: 'c-cname' }, [on ? '✓ ' : '', rich(c.name, null, false)]),
         lock ? h('span', { class: 'c-small', text: 'needs discovery first' }) : null,
@@ -824,6 +825,12 @@
       F.deck.appendChild(b);
     });
     F.count.textContent = B.on.length + ' deployed';
+  }
+  // Card label: the zone the control protects. A scoped control (scope in the JSON) names its real scope instead,
+  // e.g. "PRODUCTION TENANT · SCOPED", so the trap reads as a policy boundary, not a typo. Placement rules are unchanged.
+  function zoneLabel(c, z) {
+    if (c.scope) return c.scope.toUpperCase() + ' \u00b7 SCOPED';
+    return (z.short || z.name) + (c.effect === 'reveal' ? ' \u00b7 DISCOVERY' : '');
   }
   function drawBudget() {
     var l = left();
@@ -875,7 +882,9 @@
     if (!t || t.getAttribute('data-drop') !== 'stage') { restart(el, 'c-shake'); return; }
     var z = ctlZone(c);
     if (t.getAttribute('data-zone') !== z.id) {
-      say('red', fmt(C.d.act2.logs.wrongZone, { name: c.name, zone: (z.short || z.name).toLowerCase() }));
+      var lg = C.d.act2.logs;
+      say('red', c.scope && lg.wrongZoneScoped ? fmt(lg.wrongZoneScoped, { name: c.name, scope: c.scope, n: c.stage })
+        : fmt(lg.wrongZone, { name: c.name, zone: (z.short || z.name).toLowerCase() }));
       restart(t, 'c-shake'); return;
     }
     if (B.on.indexOf(c.id) < 0) toggle(c);
