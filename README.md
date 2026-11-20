@@ -69,6 +69,10 @@ Build every level only from primary sources: the company's own post-mortem, offi
 
 ## License
 
-© 2026 KEPT Academy. All rights reserved. This repository is public for transparency and security review; it is not open source. Breach scenarios are based on the public primary sources listed in each level.
+© 2026 KEPT Academy. All rights reserved.
+
+This repository is public so the code can be viewed and its security reviewed. It is **not open source**: no license is granted to copy, modify, distribute, host or sell this software, its content or its artwork, in whole or in part, without written permission from KEPT Academy.
+
+"KEPT", "KEPT Academy", "Breach Escape" and the `>K_` and KE/PT marks are trademarks of KEPT Academy. Breach case facts come from the public primary sources cited in each level; KEPT Academy claims no ownership of those facts.
 
 To report a security issue, see [SECURITY.md](SECURITY.md).
