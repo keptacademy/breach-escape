@@ -8,6 +8,7 @@
     "act1": "ready",
     "act2": "ready"
   },
+  "theme": "amber",
   "note": "Facts come from the sources below. Verified against Joseph Blount's written Senate testimony and his answers in the Senate hearing record (June 8, 2021). Items with a 'todo' field could not be checked against their source and must be verified before publishing. Evidence rows are recreated for training and are labelled so in the game. ATT&CK codes are a mapping for review, not a source fact. Text in backticks is shown as code.",
   "verify": [
     "TODO: verify: DarkSide is ransomware-as-a-service run with affiliates (briefing page 2), against CISA/FBI AA21-131A.",
@@ -52,9 +53,8 @@
               "INCIDENT ALERT",
               "SEV 1"
             ],
-            "eyebrow": "Case 02 · May 7, 2021 · just before 5:00 AM EDT",
-            "title": "Ransom note on the screen.",
-            "text": "An employee at Colonial Pipeline has found a ransom note on a system in the IT network. The criminal group DarkSide has encrypted IT systems and wants payment for the key.",
+            "eyebrow": "Case 02 · May 7, 2021",
+            "text": "An employee at Colonial Pipeline has just found a ransom note on a system in the IT network. DarkSide has encrypted IT systems and wants payment for the key.",
             "kv": [
               {
                 "k": "Victim",
@@ -303,7 +303,12 @@
           }
         ]
       }
-    ]
+    ],
+    "opening": "Just before 5:00 AM. There's a ransom note on an IT system.",
+    "threatActor": {
+      "v": "DarkSide",
+      "source": "blount"
+    }
   },
   "act1": {
     "title": "Rebuild the timeline",
@@ -786,5 +791,13 @@
       "removed": "[-] removed: {name}"
     },
     "mapCmd": "> map ./network"
+  },
+  "voice": {
+    "patientZero": "Good eye. That's the door they used.",
+    "wrong": "Close, but that's noise. Check the timestamps.",
+    "hint": "No shame in asking. Real operators check the manual too.",
+    "run": "Let's see if it holds.",
+    "breached": "They got through. Now you know where. Rebuild.",
+    "contained": "Contained. The pipeline keeps flowing."
   }
 }

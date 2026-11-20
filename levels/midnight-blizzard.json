@@ -8,6 +8,7 @@
     "act1": "ready",
     "act2": "ready"
   },
+  "theme": "green",
   "note": "Facts come from the sources below. Evidence rows are recreated for training and are labelled so in the game. Text in backticks is shown as code. Review before publishing.",
   "sources": [
     {
@@ -37,7 +38,6 @@
               "SEV 1"
             ],
             "eyebrow": "Case 01 · January 12, 2024",
-            "title": "Wake up, analyst.",
             "text": "Microsoft's security team has detected a nation-state attacker inside its corporate email. Senior leaders' mailboxes have been read.",
             "kv": [
               {
@@ -274,7 +274,13 @@
           }
         ]
       }
-    ]
+    ],
+    "opening": "Wake up, analyst.",
+    "threatActor": {
+      "v": "Midnight Blizzard (Microsoft's name; also tracked as APT29)",
+      "source": "blog",
+      "todo": "TODO: verify the APT29 alias against the Jan 25, 2024 Microsoft Security Blog (microsoft.com was not reachable from the build environment)."
+    }
   },
   "act1": {
     "title": "Rebuild the timeline",
@@ -781,5 +787,13 @@
     "lossLabel": "mailboxes lost",
     "attemptedNote": "Spraying from outside can't be blocked by the defender. Defense starts at stage 2, when a guessed password meets the test account.",
     "mapCmd": "> map ./tenants"
+  },
+  "voice": {
+    "patientZero": "Good eye. That's the test account they walked in through.",
+    "wrong": "Close, but that's noise. Check the timestamps.",
+    "hint": "No shame in asking. Real analysts check the docs too.",
+    "run": "Let's see if it holds.",
+    "breached": "They got in. Now you know where. Rebuild.",
+    "contained": "Contained. That's the job."
   }
 }

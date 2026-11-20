@@ -63,12 +63,21 @@
     c.fillStyle = 'rgba(1,6,3,.2)'; c.fillRect(0, 0, cv.width, cv.height);
     c.font = '14px ui-monospace, Menlo, Consolas, monospace';
     rain.cols.forEach(function (y, i) {
-      c.fillStyle = rain.red ? '#FF3B4E' : '#39FF7A';
+      c.fillStyle = rain.red ? '#FF3B4E' : rain.color;
       c.fillText('0123456789abcdef'[Math.floor(Math.random() * 16)], i * 16, y * 16);
       rain.cols[i] = (y * 16 > cv.height && Math.random() > 0.97) ? 0 : y + 1;
     });
   }
-  function enterTerminal() {
+  // Case theme: <html data-theme="..."> switches the accent tokens in theme.css. The map and About use the default (green).
+  function setTheme(name) {
+    var root = document.documentElement;
+    if (name && name !== 'green') root.setAttribute('data-theme', name); else root.removeAttribute('data-theme');
+    rain.color = getComputedStyle(root).getPropertyValue('--c-rain').trim() || '#39FF7A';
+    rain.off = rain.color === 'none';
+    if (rain.cv) { rain.cv.hidden = rain.off; if (rain.off) rain.ctx.clearRect(0, 0, rain.cv.width, rain.cv.height); }
+  }
+  function enterTerminal(theme) {
+    setTheme(theme);
     if (!edge) { edge = h('div', { class: 'c-edge', 'aria-hidden': 'true' }); document.body.appendChild(edge); }
     if (!BE.reduceMotion() && !rain.cv) {
       rain.cv = h('canvas', { class: 'c-rain', 'aria-hidden': 'true' });
@@ -76,7 +85,8 @@
       document.body.insertBefore(rain.cv, document.body.firstChild);
       sizeRain(); window.addEventListener('resize', sizeRain);
     }
-    if (rain.cv && !rain.timer) rain.timer = setInterval(tickRain, 110);
+    if (rain.cv) rain.cv.hidden = rain.off;
+    if (rain.cv && !rain.off && !rain.timer) rain.timer = setInterval(tickRain, 110);
   }
   // Runs on every screen change; the next screen re-enters right away (every screen uses the terminal backdrop).
   // The canvas stays in the page so the rain does not restart on each page.
@@ -94,7 +104,7 @@
     opts = opts || {};
     BE.leave();                         // runs the previous screen's cleanups
     app.textContent = ''; app.className = 'app case';
-    enterTerminal();
+    enterTerminal(C.d && C.d.theme);
     BE.onLeave(leaveTerminal);
     BE.onLeave(endDrag);
     hud.act = h('span', { class: 'c-act', text: label });
@@ -124,9 +134,33 @@
   function eyebrow(t, cls) { return h('div', { class: 'c-eyebrow' + (cls ? ' ' + cls : ''), text: t }); }
   function para(t, cls) { return rich(t, h('p', { class: cls || '' })); }
 
+  /* ---------- SOC LEAD voice ----------
+     Short in-world lines on meaningful events, shown in the Act 1 toast, the Act 2 log or the results card (all aria-live polite).
+     Lines: level JSON "voice" over the shared window.VOICE. The same line never shows twice in a row. Toggle saved in localStorage. */
+  var VOICE_KEY = 'breach-escape-voice';
+  var lastVoice = null;
+  function voiceOn() { try { return localStorage.getItem(VOICE_KEY) !== 'off'; } catch (e) { return true; } }
+  function voiceLine(key) {
+    if (!voiceOn() || key === lastVoice) return null;
+    var t = (C && C.d && C.d.voice && C.d.voice[key]) || (window.VOICE || {})[key];
+    if (!t) return null;
+    lastVoice = key;
+    return 'SOC LEAD > ' + t;
+  }
+  function voiceToggle() {
+    var b = h('button', { class: 'c-ghost c-voicebtn', 'aria-pressed': String(voiceOn()) });
+    function paint() { b.textContent = 'voice: ' + (voiceOn() ? 'on' : 'off'); b.setAttribute('aria-pressed', String(voiceOn())); }
+    b.addEventListener('click', function () {
+      try { localStorage.setItem(VOICE_KEY, voiceOn() ? 'off' : 'on'); } catch (e) { /* storage unavailable */ }
+      paint();
+    });
+    paint();
+    return b;
+  }
+
   /* ---------- load + start ---------- */
   function start(L) {
-    C = { L: L, d: null, xp: 0 };
+    C = { L: L, d: null, xp: 0 }; lastVoice = null;
     frame('LOADING');
     app.appendChild(panel('', [h('p', {}, ['> fetching case file', h('span', { class: 'c-blink', text: '_' })])]));
     var url = L.case;
@@ -203,9 +237,12 @@
       case 'alert':
         kids.push(h('div', { class: 'c-classbar' }, b.bar.map(function (t) { return h('span', { text: t }); })));
         kids.push(eyebrow(b.eyebrow));
-        kids.push(h('h1', { class: 'c-display', text: b.title }));
+        kids.push(h('h1', { class: 'c-display', text: b.title || C.d.briefing.opening }));
         kids.push(para(b.text));
-        if (b.kv) kids.push(kvList(b.kv));
+        // The threat actor row comes from briefing.threatActor and goes right after the first row (Victim).
+        var kv = (b.kv || []).slice(), ta = C.d.briefing.threatActor;
+        if (ta) kv.splice(Math.min(1, kv.length), 0, { k: 'Threat actor', v: ta.v, source: ta.source });
+        if (kv.length) kids.push(kvList(kv));
         return panel('danger', kids);
       case 'note':
         return para(b.text, 'c-small');
@@ -288,7 +325,8 @@
     E.line = para(a1.short || a1.help, 'c-line');
     E.helpBox = h('div', { class: 'c-helpbox', id: 'c-help', hidden: true }, [
       para(a1.help),
-      h('p', { class: 'c-small', text: 'Keys: A add to timeline \u00b7 X not related \u00b7 H hint. Tap a dotted word to see what it means.' })
+      h('p', { class: 'c-small', text: 'Keys: A add to timeline \u00b7 X not related \u00b7 H hint. Tap a dotted word to see what it means.' }),
+      voiceToggle()
     ]);
     E.helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How to play', 'aria-expanded': 'false', 'aria-controls': 'c-help', text: '?', onclick: function () {
       var open = E.helpBox.hidden; E.helpBox.hidden = !open; E.helpBtn.setAttribute('aria-expanded', String(open));
@@ -406,11 +444,17 @@
     E.inspect.appendChild(pre);
   }
   function select(c) { A.sel = A.sel === c ? null : c; drawAct1(); if (A.sel && A.sel.el) A.sel.el.focus({ preventScroll: true }); }
-  function toast(msg, ok) { E.toast.textContent = msg; E.toast.className = 'c-toast ' + (ok ? 'ok' : 'bad'); }
+  function toast(msg, ok, voiceKey) {
+    E.toast.textContent = '';
+    E.toast.appendChild(h('span', { text: msg }));
+    var v = voiceKey && voiceLine(voiceKey);
+    if (v) E.toast.appendChild(h('span', { class: 'c-voice', text: v }));
+    E.toast.className = 'c-toast ' + (ok ? 'ok' : 'bad') + (v ? ' has-voice' : '');
+  }
   function wrong(msg, el) {
     var s = C.d.act1.scoring;
     A.mistakes++; addXP(s.wrong);
-    toast(s.wrong + ' \u00b7 ' + msg, false); flash();
+    toast(s.wrong + ' \u00b7 ' + msg, false, 'wrong'); flash();
     restart(el || E.slots, 'c-shake');
   }
   function needSel() { if (!A.sel) { toast('Select an evidence card first', false); return true; } return false; }
@@ -438,7 +482,7 @@
     var k = String(A.next), hint = C.d.act1.hints[k];
     if (A.phase !== 'order' || A.hinted[k] || !hint) return;
     A.hinted[k] = true; A.hints++; addXP(C.d.act1.scoring.hint);
-    toast('Hint: ' + hint, true);
+    toast('Hint: ' + hint, true, 'hint');
     drawAct1();
   }
   function afterMove() {
@@ -457,7 +501,7 @@
     var s = C.d.act1.scoring;
     if (c.e.id !== C.d.patientZero) { wrong(C.d.act1.wrongLines.pz); return; }
     c.pz = true; A.phase = 'done';
-    addXP(s.patientZero); toast('+' + s.patientZero + ' XP \u00b7 patient zero identified', true);
+    addXP(s.patientZero); toast('+' + s.patientZero + ' XP \u00b7 patient zero identified', true, 'patientZero');
     E.title.textContent = C.d.act1.doneTitle;
     E.line.textContent = ''; rich(C.d.act1.doneHelp, E.line);
     app.classList.remove('c-fit');   // the debrief is a normal scrolling page
@@ -545,7 +589,7 @@
     BE.onLeave(stopRun);
 
     F.title = h('h2', { class: 'c-h2', text: a2.title });
-    var helpBox = h('div', { class: 'c-helpbox', id: 'c-help2', hidden: true }, [para(a2.help)]);
+    var helpBox = h('div', { class: 'c-helpbox', id: 'c-help2', hidden: true }, [para(a2.help), voiceToggle()]);
     var helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How to play', 'aria-expanded': 'false', 'aria-controls': 'c-help2', text: '?', onclick: function () {
       var open = helpBox.hidden; helpBox.hidden = !open; helpBtn.setAttribute('aria-expanded', String(open));
     } });
@@ -729,6 +773,7 @@
     drawMap();
     F.log.textContent = '';
     say('k', '> ' + fmt(a2.logs.start, { sim: a2.simName }));
+    var v = voiceLine('run'); if (v) logLine('k c-voice', v);
     if (window.matchMedia('(max-width: 899px)').matches) F.map.scrollIntoView({ behavior: 'smooth', block: 'start' });
     else F.mapBox.scrollTop = 0;
     var i = 0, total = C.d.map.stages.length;
@@ -819,6 +864,7 @@
       eyebrow('Case ' + d.caseNo + ' · Debrief'),
       h('h1', { class: 'c-display' + (good ? '' : ' t-red'), text: r.title }),
       para(r.sub),
+      voiceP(voiceLine(r.kind === 'prevented' || r.kind === 'contained' ? 'contained' : 'breached')),
       starRow(r.stars),
       h('span', { class: 'c-pill ' + (good ? 'g' : 'r'), text: 'CLEARANCE · ' + r.rank }),
       h('p', { class: 'c-small', text: newBest ? 'New best for this case.' : 'Best so far: ' + caseRec().act2.bestStars + '/3 stars.' })
@@ -872,6 +918,7 @@
     app.appendChild(h('button', { class: 'c-ghost c-wide', text: './restart --case ' + d.caseNo, onclick: restartCase }));
     app.appendChild(sourcesLine());
   }
+  function voiceP(v) { return v ? h('p', { class: 'c-voice', role: 'status', text: v }) : null; }
   function restartCase() {
     C.xp = 0; C.xpAct1 = null; A = null; B = null;
     renderBrief(0);
@@ -962,5 +1009,5 @@
     else if (k === 'escape') endDrag();
   });
 
-  window.BreachCase = { start: start, backdrop: function () { enterTerminal(); BE.onLeave(leaveTerminal); BE.onLeave(endDrag); } };
+  window.BreachCase = { start: start, voiceToggle: voiceToggle, backdrop: function () { enterTerminal(); BE.onLeave(leaveTerminal); BE.onLeave(endDrag); } };
 })();

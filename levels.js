@@ -1,8 +1,8 @@
 /* Breach Escape level list (Breach Map). Each playable level is a case file in levels/<id>.json,
    run by the case engine in case.js. Facts in each case come from the sources listed inside its JSON file. */
 window.LEVELS = [
-  { id: 1, name: 'Midnight Blizzard', victim: 'Microsoft', year: 2024, teaser: 'A forgotten test account opens the door to executive email.', status: 'ready', case: 'levels/midnight-blizzard.json' },
-  { id: 2, name: 'Colonial Pipeline', victim: 'Colonial Pipeline', year: 2021, teaser: 'One old VPN password, no MFA.', status: 'ready', case: 'levels/colonial-pipeline.json' },
+  { id: 1, name: 'The Forgotten Test Account', victim: 'Microsoft', year: 2024, teaser: 'A forgotten test account opens the door to executive email.', status: 'ready', case: 'levels/midnight-blizzard.json' },
+  { id: 2, name: 'The Legacy VPN', victim: 'Colonial Pipeline', year: 2021, teaser: 'One legacy VPN profile, password only.', status: 'ready', case: 'levels/colonial-pipeline.json' },
   { id: 3, name: 'MFA Fatigue', victim: 'Uber', year: 2022, teaser: 'Push spam, then secrets in a script.', status: 'soon' },
   { id: 4, name: 'The Help Desk Call', victim: 'MGM Resorts', year: 2023, teaser: 'A phone call becomes admin access.', status: 'soon' },
   { id: 5, name: 'Stolen Passwords at Scale', victim: 'Snowflake customers', year: 2024, teaser: 'Infostealer logins, no MFA.', status: 'soon' },
@@ -11,6 +11,19 @@ window.LEVELS = [
 ];
 
 /* Tap-to-define glossary, shared by every case. Plain language, one or two sentences. Draft: review before publishing. */
+/* Site settings. contactEmail: shown on the About screen as the corrections contact when set (empty until provided). */
+window.SITE = { contactEmail: '' };
+
+/* SOC LEAD lines: shared defaults. A case can override any of them with a "voice" object in its JSON. */
+window.VOICE = {
+  patientZero: 'Good eye. That\u2019s the door they used.',
+  wrong: 'Close, but that\u2019s noise. Check the timestamps.',
+  hint: 'No shame in asking. Real analysts check the docs too.',
+  run: 'Let\u2019s see if it holds.',
+  breached: 'They got in. Now you know where. Rebuild.',
+  contained: 'Contained. That\u2019s the job.'
+};
+
 window.GLOSSARY = {
   'MFA': 'Multifactor authentication. A second proof besides the password, like an app prompt or a security key. A stolen password alone is not enough.',
   'Conditional Access': 'Entra ID policies that decide, at sign-in, who gets in and under what conditions, for example requiring MFA or a healthy device.',

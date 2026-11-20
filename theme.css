@@ -2,13 +2,34 @@
    One file for all shared styles. Colour tokens live on :root. System monospace fonts only: no web fonts, no third-party requests.
    Yellow is reserved for decoys, the test tenant and "attempted" stages; code uses the neutral style. */
 :root{
-  --c-bg:#010603; --c-panel:#04100A; --c-panel2:#071A0F;
+  --c-bg:#010603;
+  /* Accent tokens: the only values a case theme changes (see [data-theme] below).
+     --c-g primary accent · --c-g2 soft accent · --c-g3 border · --c-g4 dim border/track
+     --c-txt body text · --c-mute secondary text · --c-panel / --c-panel2 panel fills · --c-panel-a / --c-panel-soft translucent panels
+     --c-wash selected/blocked tint · --c-cardsrc drag-ghost label · --c-rain code-rain glyph colour ("none" turns the rain off)
+     --c-scan scanline overlay opacity (0 = off) */
+  --c-panel:#04100A; --c-panel2:#071A0F; --c-panel-a:rgba(4,16,10,.88); --c-panel-soft:rgba(4,16,10,.6);
   --c-g:#39FF7A; --c-g2:#8BE3A6; --c-g3:#2F8F4E; --c-g4:#16402A;
   --c-txt:#D2FFDD; --c-mute:#A9DDBA;   /* mute: 12.7:1 on panels, also over the dimmed rain */
+  --c-wash:rgba(57,255,122,.13); --c-cardsrc:#8FC9A2;
+  --c-rain:#39FF7A; --c-scan:0;
   --c-red:#FF3B4E; --c-redbg:rgba(255,59,78,.13); --c-y:#FFD34D;
   --c-mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
   color-scheme:dark;
 }
+/* Amber: industrial control room (Colonial Pipeline). Same dark base and layout; danger red and decoy yellow unchanged.
+   No code rain: a faint, slow scanline overlay instead (static with reduced motion). */
+:root[data-theme="amber"]{
+  --c-panel:#0D0903; --c-panel2:#181006; --c-panel-a:rgba(13,9,3,.9); --c-panel-soft:rgba(13,9,3,.6);
+  --c-g:#FFA630; --c-g2:#FFC97F; --c-g3:#A86A1C; --c-g4:#4A2F0E;
+  --c-txt:#FFEBCC; --c-mute:#E3C291;
+  --c-wash:rgba(255,166,48,.14); --c-cardsrc:#D9B27A;
+  --c-rain:none; --c-scan:1;
+}
+body::after{content:"";position:fixed;inset:0;z-index:4;pointer-events:none;opacity:0;
+  background:repeating-linear-gradient(to bottom,rgba(255,166,48,.045) 0 1px,transparent 1px 4px)}
+:root[data-theme="amber"] body::after{opacity:var(--c-scan);animation:c-scan 9s linear infinite}
+@keyframes c-scan{to{background-position:0 64px}}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--c-bg);color:var(--c-txt);font-family:var(--c-mono);-webkit-font-smoothing:antialiased;overflow-x:hidden}
@@ -105,7 +126,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 /* act 1: timeline slots */
 .c-slots{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
-.c-slot{background:rgba(4,16,10,.88);border:1px dashed var(--c-g3);padding:9px 10px;font-size:12px;color:var(--c-mute);display:flex;gap:8px;align-items:center;min-height:42px}
+.c-slot{background:var(--c-panel-a);border:1px dashed var(--c-g3);padding:9px 10px;font-size:12px;color:var(--c-mute);display:flex;gap:8px;align-items:center;min-height:42px}
 .c-n{color:var(--c-g2);flex:none}
 .c-slot.next{border-color:var(--c-g);color:var(--c-g2)}
 .c-slot.filled{border:1px solid var(--c-g3);background:var(--c-panel2);color:var(--c-txt)}.c-slot.filled .c-n{color:var(--c-g)}
@@ -124,9 +145,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 .c-cardsrc{display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.08em;color:var(--c-mute);text-transform:uppercase}
 .case .c-card.sel,.c-ghostcard.sel{border-color:var(--c-y);box-shadow:0 0 0 1px var(--c-y)}
 .case .c-card.c-lifted{opacity:.35}
-.c-ghostcard{position:fixed;left:0;top:0;z-index:20;pointer-events:none;margin:0;border:1px solid var(--c-y);background:#04100A;color:#D2FFDD;
+.c-ghostcard{position:fixed;left:0;top:0;z-index:20;pointer-events:none;margin:0;border:1px solid var(--c-y);background:var(--c-panel);color:var(--c-txt);
   padding:10px;text-align:left;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace;display:flex;flex-direction:column;gap:6px;box-shadow:0 12px 30px rgba(0,0,0,.6)}
-.c-ghostcard .c-cardsrc{color:#8FC9A2}
+.c-ghostcard .c-cardsrc{color:var(--c-cardsrc)}
 body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-inspect{border:1px solid var(--c-g3);background:var(--c-panel);padding:10px;display:flex;flex-direction:column;gap:6px}
 .c-rows{font-size:11px;line-height:1.6;color:var(--c-g2);overflow-wrap:anywhere}
@@ -167,7 +188,7 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-board,.c-deck{display:flex;flex-direction:column;gap:8px}
 .case .c-fold{min-height:32px;padding:4px 10px;font-size:11px}
 .c-slots.c-folded .c-slot:not(.next){display:none}
-.c-deck{border:1px solid var(--c-g4);background:rgba(4,16,10,.6);padding:10px}
+.c-deck{border:1px solid var(--c-g4);background:var(--c-panel-soft);padding:10px}
 .c-done{width:100%;max-width:760px;align-self:center}
 
 /* dense evidence cards */
@@ -244,7 +265,7 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-nchips .c-chip{border-color:var(--c-g3);color:var(--c-txt)}
 .c-node.active{border-color:var(--c-y)}
 .c-node.breach{border:1px dashed var(--c-red);background:linear-gradient(var(--c-redbg),var(--c-redbg)),var(--c-panel2)}
-.c-node.block{border:2px solid var(--c-g);background:linear-gradient(rgba(57,255,122,.12),rgba(57,255,122,.12)),var(--c-panel2)}
+.c-node.block{border:2px solid var(--c-g);background:linear-gradient(var(--c-wash),var(--c-wash)),var(--c-panel2)}
 .c-node.c-over{border-color:var(--c-y);box-shadow:0 0 0 1px var(--c-y)}
 .c-link{align-self:center;width:1px;height:6px;background:var(--c-g3)}
 .c-pill.y{background:var(--c-y);color:var(--c-bg)}
@@ -254,12 +275,12 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-ctlgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .case .c-ctl{border:1px solid var(--c-g4);background:var(--c-panel);color:var(--c-txt);padding:7px 9px;text-align:left;font-size:11.5px;line-height:1.4;
   display:flex;flex-direction:column;gap:3px;min-height:0;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.case .c-ctl.on{border-color:var(--c-g);background:linear-gradient(rgba(57,255,122,.14),rgba(57,255,122,.14)),var(--c-panel);color:#fff}
+.case .c-ctl.on{border-color:var(--c-g);background:linear-gradient(var(--c-wash),var(--c-wash)),var(--c-panel);color:#fff}
 .case .c-ctl.c-lifted{opacity:.35}
 .c-z{font-size:9px;letter-spacing:.1em;color:var(--c-mute)}
 .c-costrow{display:flex;align-items:center;gap:6px}
 .c-cost{display:inline-flex;gap:2px}.c-cost i{width:7px;height:10px;background:var(--c-g)}
-.c-ghostcard .c-cost i{background:#39FF7A}
+.c-ghostcard .c-cost i{background:var(--c-g)}
 .c-running .c-ctl{cursor:wait}
 
 /* Act 2 bar: budget + message, reset, EXECUTE */
@@ -299,7 +320,7 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-replay li.block{border-left-color:var(--c-g)}
 .c-replay li.breach{border-left-color:var(--c-red)}
 .c-replay b,.c-buildlist b{color:var(--c-txt);font-size:12px}
-@media (prefers-reduced-motion: reduce){ .c-glitch{animation:none} .c-meterfill,.c-node{transition:none} }
+@media (prefers-reduced-motion: reduce){ .c-glitch{animation:none} .c-meterfill,.c-node{transition:none} :root[data-theme] body::after{animation:none} }
 
 
 /* ---------- Breach Map ---------- */
@@ -315,7 +336,7 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
   border:1px solid var(--c-g4);background:var(--c-panel);color:var(--c-txt);padding:10px 12px;min-height:64px}
 .case .c-level.next{border-color:var(--c-g)}
 .case .c-level:hover:not(:disabled){border-color:var(--c-g)}
-.case .c-level:disabled{cursor:default;background:rgba(4,16,10,.7)}
+.case .c-level:disabled{cursor:default;background:var(--c-panel-soft)}
 .c-lnum{width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--c-g3);color:var(--c-g);font-weight:600}
 .c-lnum.done{background:var(--c-g);color:var(--c-bg);border-color:var(--c-g)}
 .c-lmeta{display:flex;flex-direction:column;gap:1px;min-width:0}
@@ -329,3 +350,39 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-privacy svg{flex:none}
 .c-node.attempt{border:1px dashed var(--c-y)}
 .c-replay li.attempt{border-left-color:var(--c-y)}
+
+/* ---------- SOC LEAD voice ---------- */
+.c-toast .c-voice{display:block;font-weight:400;margin-top:2px}
+.case p.c-voice{font-size:12px;color:var(--c-g2)}
+.case .c-voicebtn{align-self:flex-start;min-height:36px;padding:6px 10px}
+
+/* ---------- Breach Map intro, footer, About ---------- */
+.case p.c-intro{font-size:13px;color:var(--c-txt);max-width:62ch}
+.case p.c-steps{font-size:12px;color:var(--c-mute);letter-spacing:.04em}
+.c-foot{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.case .c-foot .c-ghost{min-height:36px;padding:6px 10px}
+.app.case.c-aboutscreen{max-width:640px}
+
+/* ---------- opening splash (CSS animations only; ~2 s; removed by app.js) ---------- */
+.c-splash{position:fixed;inset:0;z-index:40;background:var(--c-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  font-family:var(--c-mono);padding:16px;animation:c-spl-out .3s ease-in 1.7s forwards}
+.c-spl-row{display:flex;align-items:baseline;font-size:56px;line-height:1;font-weight:600}
+.c-spl-p{color:var(--c-g);margin-right:.25em}
+.c-spl-kept{color:var(--c-g);letter-spacing:.12em;display:inline-block;overflow:hidden;white-space:nowrap;width:0;
+  animation:c-spl-kept .45s steps(4,end) .4s forwards}
+.c-spl-cur{color:var(--c-g);animation:c-blink .5s steps(2) infinite}
+.c-spl-tagrow{font-size:14px;letter-spacing:0}
+.c-spl-tag{display:inline-block;overflow:hidden;white-space:nowrap;width:0;animation:c-spl-tag .65s steps(35,end) .9s forwards}
+.c-spl-k{color:var(--c-g);font-weight:600}
+.c-spl-d{color:var(--c-mute)}
+@keyframes c-spl-kept{to{width:calc(4ch + .48em)}}
+@keyframes c-spl-tag{to{width:35ch}}
+@keyframes c-spl-out{to{opacity:0;visibility:hidden}}
+@media (max-width: 380px){ .c-spl-tagrow{font-size:12px} .c-spl-row{font-size:44px} }
+/* Reduced motion (or the static class from app.js): no typing, no fade; the logo and tagline show at once, briefly. */
+.c-splash.c-spl-static,.c-spl-static *{animation:none}
+.c-spl-static .c-spl-kept,.c-spl-static .c-spl-tag{width:auto}
+@media (prefers-reduced-motion: reduce){
+  .c-splash,.c-splash *{animation:none}
+  .c-spl-kept,.c-spl-tag{width:auto}
+}

@@ -1,6 +1,6 @@
 # Breach Escape v2 redesign: status and handoff
 
-Last updated: 2026-11-19. Branch `claude/keen-pasteur-o2a3hp`, draft PR https://github.com/keptacademy/breach-escape/pull/1 (into `main`).
+Last updated: 2026-11-20. Branch `claude/keen-pasteur-o2a3hp`, draft PR https://github.com/keptacademy/breach-escape/pull/1 (into `main`).
 Live v1 quiz is saved as tag `v1-quiz` (`e0df885`, main's commit before this work).
 
 ## Goal
@@ -44,6 +44,25 @@ The Breach Map itself scrolls at 720 px high (it lists 7 levels); that's allowed
 
 Saved progress: `progress.cases[caseId] = { briefed, act1: {done, bestXp, bestTime, fewestMistakes}, act2: {bestStars, bestBuild, lastStars, runs} }`.
 Old `progress.levels` (classic quiz stars) is ignored, not migrated.
+
+## Round 3 (2026-11-20)
+| Change | Where |
+|---|---|
+| **Per-case themes.** `theme` field in each level JSON (`green` default, `amber` for Colonial). `case.js` sets `<html data-theme>`; `:root[data-theme="amber"]` in `theme.css` overrides only the accent tokens. Map and About always use the default. | `theme.css`, `case.js`, `levels/*.json` |
+| Theme tokens: `--c-g` primary, `--c-g2` soft accent, `--c-g3` border, `--c-g4` dim border/track, `--c-txt` text, `--c-mute` secondary text, `--c-panel` / `--c-panel2` panel fills, `--c-panel-a` / `--c-panel-soft` translucent panels, `--c-wash` selected/blocked tint, `--c-cardsrc` drag-ghost label, `--c-rain` rain glyph colour (`none` = off), `--c-scan` scanline overlay (0/1). Unchanged in every theme: `--c-bg`, `--c-red`, `--c-redbg`, `--c-y`. | `theme.css` |
+| Amber: `#FFA630` accent on the same dark base, warm panels, no code rain; a faint scanline overlay (`body::after`) drifts slowly and is static with reduced motion. | `theme.css` |
+| Map titles: "The Forgotten Test Account", "The Legacy VPN"; Colonial teaser "One legacy VPN profile, password only." | `levels.js` |
+| Briefing alert: opening line from `briefing.opening`, "Threat actor" row from `briefing.threatActor` (inserted after Victim). | `case.js`, `levels/*.json` |
+| SOC LEAD voice: `window.VOICE` defaults in `levels.js`, per-case `voice` in the JSON. Shown in the Act 1 toast (patient zero, wrong evidence, hint), the Act 2 log (build executed) and the results card (contained for prevented/contained, breached for detected/succeeded). The same line never shows twice in a row. "voice: on/off" toggle on the map footer and in both "?" help panels, saved as `breach-escape-voice`. | `case.js`, `levels.js`, `levels/*.json` |
+| Breach Map intro text and step line; footer with "> about" and the voice toggle. | `app.js` |
+| About screen: not affiliated, sources, privacy, who made this with links (`rel="noopener noreferrer"`). Contact email shows only when `window.SITE.contactEmail` is set (empty for now). | `app.js`, `levels.js` |
+| Opening splash, ~2 s, once per browser session (`sessionStorage` `breach-escape-splash`), skipped on `#case/<id>` links, any click/tap/key skips it (that tap doesn't reach the map). One `role="img"` label, focus never moves. Reduced motion: static logo and tagline for 0.9 s. | `app.js`, `theme.css` |
+| Direct case links: `#case/<case-id>` opens that case's briefing (no splash). | `app.js` |
+| `sw.js` `v19`. | `sw.js` |
+
+Checks this round (same harness as before, all passing at 1280×720, 1920×1080, 390×844 under the production CSP): no console errors or CSP violations, no outside requests, no desktop page scroll in Act 1/Act 2, all visible text 4.5:1 or better in both themes (scanline overlay not included in the measurement; it adds at most 4.5% amber over the base), touch drag, theme switch and reset, threat actor row and opening line, SOC LEAD lines and the no-repeat rule, voice toggle persists over a reload, About links, splash once per session and not on direct links, and the bottom 6 pixel rows at the end of the map, About and results pages are the dark base (no blue gradient anywhere; the old glass `body::before` was removed in round 2).
+The installed-PWA splash uses `background_color` `#010603` and the green `>_` icon, which matches the in-app splash.
+
 
 ## Decisions made
 - **Act 1 scoring:** +50 for each correct placement, +30 per red herring dismissed, −20 per mistake, −10 per hint, +100 for patient zero. XP never goes below 0.
@@ -115,6 +134,8 @@ Old `progress.levels` (classic quiz stars) is ignored, not migrated.
 - **Tight fit at 1280×720:** Act 2 uses the inner map scroll; at heights under about 650px, panels get cramped.
 - **Phones:** the page scrolls in Act 1 and Act 2 (accepted).
 - **Not reviewed:** CodeQL and preview results on PR #1 haven't been looked at.
+- **About contact email:** not set. Add it in `levels.js` (`window.SITE.contactEmail`); the row appears automatically.
+- **Midnight Blizzard APT29 alias:** has a `todo`; microsoft.com wasn't reachable from the build environment this round.
 - **Not built:** share cards, a settings screen and a separate glossary screen don't exist (the spec mentions a shareable score card). Glossary definitions show in the in-case panel.
 
 ## What's next (in order)

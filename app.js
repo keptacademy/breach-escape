@@ -107,6 +107,11 @@
       h('span', { class: 'c-xp', 'aria-label': totalStars + ' stars earned', text: totalStars + ' ★' })
     ]));
 
+    app.appendChild(h('p', { class: 'c-intro', text: 'Real breaches, replayed from public records. Investigate what happened, then build the defenses that would have stopped it.' }));
+    app.appendChild(h('p', { class: 'c-steps', 'aria-label': 'Each case: 1 brief, 2 investigate, 3 defend' }, [
+      h('span', { class: 't-g', text: '01' }), ' brief \u2192 ', h('span', { class: 't-g', text: '02' }), ' investigate \u2192 ', h('span', { class: 't-g', text: '03' }), ' defend'
+    ]));
+
     if (next) {
       var played = bestStars(next) != null;
       app.appendChild(h('div', { class: 'c-panel hl c-next' }, [
@@ -155,7 +160,90 @@
       svgEl('path', { d: 'M5.5 7V5a2.5 2.5 0 0 1 5 0v2', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5' })
     ]);
     app.appendChild(h('p', { class: 'c-small c-privacy' }, [lock, 'Progress is saved only on this device. No account, no tracking.']));
+    app.appendChild(h('div', { class: 'c-foot' }, [
+      h('button', { class: 'c-ghost', text: '> about', onclick: renderAbout }),
+      window.BreachCase ? window.BreachCase.voiceToggle() : null
+    ]));
     window.scrollTo(0, 0);
+  }
+
+  /* ---------- About ---------- */
+  function extLink(href, text) { return h('a', { href: href, target: '_blank', rel: 'noopener noreferrer', text: text }); }
+  function renderAbout() {
+    leave();
+    app.textContent = ''; app.className = 'app case c-aboutscreen';
+    if (window.BreachCase) window.BreachCase.backdrop();
+    app.appendChild(h('div', { class: 'c-hud' }, [
+      h('button', { class: 'c-ghost c-exit', onclick: renderMap }, ['\u2039 back to map']),
+      h('span', { class: 'c-act', text: 'ABOUT' }), h('span', {})
+    ]));
+    var site = window.SITE || {};
+    var panel = function (cls, title, kids) { return h('div', { class: 'c-panel' + (cls ? ' ' + cls : '') }, [h('div', { class: 'c-eyebrow', text: title })].concat(kids)); };
+    app.appendChild(panel('hl', '> cat about.txt', [
+      h('h1', { class: 'c-h2', text: 'Breach Escape' }),
+      h('p', { text: 'Real breaches, replayed from public records. Each case has a briefing, an investigation and a defense round.' })
+    ]));
+    app.appendChild(panel('', 'Sources', [
+      h('p', { text: 'Cases are built only from public primary sources, such as official testimony, government advisories and the company\u2019s own published investigation. Every case cites its sources.' }),
+      h('p', { text: 'Log entries shown in the game are recreated for training and are labelled that way.' })
+    ]));
+    app.appendChild(panel('', 'Not affiliated', [
+      h('p', { text: 'Breach Escape is not affiliated with or endorsed by any company or organization named in the cases.' })
+    ]));
+    app.appendChild(panel('', 'Privacy', [
+      h('p', { text: 'Your progress and settings are stored only in your browser. There are no accounts, no analytics and no tracking, and the app makes no requests to other sites.' }),
+      h('p', { class: 'c-small', text: 'Like any website, the host may keep standard server logs of page requests.' })
+    ]));
+    var who = [
+      h('p', { text: 'Built by Nura Avazova, KEPT Academy (Knowledge and Education for Protection Training).' }),
+      h('p', {}, [extLink('https://keptacademy.com', 'keptacademy.com'), ' \u00b7 ', extLink('https://www.linkedin.com/in/nura-avazova/', 'LinkedIn: Nura Avazova')])
+    ];
+    if (site.contactEmail) who.push(h('p', {}, ['Corrections and contact: ', h('a', { href: 'mailto:' + site.contactEmail, text: site.contactEmail })]));
+    app.appendChild(panel('', 'Who made this', who));
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------- opening splash: once per browser session, never on a direct case link ---------- */
+  var SPLASH_LABEL = 'KEPT Academy \u2014 Know the Exposure, Patch the Threat';
+  function splash() {
+    try { if (sessionStorage.getItem('breach-escape-splash')) return; sessionStorage.setItem('breach-escape-splash', '1'); } catch (e) { /* storage unavailable: show it */ }
+    var tag = h('span', { class: 'c-spl-tag' });
+    [['K', 1], ['now the ', 0], ['E', 1], ['xposure, ', 0], ['P', 1], ['atch the ', 0], ['T', 1], ['hreat', 0]].forEach(function (p) {
+      tag.appendChild(h('span', { class: p[1] ? 'c-spl-k' : 'c-spl-d', text: p[0] }));
+    });
+    var el = h('div', { class: 'c-splash', role: 'img', 'aria-label': SPLASH_LABEL }, [
+      h('div', { class: 'c-spl-row', 'aria-hidden': 'true' }, [h('span', { class: 'c-spl-p', text: '>' }), h('span', { class: 'c-spl-kept', text: 'KEPT' }), h('span', { class: 'c-spl-cur', text: '_' })]),
+      h('div', { class: 'c-spl-tagrow', 'aria-hidden': 'true' }, [tag])
+    ]);
+    if (reduceMotion()) el.classList.add('c-spl-static');
+    document.body.appendChild(el);
+    var timer = setTimeout(end, reduceMotion() ? 900 : 2000);
+    function end(e) {
+      clearTimeout(timer);
+      // The tap or key that skips the splash must not also act on the map underneath.
+      if (e && e.type === 'keydown') e.preventDefault();
+      if (e && e.type === 'pointerdown') {
+        var swallow = function (ev) { ev.preventDefault(); ev.stopPropagation(); document.removeEventListener('click', swallow, true); };
+        document.addEventListener('click', swallow, true);
+        setTimeout(function () { document.removeEventListener('click', swallow, true); }, 600);
+      }
+      ['pointerdown', 'keydown'].forEach(function (t) { document.removeEventListener(t, end, true); });
+      el.remove();
+    }
+    // Any click, tap or key skips it. Focus never moves into the splash.
+    ['pointerdown', 'keydown'].forEach(function (t) { document.addEventListener(t, end, true); });
+  }
+
+  /* ---------- direct case links: #case/<case-id> ---------- */
+  function caseFromHash() {
+    var m = /^#case\/([a-z0-9-]+)$/.exec(location.hash || '');
+    return m ? LEVELS.filter(function (L) { return L.status === 'ready' && caseIdOf(L) === m[1]; })[0] : null;
+  }
+  function boot() {
+    var L = caseFromHash();
+    if (L) { openLevel(L); return; }
+    renderMap();
+    splash();
   }
 
   /* ---------- shared API for case.js (the case engine) ---------- */
@@ -171,11 +259,12 @@
     setTermSink: function (fn) { termSink = fn; },
     onLeave: function (fn) { leaveHooks.push(fn); },
     leave: leave,
-    renderMap: renderMap
+    renderMap: renderMap,
+    renderAbout: renderAbout
   };
 
   /* ---------- boot (after case.js has loaded too) ---------- */
-  document.addEventListener('DOMContentLoaded', renderMap);
+  document.addEventListener('DOMContentLoaded', boot);
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
   }
