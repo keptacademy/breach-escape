@@ -174,7 +174,7 @@
     p.then(function (d) {
       if (!C || C.L !== L) return;
       dataCache[url] = d; C.d = d;
-      renderBrief(0);
+      renderBrief(0, true);
     }).catch(function () {
       if (!C || C.L !== L) return;
       app.appendChild(panel('danger', [
@@ -194,11 +194,11 @@
   }
 
   /* ---------- Intel briefing ---------- */
-  function renderBrief(page) {
+  function renderBrief(page, alert) {
     var pages = C.d.briefing.pages;
     frame('INTEL', { briefing: true });
     app.classList.add('c-briefscreen');
-    BE.sound(page ? 'tick' : 'alert');   // SEV 1 tone on the alert page, a typing tick on the others
+    if (alert) BE.sound('alert');   // SEV 1 tone when the case opens (not on page navigation)
     var dots = h('div', { class: 'c-dots', role: 'progressbar', 'aria-label': 'Briefing page', 'aria-valuemin': '1', 'aria-valuemax': String(pages.length), 'aria-valuenow': String(page + 1) });
     pages.forEach(function (_, i) { dots.appendChild(h('i', { class: i <= page ? 'on' : '' })); });
     app.appendChild(h('div', { class: 'c-hud' }, [dots, h('button', { class: 'c-ghost c-skip', text: 'skip intel ›', onclick: finishBrief })]));

@@ -64,12 +64,11 @@
     o.start(t); o.stop(t + dur + 0.02);
   }
   var SOUNDS = {
-    key: function (t) { note(t, 2100, 0.012, 'square', 0.12); },
-    tick: function (t) { for (var i = 0; i < 3; i++) note(t + i * 0.045, 1900, 0.018, 'square', 0.18); },
-    alert: function (t) { [880, 660, 880, 660].forEach(function (f, i) { note(t + i * 0.14, f, 0.12, 'triangle', 0.5); }); },
-    blip: function (t) { note(t, 660, 0.08, 'sine', 0.45, 990); },
-    alarm: function (t) { [440, 330, 440, 330].forEach(function (f, i) { note(t + i * 0.16, f, 0.15, 'sawtooth', 0.22); }); },
-    contained: function (t) { [523, 659, 784].forEach(function (f, i) { note(t + i * 0.1, f, 0.16, 'sine', 0.45); }); }
+    // Game events only (never navigation), low and soft: no short high chirps.
+    alert: function (t) { [392, 294, 392, 294].forEach(function (f, i) { note(t + i * 0.2, f, 0.18, 'triangle', 0.32); }); },
+    blip: function (t) { note(t, 330, 0.14, 'sine', 0.3, 440); },
+    alarm: function (t) { [220, 165, 220, 165].forEach(function (f, i) { note(t + i * 0.22, f, 0.2, 'triangle', 0.34); }); },
+    contained: function (t) { [262, 330, 392].forEach(function (f, i) { note(t + i * 0.14, f, 0.22, 'sine', 0.3); }); }
   };
   function sound(name) {
     if (!soundOn() || !gestured || !SOUNDS[name]) return;
@@ -87,7 +86,6 @@
     b.addEventListener('click', function () {
       try { localStorage.setItem(SOUND_KEY, soundOn() ? 'off' : 'on'); } catch (e) { /* storage unavailable */ }
       paint();
-      sound('blip');   // audible confirmation when switched on (the label already says so)
     });
     paint();
     return b;
@@ -321,7 +319,7 @@
       later(function () { el.classList.add('c-spl-fade'); }, t + 1200);
       later(end, t + 1500);
     }
-    function typeTo(node, text) { return function () { node.textContent = text; sound('key'); }; }
+    function typeTo(node, text) { return function () { node.textContent = text; }; }
     function outLine(text) { return function () { term.appendChild(h('div', { class: 'c-spl-out', text: text })); }; }
     function end(e) {
       timers.forEach(clearTimeout); timers = [];
