@@ -432,3 +432,11 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 :root[data-theme="brand"] .t-g{color:var(--c-title)}
 :root[data-theme="brand"] .c-count{color:var(--c-g)}
 :root[data-theme="brand"] .case button:focus-visible,:root[data-theme="brand"] .case a:focus-visible,:root[data-theme="brand"] .c-spl-skip:focus-visible{outline:2px solid var(--c-g);outline-offset:2px}
+
+/* ---------- Breach Map header: one line, never wraps ---------- */
+.c-maphead{display:flex;justify-content:space-between;align-items:center;gap:8px;white-space:nowrap;min-width:0}
+.c-keptlabel{font-size:12px;letter-spacing:.16em;color:var(--c-mute);overflow:hidden;text-overflow:ellipsis}
+.c-headright{display:flex;align-items:center;gap:8px;flex:none}
+.case .c-maphead .c-helpbtn{min-height:36px;min-width:36px}
+.c-mapscreen .c-brand{white-space:nowrap;margin:0}
+.c-maphelp p{margin:0}

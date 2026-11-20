@@ -145,18 +145,22 @@
     var totalStars = ready.reduce(function (a, L) { return a + (bestStars(L) || 0); }, 0);
     var next = ready.filter(function (L) { return !(bestStars(L) > 0); })[0] || ready[ready.length - 1];
 
-    app.appendChild(h('div', { class: 'c-brandrow' }, [
-      h('div', {}, [
-        h('div', { class: 'c-eyebrow', text: 'KEPT Academy · Know the Exposure, Patch the Threat' }),
-        h('h1', { class: 'c-brand', text: 'Breach Escape' })
-      ]),
-      h('span', { class: 'c-xp', 'aria-label': totalStars + ' stars earned', text: totalStars + ' ★' })
+    // Header: one line only (no wrapping at 390px): KEPT ACADEMY on the left, help and stars on the right.
+    var helpBox = h('div', { class: 'c-helpbox c-maphelp', id: 'c-maphelp', hidden: true }, [
+      h('p', { text: 'Real breaches, replayed. Investigate, then defend.' }),
+      h('p', { class: 'c-steps', 'aria-label': 'Each case: 1 brief, 2 investigate, 3 defend' }, [
+        h('span', { class: 't-g', text: '01' }), ' brief \u2192 ', h('span', { class: 't-g', text: '02' }), ' investigate \u2192 ', h('span', { class: 't-g', text: '03' }), ' defend'
+      ])
+    ]);
+    var helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How it works', 'aria-expanded': 'false', 'aria-controls': 'c-maphelp', text: '?', onclick: function () {
+      var open = helpBox.hidden; helpBox.hidden = !open; helpBtn.setAttribute('aria-expanded', String(open));
+    } });
+    app.appendChild(h('header', { class: 'c-maphead' }, [
+      h('span', { class: 'c-keptlabel', text: 'KEPT ACADEMY' }),
+      h('span', { class: 'c-headright' }, [helpBtn, h('span', { class: 'c-xp', 'aria-label': totalStars + ' stars earned', text: totalStars + ' \u2605' })])
     ]));
-
-    app.appendChild(h('p', { class: 'c-intro', text: 'Real breaches, replayed from public records. Investigate what happened, then build the defenses that would have stopped it.' }));
-    app.appendChild(h('p', { class: 'c-steps', 'aria-label': 'Each case: 1 brief, 2 investigate, 3 defend' }, [
-      h('span', { class: 't-g', text: '01' }), ' brief \u2192 ', h('span', { class: 't-g', text: '02' }), ' investigate \u2192 ', h('span', { class: 't-g', text: '03' }), ' defend'
-    ]));
+    app.appendChild(h('h1', { class: 'c-brand', text: 'Breach Escape' }));
+    app.appendChild(helpBox);
 
     if (next) {
       var played = bestStars(next) != null;
