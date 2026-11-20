@@ -1,0 +1,200 @@
+#!/usr/bin/env python3
+"""Create a new case from a template.
+
+Usage: tools/new_case <id> "<Title>"
+
+- Writes levels/<id>.json with placeholders only; every fact is pre-marked with a todo
+  (or listed in "verify" where the game always shows the field, e.g. the hidden asset).
+- Adds the case to the Breach Map (levels.js) as SOON, so it isn't playable yet.
+- Refuses to overwrite an existing file or reuse an id that is already on the map.
+Then: fill it in from primary sources, run tools/validate, and set status 'ready' only when it passes.
+Standard library only.
+"""
+import json
+import os
+import re
+import sys
+from collections import OrderedDict as OD
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TV = "TODO: verify against a primary source"
+P = "TODO: "
+
+
+def fact(**kw):
+    o = OD(kw)
+    o["todo"] = TV
+    return o
+
+
+def template(cid, title, level_id):
+    case_no = "%02d" % level_id
+    return OD([
+        ("id", cid), ("levelId", level_id), ("caseNo", case_no), ("title", title), ("victim", P + "victim organization"),
+        ("theme", "green"),
+        ("status", OD([("act1", "soon"), ("act2", "soon")])),
+        ("note", "Scaffolded by tools/new_case. Every fact must come from a primary source listed below. Remove each todo only after checking it."),
+        ("verify", [
+            "TODO: verify the hidden asset (map.hidden.name) against a primary source; the game always shows its name once discovered.",
+            "TODO: verify every stage name, evidence card, control and outcome text before setting the case to ready.",
+        ]),
+        ("sources", [fact(id="src1", title=P + "primary source title and date", url="https://example.invalid/TODO")]),
+        ("briefing", OD([
+            ("opening", P + "opening line"),
+            ("threatActor", fact(v=P + "threat actor name", source="src1")),
+            ("pages", [
+                OD([("blocks", [
+                    OD([("type", "alert"), ("bar", ["INCIDENT ALERT", "SEV 1"]), ("eyebrow", "Case %s · TODO: date" % case_no),
+                        ("text", P + "what the team has just found"),
+                        ("kv", [fact(k="Victim", v=P + "victim", source="src1"), fact(k="Discovered", v=P + "date", source="src1")])]),
+                    OD([("type", "note"), ("text", P + "which primary sources this case is built from; log entries are recreated for training")]),
+                ])]),
+                OD([("blocks", [OD([("type", "panel"), ("eyebrow", "Threat actor profile"), ("title", P + "ACTOR"),
+                                    ("kv", [fact(k="Type", v=P + "type", source="src1")])])])]),
+                OD([("blocks", [OD([("type", "timeline"), ("eyebrow", "Incident timeline"),
+                                    ("items", [fact(d=P + "DATE", t=P + "event")])])])]),
+                OD([("blocks", [OD([("type", "diagram"), ("eyebrow", "The battlefield"), ("text", P + "one line about the environment"),
+                                    ("flow", [OD([("box", P + "outside"), ("tone", "red")]), OD([("arrow", P + "how they got in")]),
+                                              OD([("zone", P + "ZONE"), ("boxes", [P + "system"])])])])])]),
+                OD([("blocks", [
+                    OD([("type", "glossary"), ("eyebrow", "Field glossary"), ("terms", ["patient zero"])]),
+                    OD([("type", "mission"), ("eyebrow", "Your mission"), ("items", [
+                        OD([("b", "Act 1 · Investigate:"), ("t", "put the evidence in order and find patient zero.")]),
+                        OD([("b", "Act 2 · Defend:"), ("t", "Rewind to before the attacker got in. Deploy controls on a budget and replay the real attack.")])])]),
+                ])]),
+            ]),
+        ])),
+        ("act1", OD([
+            ("title", "Rebuild the timeline"),
+            ("short", "Put the evidence in the order it happened. Red herrings go to Not related."),
+            ("help", "Drag an evidence card onto the timeline in the order it happened, or onto Not related. You can also tap a card, then use the buttons."),
+            ("pzTitle", "Find patient zero"), ("pzHelp", "Tap the timeline entry that shows the first successful access."),
+            ("doneTitle", "Timeline rebuilt"), ("doneHelp", P + "one line summary"),
+            ("finding", P + "case finding"),
+            ("scoring", OD([("place", 50), ("dismiss", 30), ("wrong", -20), ("hint", -10), ("patientZero", 100), ("pzWrong", -20)])),
+            ("hints", OD([("1", P + "hint for step 1"), ("2", P + "hint for step 2")])),
+            ("wrongLines", OD([("early", "Not yet. Something else had to happen before this."), ("decoy", "Not part of this attack."),
+                               ("dismissReal", "This one matters. Look again."), ("pz", "That is not the first successful access.")])),
+        ])),
+        ("evidence", [
+            OD([("id", "E1"), ("type", "signin"), ("src", "sign-in log"), ("order", 1), ("illustrative", True), ("title", P + "evidence for stage 1"), ("rows", [P + "recreated log row"])]),
+            OD([("id", "E2"), ("type", "signin"), ("src", "sign-in log"), ("order", 2), ("illustrative", True), ("title", P + "first successful access"), ("rows", [P + "recreated log row"])]),
+            OD([("id", "D1"), ("type", "alert"), ("src", "defender alert"), ("order", None), ("illustrative", True), ("title", P + "red herring"), ("rows", [P + "recreated log row"])]),
+        ]),
+        ("patientZero", "E2"),
+        ("timeline", [
+            fact(stage=1, date=None, mitre=["T1078"], source="src1", text=P + "what happened at stage 1", why=P + "why it worked"),
+            fact(stage=2, date=None, mitre=["T1078"], source="src1", text=P + "what happened at stage 2", why=P + "why it worked"),
+        ]),
+        ("rewind", P + "rewind line"),
+        ("map", OD([
+            ("zones", [OD([("id", "out"), ("name", "OUTSIDE"), ("short", "OUTSIDE")]), OD([("id", "in"), ("name", P + "ZONE"), ("short", P + "ZONE")])]),
+            ("links", OD([("out", P + "how they got in")])),
+            ("stages", [
+                OD([("n", 1), ("zone", "out"), ("name", P + "stage 1"), ("unblockable", True)]),
+                OD([("n", 2), ("zone", "in"), ("name", P + "entry stage"), ("reach", P + "what the attacker reached"), ("severity", "contained")]),
+            ]),
+            ("hidden", OD([("stage", 2), ("name", P + "hidden asset (from a cited source)"), ("source", "src1")])),
+            ("note", "ATT&CK codes for each stage come from the timeline above, so Act 1 and Act 2 always match."),
+        ])),
+        ("budget", 8),
+        ("controls", [
+            OD([("id", "discover"), ("name", P + "discovery control"), ("cost", 2), ("stage", 2), ("effect", "reveal"), ("friction", 0), ("why", P + "what it finds")]),
+            OD([("id", "cover"), ("name", P + "control that covers the found asset"), ("cost", 2), ("stage", 2), ("effect", "block"), ("needs", "reveal"), ("friction", 0), ("why", P + "why it stops the attack")]),
+            OD([("id", "detect"), ("name", P + "detection control"), ("cost", 2), ("stage", 2), ("effect", "detect"), ("friction", 0), ("why", P + "what it notices")]),
+            OD([("id", "recover"), ("name", P + "recovery control"), ("cost", 2), ("stage", 2), ("effect", "recover"), ("friction", 0), ("why", P + "how it helps recovery")]),
+            OD([("id", "decoy"), ("name", P + "tempting decoy"), ("cost", 1), ("stage", 2), ("effect", "decoy"), ("friction", 0), ("why", P + "why it doesn't help here")]),
+        ]),
+        ("stars", OD([
+            ("one", "attack stopped at any stage"),
+            ("two", "stopped at the entry stage (damage NONE). That needs every way in discovered first."),
+            ("three", "★★ plus at least one detect and one recover control in the build"),
+            ("nextOne", "★: stop the attack at any stage."),
+            ("nextTwo", "★★: stop it at the entry stage. Find every way in before you lock the door."),
+            ("nextThree", "★★★: add a detect and a recover layer in case prevention fails."),
+        ])),
+        ("ranks", ["INTERN", "ANALYST", "ENGINEER", "ARCHITECT"]),
+        ("glossary", ["patient zero"]),
+        ("act2", OD([
+            ("title", P + "Act 2 title"), ("short", P + "one line"), ("help", P + "how to play Act 2, with the budget"),
+            ("rewindButton", "> REWIND"), ("simName", cid.replace("-", "_")), ("mapCmd", "> map ./network"),
+            ("attemptedNote", P + "why stage 1 can't be blocked from inside"),
+            ("stepMs", 700), ("xpPerStar", 150), ("preventedMaxStage", 2),
+            ("friction", OD([("low", 1), ("medium", 3)])),
+            ("outcomes", OD([(k, OD([("title", t), ("sub", P + "one line")])) for k, t in
+                             [("prevented", "Breach prevented"), ("contained", "Breach contained"), ("detected", "Breach detected"), ("succeeded", "Breach succeeded")]])),
+            ("tips", OD([
+                ("notStopped", "The attack ran all the way. Check where it really got in, and whether that door was in your inventory."),
+                ("unknownAsset", "The attacker entered via an asset not in your inventory. You can't protect what you haven't found."),
+                ("notEntry", "Stopped, but only after they got in. For ★★, stop it at the entry stage."),
+                ("needLayers", "Prevention held. For ★★★, add a detect and a recover layer in case it fails next time."),
+                ("decoys", "{n} decoy(s) cost budget but did nothing against this attack."),
+                ("friction", "High friction: users will push back. Find a lighter build."),
+                ("always", OD([("t", P + "what the primary source recommends"), ("todo", TV)])),
+            ])),
+            ("logs", OD([
+                ("idle", "> deploy controls, then execute"), ("start", "executing attack_sim :: {sim}"),
+                ("decoy", "[~] {name}: no effect."), ("detect", "[+] detected at stage {n}:"), ("block", "[✓] blocked at stage {n}:"),
+                ("breach", "[!!] intrusion · stage {n} · {stage}"),
+                ("attempted", "[~] stage {n} · {stage}: happens outside your network. Can't be blocked here; defense starts at stage 2."),
+                ("overBudget", "[!] over budget: {name} costs {cost}, you have {left} left. Remove a control first."),
+                ("wrongZone", "[!] {name} protects the {zone}. Drop it on a stage there."),
+                ("deployed", "[+] deployed: {name} → stage {n}"), ("removed", "[-] removed: {name}"),
+                ("scoped", "[~] {name}: known assets only."), ("revealed", "[+] discovered: {asset}"),
+                ("deployedReveal", "[+] deployed: {name} (discovery)"),
+                ("locked", "[!] {name}: find the asset first. Deploy a discovery control."),
+                ("removedDeps", "(it needs the discovery control)"),
+                ("viaUnknown", "[!!] entered via an asset not in your inventory"),
+                ("viaKnown", "[!!] entered via a known asset you didn't protect"),
+                ("impact", "[◆] impact · stage {n} · {stage}:"), ("recover", "[+] recovery ready at stage {n}:"),
+            ])),
+        ])),
+        ("voice", OD()),
+    ])
+
+
+def js_str(s):
+    return "'" + s.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
+def main(argv):
+    if len(argv) != 3:
+        print(__doc__.strip().split("\n\n")[0] + "\nusage: tools/new_case <id> \"<Title>\"", file=sys.stderr)
+        return 2
+    cid, title = argv[1], argv[2].strip()
+    if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", cid):
+        print("error: id must be lowercase letters, digits and single hyphens (e.g. snowflake-customers)", file=sys.stderr)
+        return 2
+    if not title:
+        print("error: title is empty", file=sys.stderr)
+        return 2
+    out = os.path.join(ROOT, "levels", cid + ".json")
+    if os.path.exists(out):
+        print("error: %s already exists; refusing to overwrite" % os.path.relpath(out, ROOT), file=sys.stderr)
+        return 1
+    lj = os.path.join(ROOT, "levels.js")
+    with open(lj, encoding="utf-8") as f:
+        src = f.read()
+    if ("'levels/%s.json'" % cid) in src:
+        print("error: levels.js already has a case '%s'; refusing to change it" % cid, file=sys.stderr)
+        return 1
+    start = src.index("window.LEVELS = [")
+    end = src.index("\n];", start)
+    ids = [int(x) for x in re.findall(r"\{\s*id:\s*(\d+)", src[start:end])]
+    level_id = max(ids) + 1 if ids else 1
+    entry = "  { id: %d, name: %s, victim: 'TBA', year: 'TBA', teaser: 'Case file in preparation.', status: 'soon', case: 'levels/%s.json' }" % (
+        level_id, js_str(title), cid)
+    body = src[start:end].rstrip()
+    src = src[:start] + body + ",\n" + entry + src[end:]
+    with open(out, "x", encoding="utf-8") as f:   # "x": fails if the file appeared meanwhile
+        json.dump(template(cid, title, level_id), f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    with open(lj, "w", encoding="utf-8") as f:
+        f.write(src)
+    print("created %s (Level %d, SOON on the Breach Map)" % (os.path.relpath(out, ROOT), level_id))
+    print("next: fill it from primary sources, then run tools/validate %s" % os.path.relpath(out, ROOT))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
