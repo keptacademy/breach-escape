@@ -487,3 +487,14 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
   .c-scale{grid-template-columns:7rem minmax(0,1fr)}
   .c-srclist li{grid-template-columns:2.5rem minmax(0,1fr)}
 }
+
+/* ---------- widths (900px+): reading screens share one ~800px column, work screens stay wide (up to 1100px) ----------
+   Reading: briefing, About, Act 1 patient zero + debrief, results. Work: Breach Map, Act 1 board, Act 2.
+   The pinned bar's inner row lines up with the column (column width minus the 14px side padding). */
+@media (min-width: 900px){
+  .app.case,.app.case.c-aboutscreen,.app.case.c-a1screen.c-readscreen{max-width:800px}
+  .app.case.c-mapscreen,.app.case.c-a1screen,.app.case.c-a2screen{max-width:1100px}
+  .app.case.c-a1screen.c-readscreen{max-width:800px}
+  .c-a1.c-solo,.c-done{max-width:none}
+  .c-briefbar .c-bar-in{max-width:772px}
+}

@@ -514,6 +514,7 @@
     // Highlight Not related once the timeline is full and only red herrings are left.
     E.nr.classList.toggle('c-call', A.phase === 'order' && A.placed.length === total() && A.cards.some(function (c) { return !c.done; }));
     E.main.classList.toggle('c-solo', A.phase !== 'order');
+    app.classList.toggle('c-readscreen', A.phase !== 'order');   // patient zero + debrief: the reading width
   }
   function drawInspect() {
     var c = A.sel;
