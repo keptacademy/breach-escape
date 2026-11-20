@@ -1,0 +1,1534 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://breach-escape.local/level.schema.json",
+  "title": "Breach Escape level (case file)",
+  "description": "The format of levels/<id>.json as read by case.js. Anything with a 'todo' is an unverified fact and is never shown to players.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "levelId",
+    "caseNo",
+    "title",
+    "victim",
+    "theme",
+    "status",
+    "note",
+    "sources",
+    "briefing",
+    "act1",
+    "evidence",
+    "patientZero",
+    "timeline",
+    "rewind",
+    "map",
+    "budget",
+    "controls",
+    "stars",
+    "ranks",
+    "glossary",
+    "act2",
+    "voice"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "levelId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "caseNo": {
+      "type": "string",
+      "pattern": "^[0-9]{2}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "victim": {
+      "type": "string",
+      "minLength": 1
+    },
+    "theme": {
+      "enum": [
+        "green",
+        "amber"
+      ]
+    },
+    "status": {
+      "type": "object",
+      "properties": {
+        "act1": {
+          "enum": [
+            "ready",
+            "soon"
+          ]
+        },
+        "act2": {
+          "enum": [
+            "ready",
+            "soon"
+          ]
+        }
+      },
+      "required": [
+        "act1",
+        "act2"
+      ],
+      "additionalProperties": false
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verify": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "url": {
+            "type": "string",
+            "pattern": "^https://"
+          },
+          "todo": {
+            "type": "string",
+            "pattern": "^TODO: verify"
+          },
+          "verified": {
+            "type": "string",
+            "minLength": 1
+          },
+          "publisher": {
+            "type": "string",
+            "minLength": 1
+          },
+          "date": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "url"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "briefing": {
+      "type": "object",
+      "properties": {
+        "opening": {
+          "type": "string",
+          "minLength": 1
+        },
+        "threatActor": {
+          "type": "object",
+          "properties": {
+            "v": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source": {
+              "type": "string",
+              "minLength": 1
+            },
+            "todo": {
+              "type": "string",
+              "pattern": "^TODO: verify"
+            },
+            "quote": {
+              "$ref": "#/$defs/quote"
+            }
+          },
+          "required": [
+            "v"
+          ],
+          "additionalProperties": false
+        },
+        "pages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "blocks": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/block"
+                }
+              }
+            },
+            "required": [
+              "blocks"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "opening",
+        "threatActor",
+        "pages"
+      ],
+      "additionalProperties": false
+    },
+    "act1": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "short": {
+          "type": "string",
+          "minLength": 1
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pzTitle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pzHelp": {
+          "type": "string",
+          "minLength": 1
+        },
+        "doneTitle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "doneHelp": {
+          "type": "string",
+          "minLength": 1
+        },
+        "finding": {
+          "type": "string",
+          "minLength": 1
+        },
+        "herringsLeft": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scoring": {
+          "type": "object",
+          "properties": {
+            "place": {
+              "type": "integer"
+            },
+            "dismiss": {
+              "type": "integer"
+            },
+            "wrong": {
+              "type": "integer"
+            },
+            "hint": {
+              "type": "integer"
+            },
+            "patientZero": {
+              "type": "integer"
+            },
+            "pzWrong": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "place",
+            "dismiss",
+            "wrong",
+            "hint",
+            "patientZero",
+            "pzWrong"
+          ],
+          "additionalProperties": false
+        },
+        "hints": {
+          "type": "object",
+          "patternProperties": {
+            "^[1-9][0-9]*$": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "wrongLines": {
+          "type": "object",
+          "properties": {
+            "early": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decoy": {
+              "type": "string",
+              "minLength": 1
+            },
+            "dismissReal": {
+              "type": "string",
+              "minLength": 1
+            },
+            "pz": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "early",
+            "decoy",
+            "dismissReal",
+            "pz"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "title",
+        "short",
+        "help",
+        "pzTitle",
+        "pzHelp",
+        "doneTitle",
+        "doneHelp",
+        "finding",
+        "scoring",
+        "hints",
+        "wrongLines"
+      ],
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[ED][0-9]+$"
+          },
+          "type": {
+            "enum": [
+              "signin",
+              "audit",
+              "mail",
+              "alert"
+            ]
+          },
+          "src": {
+            "type": "string",
+            "minLength": 1
+          },
+          "order": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "illustrative": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "src",
+          "order",
+          "illustrative",
+          "title",
+          "rows"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "patientZero": {
+      "type": "string",
+      "pattern": "^E[0-9]+$"
+    },
+    "timeline": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mitre": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^(T[0-9]{4}(\\.[0-9]{3})?|TA[0-9]{4})$"
+            }
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "why": {
+            "type": "string",
+            "minLength": 1
+          },
+          "todo": {
+            "type": "string",
+            "pattern": "^TODO: verify"
+          },
+          "quote": {
+            "$ref": "#/$defs/quote"
+          }
+        },
+        "required": [
+          "stage",
+          "date",
+          "mitre",
+          "source",
+          "text",
+          "why"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "rewind": {
+      "type": "string",
+      "minLength": 1
+    },
+    "map": {
+      "type": "object",
+      "properties": {
+        "zones": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "short": {
+                "type": "string",
+                "minLength": 1
+              },
+              "tone": {
+                "enum": [
+                  "y",
+                  "g"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "short"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "links": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "stages": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "properties": {
+              "n": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "zone": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "unblockable": {
+                "type": "boolean"
+              },
+              "impact": {
+                "type": "boolean"
+              },
+              "impactNote": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reach": {
+                "type": "string",
+                "minLength": 1
+              },
+              "severity": {
+                "enum": [
+                  "contained",
+                  "severe",
+                  "critical"
+                ]
+              }
+            },
+            "required": [
+              "n",
+              "zone",
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "hidden": {
+          "type": "object",
+          "properties": {
+            "stage": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source": {
+              "type": "string",
+              "minLength": 1
+            },
+            "todo": {
+              "type": "string",
+              "pattern": "^TODO: verify"
+            },
+            "quote": {
+              "$ref": "#/$defs/quote"
+            }
+          },
+          "required": [
+            "stage",
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "zones",
+        "links",
+        "stages",
+        "hidden"
+      ],
+      "additionalProperties": false
+    },
+    "budget": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "controls": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cost": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "stage": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "effect": {
+            "enum": [
+              "block",
+              "detect",
+              "recover",
+              "reveal",
+              "decoy"
+            ]
+          },
+          "needs": {
+            "const": "reveal"
+          },
+          "coversHidden": {
+            "type": "boolean"
+          },
+          "friction": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "why": {
+            "type": "string",
+            "minLength": 1
+          },
+          "whyScoped": {
+            "type": "string",
+            "minLength": 1
+          },
+          "teach": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quote": {
+            "$ref": "#/$defs/quote"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "cost",
+          "stage",
+          "effect",
+          "friction",
+          "why"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "stars": {
+      "type": "object",
+      "properties": {
+        "one": {
+          "type": "string",
+          "minLength": 1
+        },
+        "two": {
+          "type": "string",
+          "minLength": 1
+        },
+        "three": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nextOne": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nextTwo": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nextThree": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "one",
+        "two",
+        "three",
+        "nextOne",
+        "nextTwo",
+        "nextThree"
+      ],
+      "additionalProperties": false
+    },
+    "ranks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "glossary": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "act2": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "short": {
+          "type": "string",
+          "minLength": 1
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rewindButton": {
+          "type": "string",
+          "minLength": 1
+        },
+        "simName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mapCmd": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attemptedNote": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stepMs": {
+          "type": "integer",
+          "minimum": 100
+        },
+        "xpPerStar": {
+          "type": "integer"
+        },
+        "preventedMaxStage": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "friction": {
+          "type": "object",
+          "properties": {
+            "low": {
+              "type": "integer"
+            },
+            "medium": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "low",
+            "medium"
+          ],
+          "additionalProperties": false
+        },
+        "outcomes": {
+          "type": "object",
+          "properties": {
+            "prevented": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sub": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "title",
+                "sub"
+              ],
+              "additionalProperties": false
+            },
+            "contained": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sub": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "title",
+                "sub"
+              ],
+              "additionalProperties": false
+            },
+            "detected": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sub": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "title",
+                "sub"
+              ],
+              "additionalProperties": false
+            },
+            "succeeded": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sub": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "title",
+                "sub"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "prevented",
+            "contained",
+            "detected",
+            "succeeded"
+          ],
+          "additionalProperties": false
+        },
+        "tips": {
+          "type": "object",
+          "properties": {
+            "notStopped": {
+              "type": "string",
+              "minLength": 1
+            },
+            "unknownAsset": {
+              "type": "string",
+              "minLength": 1
+            },
+            "notEntry": {
+              "type": "string",
+              "minLength": 1
+            },
+            "needLayers": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decoys": {
+              "type": "string",
+              "minLength": 1
+            },
+            "friction": {
+              "type": "string",
+              "minLength": 1
+            },
+            "always": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "$ref": "#/$defs/tip"
+                },
+                {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      {
+                        "$ref": "#/$defs/tip"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "required": [
+            "notStopped",
+            "unknownAsset",
+            "notEntry",
+            "needLayers",
+            "decoys",
+            "friction",
+            "always"
+          ],
+          "additionalProperties": false
+        },
+        "logs": {
+          "type": "object",
+          "properties": {
+            "idle": {
+              "type": "string",
+              "minLength": 1
+            },
+            "start": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decoy": {
+              "type": "string",
+              "minLength": 1
+            },
+            "detect": {
+              "type": "string",
+              "minLength": 1
+            },
+            "block": {
+              "type": "string",
+              "minLength": 1
+            },
+            "breach": {
+              "type": "string",
+              "minLength": 1
+            },
+            "attempted": {
+              "type": "string",
+              "minLength": 1
+            },
+            "overBudget": {
+              "type": "string",
+              "minLength": 1
+            },
+            "wrongZone": {
+              "type": "string",
+              "minLength": 1
+            },
+            "deployed": {
+              "type": "string",
+              "minLength": 1
+            },
+            "removed": {
+              "type": "string",
+              "minLength": 1
+            },
+            "scoped": {
+              "type": "string",
+              "minLength": 1
+            },
+            "revealed": {
+              "type": "string",
+              "minLength": 1
+            },
+            "deployedReveal": {
+              "type": "string",
+              "minLength": 1
+            },
+            "locked": {
+              "type": "string",
+              "minLength": 1
+            },
+            "removedDeps": {
+              "type": "string",
+              "minLength": 1
+            },
+            "viaUnknown": {
+              "type": "string",
+              "minLength": 1
+            },
+            "viaKnown": {
+              "type": "string",
+              "minLength": 1
+            },
+            "impact": {
+              "type": "string",
+              "minLength": 1
+            },
+            "recover": {
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "idle",
+            "start",
+            "decoy",
+            "detect",
+            "block",
+            "breach",
+            "attempted",
+            "overBudget",
+            "wrongZone",
+            "deployed",
+            "removed",
+            "scoped",
+            "revealed",
+            "deployedReveal",
+            "locked",
+            "removedDeps",
+            "viaUnknown",
+            "viaKnown",
+            "impact",
+            "recover"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "title",
+        "short",
+        "help",
+        "rewindButton",
+        "simName",
+        "stepMs",
+        "xpPerStar",
+        "preventedMaxStage",
+        "friction",
+        "outcomes",
+        "tips",
+        "logs"
+      ],
+      "additionalProperties": false
+    },
+    "voice": {
+      "type": "object",
+      "properties": {
+        "patientZero": {
+          "type": "string",
+          "minLength": 1
+        },
+        "wrong": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prevented": {
+          "type": "string",
+          "minLength": 1
+        },
+        "breached": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contained": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "kvRow": {
+      "type": "object",
+      "properties": {
+        "k": {
+          "type": "string",
+          "minLength": 1
+        },
+        "v": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tone": {
+          "enum": [
+            "red",
+            "y",
+            "g",
+            "b"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "todo": {
+          "type": "string",
+          "pattern": "^TODO: verify"
+        },
+        "quote": {
+          "$ref": "#/$defs/quote"
+        }
+      },
+      "required": [
+        "k",
+        "v"
+      ],
+      "additionalProperties": false
+    },
+    "block": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "alert"
+            },
+            "bar": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            },
+            "eyebrow": {
+              "type": "string",
+              "minLength": 1
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1
+            },
+            "kv": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/kvRow"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "bar",
+            "eyebrow",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "note"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "panel"
+            },
+            "eyebrow": {
+              "type": "string",
+              "minLength": 1
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1
+            },
+            "kv": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/kvRow"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "eyebrow"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "facts"
+            },
+            "eyebrow": {
+              "type": "string",
+              "minLength": 1
+            },
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "t": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "tone": {
+                      "enum": [
+                        "red",
+                        "y",
+                        "g",
+                        "b"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "t"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "required": [
+            "type",
+            "eyebrow",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "timeline"
+            },
+            "eyebrow": {
+              "type": "string",
+              "minLength": 1
+            },
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "d": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "t": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "tone": {
+                    "enum": [
+                      "red",
+                      "y",
+                      "g",
+                      "b"
+                    ]
+                  },
+                  "todo": {
+                    "type": "string",
+                    "pattern": "^TODO: verify"
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "quote": {
+                    "$ref": "#/$defs/quote"
+                  }
+                },
+                "required": [
+                  "d",
+                  "t"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "type",
+            "eyebrow",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "diagram"
+            },
+            "eyebrow": {
+              "type": "string",
+              "minLength": 1
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1
+            },
+            "flow": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "box": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "tone": {
+                        "enum": [
+                          "red",
+                          "y",
+                          "g",
+                          "b"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "box"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "arrow": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "arrow"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "teaser": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "teaser"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "zone": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "tone": {
+                        "enum": [
+                          "red",
+                          "y",
+                          "g",
+                          "b"
+                        ]
+                      },
+                      "boxes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "required": [
+                      "zone",
+                      "boxes"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          },
+          "required": [
+            "type",
+            "eyebrow",
+            "flow"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "glossary"
+            },
+            "eyebrow": {
+              "type": "string",
+              "minLength": 1
+            },
+            "terms": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "type",
+            "eyebrow",
+            "terms"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "mission"
+            },
+            "eyebrow": {
+              "type": "string",
+              "minLength": 1
+            },
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "b": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "t": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "b",
+                  "t"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "small": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "type",
+            "eyebrow",
+            "items"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "quote": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    "tip": {
+      "type": "object",
+      "properties": {
+        "t": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quote": {
+          "$ref": "#/$defs/quote"
+        },
+        "todo": {
+          "type": "string",
+          "pattern": "^TODO: verify"
+        }
+      },
+      "required": [
+        "t"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

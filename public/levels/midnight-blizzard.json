@@ -1,0 +1,875 @@
+{
+  "id": "midnight-blizzard",
+  "levelId": 1,
+  "caseNo": "01",
+  "title": "Midnight Blizzard",
+  "victim": "Microsoft",
+  "status": {
+    "act1": "ready",
+    "act2": "ready"
+  },
+  "theme": "green",
+  "note": "Facts come from the sources below. Evidence rows are recreated for training and are labelled so in the game. Text in backticks is shown as code. Review before publishing.",
+  "sources": [
+    {
+      "id": "msrc",
+      "title": "Microsoft Actions Following Attack by Nation State Actor Midnight Blizzard",
+      "publisher": "Microsoft Security Response Center (MSRC Blog)",
+      "date": "January 19, 2024",
+      "url": "https://msrc.microsoft.com/blog/2024/01/microsoft-actions-following-attack-by-nation-state-actor-midnight-blizzard/",
+      "verified": "2026-11-20, link checked by Nura"
+    },
+    {
+      "id": "blog",
+      "title": "Midnight Blizzard: Guidance for responders on nation-state attack",
+      "publisher": "Microsoft Security Blog",
+      "date": "January 25, 2024",
+      "url": "https://www.microsoft.com/en-us/security/blog/2024/01/25/midnight-blizzard-guidance-for-responders-on-nation-state-attack/"
+    },
+    {
+      "id": "8k",
+      "title": "Form 8-K (date of report January 17, 2024)",
+      "publisher": "Microsoft Corporation, filed with the U.S. SEC",
+      "date": "January 19, 2024",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312524011295/d708866d8k.htm",
+      "verified": "2026-11-20, link checked by Nura"
+    },
+    {
+      "id": "insider",
+      "title": "Midnight Blizzard threat actor profile",
+      "publisher": "Microsoft Security Insider",
+      "url": "https://www.microsoft.com/security/security-insider/midnight-blizzard"
+    }
+  ],
+  "briefing": {
+    "pages": [
+      {
+        "blocks": [
+          {
+            "type": "alert",
+            "bar": [
+              "INCIDENT ALERT",
+              "SEV 1"
+            ],
+            "eyebrow": "Case 01 · January 12, 2024",
+            "text": "Microsoft's security team has detected a nation-state attacker inside its corporate email. Senior leaders' mailboxes have been read.",
+            "kv": [
+              {
+                "k": "Victim",
+                "v": "Microsoft corporate environment"
+              },
+              {
+                "k": "Discovered",
+                "v": "12 Jan 2024"
+              },
+              {
+                "k": "In since",
+                "v": "late Nov 2023 · about 7 weeks",
+                "tone": "red"
+              },
+              {
+                "k": "Disclosed",
+                "v": "19 Jan 2024 (SEC 8-K)"
+              }
+            ]
+          },
+          {
+            "type": "note",
+            "text": "Everything in this case comes from Microsoft's own published investigation. Log entries in the game are recreated for training."
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "panel",
+            "eyebrow": "Threat actor profile",
+            "title": "MIDNIGHT_BLIZZARD",
+            "kv": [
+              {
+                "k": "Sponsor",
+                "v": "Attributed by the US and UK governments to Russia's Foreign Intelligence Service (SVR)",
+                "source": "blog"
+              },
+              {
+                "k": "Also tracked as",
+                "v": "NOBELIUM · APT29 · UNC2452 · Cozy Bear",
+                "source": "insider"
+              },
+              {
+                "k": "Goal",
+                "v": "Espionage: quiet, long-term intelligence gathering"
+              },
+              {
+                "k": "In this case",
+                "v": "Quiet: misused legitimate sign-ins and app permissions."
+              }
+            ]
+          },
+          {
+            "type": "panel",
+            "eyebrow": "Why this matters to you",
+            "text": "There is no virus to find. The attacker used normal sign-ins and normal app permissions. Your job is to spot legitimate features being misused, which is the hardest kind of attack to see."
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "facts",
+            "eyebrow": "What we know",
+            "items": [
+              [
+                {
+                  "t": "Entry was a "
+                },
+                {
+                  "t": "legacy, non-production test tenant",
+                  "tone": "y"
+                },
+                {
+                  "t": " account with "
+                },
+                {
+                  "t": "no MFA",
+                  "tone": "red"
+                },
+                {
+                  "t": "."
+                }
+              ],
+              [
+                {
+                  "t": "The attacker sprayed a "
+                },
+                {
+                  "t": "limited number of accounts",
+                  "tone": "b"
+                },
+                {
+                  "t": " from "
+                },
+                {
+                  "t": "residential proxies",
+                  "tone": "b"
+                },
+                {
+                  "t": ", with a "
+                },
+                {
+                  "t": "low number of attempts",
+                  "tone": "b"
+                },
+                {
+                  "t": " to avoid detection."
+                }
+              ],
+              [
+                {
+                  "t": "A very small percentage of corporate mailboxes were accessed, including "
+                },
+                {
+                  "t": "senior leadership, cybersecurity and legal",
+                  "tone": "b"
+                },
+                {
+                  "t": "."
+                }
+              ],
+              [
+                {
+                  "t": "They searched for information about "
+                },
+                {
+                  "t": "Midnight Blizzard itself",
+                  "tone": "b"
+                },
+                {
+                  "t": ": what Microsoft knew about them."
+                }
+              ]
+            ]
+          },
+          {
+            "type": "timeline",
+            "eyebrow": "Incident timeline",
+            "items": [
+              {
+                "d": "LATE NOV 2023",
+                "t": "Attacker gets in. Nobody notices.",
+                "tone": "red"
+              },
+              {
+                "d": "NEXT ~7 WEEKS",
+                "t": "Undetected access to corporate email.",
+                "tone": "red"
+              },
+              {
+                "d": "12 JAN 2024",
+                "t": "Security team detects the activity."
+              },
+              {
+                "d": "RESPONSE",
+                "t": "Attacker's access investigated, disrupted and removed."
+              },
+              {
+                "d": "19 JAN 2024",
+                "t": "Public disclosure."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "diagram",
+            "eyebrow": "The battlefield",
+            "text": "Two separate Microsoft tenants. A forgotten test environment had a hidden bridge into the real one.",
+            "flow": [
+              {
+                "box": "Internet · residential proxies",
+                "tone": "red"
+              },
+              {
+                "arrow": "▼ password spray"
+              },
+              {
+                "zone": "LEGACY TEST TENANT",
+                "tone": "y",
+                "boxes": [
+                  "Test account · no MFA",
+                  "Legacy-Test-App · elevated access"
+                ]
+              },
+              {
+                "arrow": "▼ hidden bridge: app had access to the corporate tenant"
+              },
+              {
+                "teaser": "? What happened next is in the evidence"
+              },
+              {
+                "zone": "CORPORATE TENANT",
+                "tone": "g",
+                "boxes": [
+                  "Entra ID · users, apps, consent",
+                  "Exchange Online · leadership mailboxes"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "glossary",
+            "eyebrow": "Field glossary",
+            "terms": [
+              "password spray",
+              "OAuth app",
+              "consent",
+              "`full_access_as_app`"
+            ]
+          },
+          {
+            "type": "mission",
+            "eyebrow": "Your mission",
+            "items": [
+              {
+                "b": "Act 1 · Investigate:",
+                "t": "put the evidence in order and find patient zero."
+              },
+              {
+                "b": "Act 2 · Defend:",
+                "t": "Rewind to October 2023, before the attacker got in. Deploy controls on a budget and replay the real attack."
+              }
+            ],
+            "small": "Stars: stop it early, waste nothing on decoys, keep users happy."
+          }
+        ]
+      }
+    ],
+    "opening": "Wake up, analyst.",
+    "threatActor": {
+      "v": "Midnight Blizzard (Microsoft's name; also tracked as APT29)",
+      "source": "insider"
+    }
+  },
+  "act1": {
+    "title": "Rebuild the timeline",
+    "short": "Put the evidence in the order it happened. Red herrings go to Not related.",
+    "help": "Drag an evidence card onto the timeline in the order it happened, or onto Not related. You can also tap a card, then use the buttons.",
+    "pzTitle": "Find patient zero",
+    "pzHelp": "Tap the timeline entry that shows the first successful access.",
+    "doneTitle": "Timeline rebuilt",
+    "doneHelp": "Seven steps from a forgotten test account to senior leadership's inboxes.",
+    "finding": "Patient zero was svc-test, a legacy test tenant account with no MFA. The spray used only a few tries per account across a limited number of accounts, so lockouts never fired. From there, an over-privileged test app became the bridge into the corporate tenant.",
+    "scoring": {
+      "place": 50,
+      "dismiss": 30,
+      "wrong": -20,
+      "hint": -10,
+      "patientZero": 100,
+      "pzWrong": -20
+    },
+    "hints": {
+      "1": "Look for many sign-in failures spread thinly across accounts.",
+      "2": "Which log shows the first time they actually got in?",
+      "3": "Once inside the test tenant, which over-privileged identity did they use next?",
+      "4": "Next they built their own tools.",
+      "5": "Someone had to approve those new apps.",
+      "6": "Which permission unlocks the mailboxes?",
+      "7": "The goal: email."
+    },
+    "wrongLines": {
+      "early": "Not yet. Something else had to happen before this.",
+      "decoy": "Not part of this attack.",
+      "dismissReal": "This one matters. Look again.",
+      "pz": "That is not the first successful access."
+    }
+  },
+  "evidence": [
+    {
+      "id": "E1",
+      "type": "signin",
+      "src": "sign-in log",
+      "order": 1,
+      "illustrative": true,
+      "title": "A limited set of accounts, 1–2 failed sign-ins each, from many home IP addresses",
+      "rows": [
+        "fail  user=a.lee      tries=1  ip=203.0.113.24  (residential)",
+        "fail  user=svc-test   tries=1  ip=198.51.100.7  (residential)",
+        "fail  user=j.ortiz    tries=2  ip=192.0.2.181   (residential)"
+      ]
+    },
+    {
+      "id": "E2",
+      "type": "signin",
+      "src": "sign-in log",
+      "order": 2,
+      "illustrative": true,
+      "title": "Sign-in success: svc-test (legacy test tenant), MFA not required",
+      "rows": [
+        "SUCCESS  user=svc-test@<legacy-test-tenant>  mfa=not required"
+      ]
+    },
+    {
+      "id": "E3",
+      "type": "audit",
+      "src": "audit log",
+      "order": 3,
+      "illustrative": true,
+      "title": "Legacy-Test-App, a legacy test OAuth app with elevated access to the corporate tenant, is now acting for the attacker",
+      "rows": [
+        "Service principal sign-in  app=Legacy-Test-App  tenant=<corporate>  (app-only)",
+        "Directory activity  actor=Legacy-Test-App  target=<corporate tenant>"
+      ]
+    },
+    {
+      "id": "E4",
+      "type": "audit",
+      "src": "audit log",
+      "order": 4,
+      "illustrative": true,
+      "title": "2 new OAuth apps registered",
+      "rows": [
+        "Add application  target=<unknown-app-1>",
+        "Add application  target=<unknown-app-2>"
+      ]
+    },
+    {
+      "id": "E5",
+      "type": "audit",
+      "src": "audit log",
+      "order": 5,
+      "illustrative": true,
+      "title": "New user created in the corporate tenant → consent granted to the new apps",
+      "rows": [
+        "Add user  target=<new-user>",
+        "Consent to application  actor=<new-user>  target=<unknown-app-1>"
+      ]
+    },
+    {
+      "id": "E6",
+      "type": "audit",
+      "src": "audit log",
+      "order": 6,
+      "illustrative": true,
+      "title": "App role assigned: `full_access_as_app` (Office 365 Exchange Online)",
+      "rows": [
+        "Add app role assignment to service principal  role=full_access_as_app"
+      ]
+    },
+    {
+      "id": "E7",
+      "type": "mail",
+      "src": "mail activity",
+      "order": 7,
+      "illustrative": true,
+      "title": "An app reading leadership, security and legal mailboxes over EWS",
+      "rows": [
+        "EWS  app=<unknown-app-1>  op=MailItemsAccessed  mailbox=<leadership>",
+        "EWS  app=<unknown-app-1>  op=MailItemsAccessed  mailbox=<legal>"
+      ]
+    },
+    {
+      "id": "D1",
+      "type": "alert",
+      "src": "defender alert",
+      "order": null,
+      "illustrative": true,
+      "title": "Malware detected on a marketing laptop",
+      "rows": [
+        "Alert  severity=medium  device=<mkt-laptop-14>  threat=<adware>"
+      ]
+    },
+    {
+      "id": "D2",
+      "type": "signin",
+      "src": "sign-in log",
+      "order": null,
+      "illustrative": true,
+      "title": "User locked out after forgetting her password",
+      "rows": [
+        "fail  user=<user>  tries=10  ip=<office>  result=locked out"
+      ]
+    }
+  ],
+  "patientZero": "E2",
+  "timeline": [
+    {
+      "stage": 1,
+      "date": "late Nov 2023",
+      "mitre": [
+        "T1090",
+        "T1110.003"
+      ],
+      "source": "blog",
+      "text": "Password spray against a limited number of accounts, from residential proxies, with a low number of attempts.",
+      "why": "Few tries per account stayed under lockout and detection thresholds."
+    },
+    {
+      "stage": 2,
+      "date": "late Nov 2023",
+      "mitre": [
+        "T1078.004"
+      ],
+      "source": "blog",
+      "text": "Compromised a legacy, non-production test tenant account.",
+      "why": "The account had no MFA, so one guessed password was enough."
+    },
+    {
+      "stage": 3,
+      "date": null,
+      "mitre": [
+        "T1550.001"
+      ],
+      "source": "blog",
+      "text": "Used a legacy test OAuth application that had elevated access to the Microsoft corporate environment.",
+      "why": "An old app still held standing privilege. Microsoft has not said how the attacker gained control of it."
+    },
+    {
+      "stage": 4,
+      "date": null,
+      "mitre": [
+        "T1098.001"
+      ],
+      "source": "blog",
+      "text": "Created additional malicious OAuth applications.",
+      "why": "More apps meant more ways back in if one was found."
+    },
+    {
+      "stage": 5,
+      "date": null,
+      "mitre": [
+        "T1136.003"
+      ],
+      "source": "blog",
+      "text": "Created a new user account to grant consent in the corporate environment to the actor-controlled apps.",
+      "why": "Consent turned the attacker's apps into trusted apps."
+    },
+    {
+      "stage": 6,
+      "date": null,
+      "mitre": [
+        "T1098.003"
+      ],
+      "source": "blog",
+      "text": "Used the legacy test app to grant the Office 365 Exchange Online `full_access_as_app` role.",
+      "why": "One app role unlocked mailbox access without any user signing in."
+    },
+    {
+      "stage": 7,
+      "date": "until 12 Jan 2024",
+      "mitre": [
+        "T1114.002"
+      ],
+      "source": "msrc",
+      "text": "Accessed a very small percentage of corporate email accounts, including senior leadership, cybersecurity and legal, and searched for information about Midnight Blizzard itself.",
+      "why": "App-only access looked like normal app traffic. Detected 12 Jan 2024, disclosed 19 Jan 2024."
+    }
+  ],
+  "rewind": "Now rewind. You're Microsoft's security team in October 2023. Stop it.",
+  "map": {
+    "zones": [
+      {
+        "id": "out",
+        "name": "OUTSIDE",
+        "short": "OUTSIDE"
+      },
+      {
+        "id": "test",
+        "name": "LEGACY TEST TENANT",
+        "tone": "y",
+        "short": "TEST TENANT"
+      },
+      {
+        "id": "corp",
+        "name": "CORPORATE TENANT",
+        "tone": "g",
+        "short": "CORPORATE"
+      }
+    ],
+    "links": {
+      "out": "▼ password spray",
+      "test": "▼ hidden bridge into the corporate tenant"
+    },
+    "stages": [
+      {
+        "n": 1,
+        "zone": "out",
+        "name": "Password spray from residential proxies",
+        "unblockable": true
+      },
+      {
+        "n": 2,
+        "zone": "test",
+        "name": "Guessed password works on the test account",
+        "reach": "test tenant account taken",
+        "severity": "contained"
+      },
+      {
+        "n": 3,
+        "zone": "test",
+        "name": "Use Legacy-Test-App"
+      },
+      {
+        "n": 4,
+        "zone": "corp",
+        "name": "Register malicious OAuth apps",
+        "reach": "malicious apps registered",
+        "severity": "contained"
+      },
+      {
+        "n": 5,
+        "zone": "corp",
+        "name": "New user · consent to apps"
+      },
+      {
+        "n": 6,
+        "zone": "corp",
+        "name": "Grant `full_access_as_app`"
+      },
+      {
+        "n": 7,
+        "zone": "corp",
+        "name": "Read leadership mailboxes",
+        "reach": "leadership mailboxes read",
+        "severity": "severe"
+      }
+    ],
+    "note": "ATT&CK codes for each stage come from the timeline above, so Act 1 and Act 2 always match.",
+    "hidden": {
+      "stage": 2,
+      "name": "Legacy, non-production test tenant account · no MFA",
+      "source": "blog"
+    }
+  },
+  "budget": 9,
+  "controls": [
+    {
+      "id": "caprod",
+      "name": "Conditional Access: require MFA in the production tenant",
+      "cost": 2,
+      "stage": 2,
+      "effect": "block",
+      "coversHidden": false,
+      "friction": 0,
+      "why": "Every production sign-in needs MFA.",
+      "whyScoped": "Covered the production tenant only. The sprayed account lived in a legacy test tenant outside the policy.",
+      "teach": "A policy only protects what's in its scope."
+    },
+    {
+      "id": "inventory",
+      "name": "Inventory non-production tenants",
+      "cost": 2,
+      "stage": 2,
+      "effect": "reveal",
+      "friction": 0,
+      "why": "Found it: a legacy, non-production test tenant account with no MFA.",
+      "teach": "You can't protect what you haven't found."
+    },
+    {
+      "id": "testmfa",
+      "name": "Require MFA in the test tenant too",
+      "cost": 2,
+      "stage": 2,
+      "effect": "block",
+      "needs": "reveal",
+      "friction": 0,
+      "why": "Spray found the password, but MFA stopped the login.",
+      "teach": "Test tenants are real attack surface."
+    },
+    {
+      "id": "decom",
+      "name": "Decommission the legacy test tenant",
+      "cost": 2,
+      "stage": 2,
+      "effect": "block",
+      "needs": "reveal",
+      "friction": 1,
+      "why": "No forgotten test tenant, no target.",
+      "teach": "Asset inventory and hygiene."
+    },
+    {
+      "id": "idp",
+      "name": "ID Protection risk policy",
+      "cost": 3,
+      "stage": 2,
+      "effect": "detect",
+      "friction": 1,
+      "why": "Risky sign-in flagged. SOC alerted early.",
+      "teach": "Detection is not prevention."
+    },
+    {
+      "id": "appperms",
+      "name": "Remove unneeded app mailbox permissions (`full_access_as_app`)",
+      "cost": 2,
+      "stage": 3,
+      "effect": "block",
+      "friction": 0,
+      "why": "The legacy test app no longer held mailbox permissions it didn't need, so taking it over gave the attacker no bridge into the corporate tenant.",
+      "teach": "Review what each app is allowed to do. Microsoft's guidance: “If they are no longer required, they should be removed.” Unlike scoping mailbox access (stage 7), this takes the power away from the app the attacker already holds.",
+      "source": "blog",
+      "quote": "If they are no longer required, they should be removed."
+    },
+    {
+      "id": "least",
+      "name": "Least privilege for apps",
+      "cost": 2,
+      "stage": 6,
+      "effect": "block",
+      "friction": 0,
+      "why": "Test app had no right to grant mailbox access.",
+      "teach": "App permissions are privileges."
+    },
+    {
+      "id": "consent",
+      "name": "Admin consent only",
+      "cost": 2,
+      "stage": 5,
+      "effect": "block",
+      "friction": 1,
+      "why": "Consent needed approval. Apps never authorized.",
+      "teach": "Illicit consent grant."
+    },
+    {
+      "id": "pim",
+      "name": "PIM, no standing admin",
+      "cost": 3,
+      "stage": 5,
+      "effect": "detect",
+      "friction": 1,
+      "why": "Privilege activation triggered an alert.",
+      "teach": "Just-in-time access."
+    },
+    {
+      "id": "appgov",
+      "name": "OAuth app governance alerts",
+      "cost": 3,
+      "stage": 4,
+      "effect": "detect",
+      "friction": 0,
+      "why": "New high-privilege apps raised an alert.",
+      "teach": "OAuth app monitoring."
+    },
+    {
+      "id": "rbac",
+      "name": "Scope app mailbox access",
+      "cost": 2,
+      "stage": 7,
+      "effect": "block",
+      "friction": 0,
+      "why": "The app could reach only the mailboxes it was scoped to, and leadership mailboxes weren't in scope.",
+      "teach": "Scope app access: even an app with mailbox rights can only reach the mailboxes you allow. This is the last line, not a fix for the app itself."
+    },
+    {
+      "id": "ews",
+      "name": "Alert on unusual EWS access",
+      "cost": 2,
+      "stage": 7,
+      "effect": "detect",
+      "friction": 0,
+      "why": "Mass mailbox reading by an app detected.",
+      "teach": "Detection engineering."
+    },
+    {
+      "id": "runbook",
+      "name": "Rehearsed IR runbook: revoke app access fast",
+      "cost": 3,
+      "stage": 7,
+      "effect": "recover",
+      "friction": 0,
+      "why": "Your team can cut the attacker's apps off and rotate credentials quickly.",
+      "teach": "Recovery is a layer too: plan the way back."
+    },
+    {
+      "id": "lock",
+      "name": "Lockout after 3 tries",
+      "cost": 1,
+      "stage": 2,
+      "effect": "decoy",
+      "friction": 1,
+      "why": "Spray used only 1–2 tries per account. Lockout never fired."
+    },
+    {
+      "id": "geo",
+      "name": "Geo-block Russia",
+      "cost": 1,
+      "stage": 1,
+      "effect": "decoy",
+      "friction": 0,
+      "why": "Residential proxies looked like normal local traffic."
+    },
+    {
+      "id": "pwd",
+      "name": "Password change every 30 days",
+      "cost": 1,
+      "stage": 2,
+      "effect": "decoy",
+      "friction": 1,
+      "why": "Spray targets common passwords, not old ones."
+    },
+    {
+      "id": "av",
+      "name": "Endpoint antivirus upgrade",
+      "cost": 2,
+      "stage": 3,
+      "effect": "decoy",
+      "friction": 0,
+      "why": "No malware involved. All cloud identity."
+    },
+    {
+      "id": "fw",
+      "name": "Perimeter firewall rule",
+      "cost": 2,
+      "stage": 1,
+      "effect": "decoy",
+      "friction": 0,
+      "why": "No network perimeter crossed. All cloud sign-ins."
+    }
+  ],
+  "stars": {
+    "one": "attack stopped at any stage",
+    "two": "stopped at the entry stage (damage NONE). That needs every way in discovered first.",
+    "three": "★★ plus at least one detect and one recover control in the build",
+    "nextOne": "★: stop the attack at any stage.",
+    "nextTwo": "★★: stop it at the entry stage. Find every way in before you lock the door.",
+    "nextThree": "★★★: add a detect and a recover layer in case prevention fails."
+  },
+  "ranks": [
+    "INTERN",
+    "ANALYST",
+    "ENGINEER",
+    "ARCHITECT"
+  ],
+  "glossary": [
+    "password spray",
+    "residential proxy",
+    "MFA",
+    "OAuth app",
+    "consent",
+    "admin consent",
+    "service principal",
+    "full_access_as_app",
+    "EWS",
+    "patient zero",
+    "tenant"
+  ],
+  "act2": {
+    "title": "Harden the tenant",
+    "short": "October 2023. Deploy controls on a budget, then run the real attack against your build.",
+    "help": "Tap a control to deploy or remove it, or drag it onto a stage in the zone it protects. Each control costs energy and the budget is 9, so you can't buy everything. Not every asset is in your inventory yet: discovery controls find what's missing. Then execute the attack: it replays stage by stage against your build, and the log explains every result.",
+    "rewindButton": "> REWIND TO OCTOBER 2023",
+    "simName": "midnight_blizzard",
+    "stepMs": 700,
+    "xpPerStar": 150,
+    "friction": {
+      "low": 1,
+      "medium": 3
+    },
+    "outcomes": {
+      "prevented": {
+        "title": "Breach prevented",
+        "sub": "Attack chain broken at stage {n} of {total}. They never got in."
+      },
+      "contained": {
+        "title": "Breach contained",
+        "sub": "They got in, but you stopped them at stage {n} of {total}, before the mailboxes."
+      },
+      "detected": {
+        "title": "Breach detected",
+        "sub": "They reached the mailboxes, but your detection caught them in progress."
+      },
+      "succeeded": {
+        "title": "Breach succeeded",
+        "sub": "Like the real incident: weeks of mailbox access before anyone noticed."
+      }
+    },
+    "tips": {
+      "notStopped": "The attack ran all the way. Check where it really got in, and whether that account was in your inventory.",
+      "unknownAsset": "The attacker entered via an asset not in your inventory. You can't protect what you haven't found.",
+      "notEntry": "Stopped, but only after they got in. For ★★, stop it at the entry stage.",
+      "needLayers": "Prevention held. For ★★★, add a detect and a recover layer in case it fails next time.",
+      "decoys": "{n} decoy(s) cost budget but did nothing against this attack.",
+      "friction": "High friction: users will push back. Find a lighter build.",
+      "always": "Microsoft's Jan 25 guidance covers two areas: protecting against password spray, and defending against malicious OAuth apps by auditing privileged apps, consent and mailbox access."
+    },
+    "logs": {
+      "idle": "> deploy controls, then execute",
+      "start": "executing attack_sim :: {sim}",
+      "decoy": "[~] {name}: no effect.",
+      "detect": "[+] detected at stage {n}:",
+      "limit": "[+] limited at stage {n}:",
+      "block": "[✓] blocked at stage {n}:",
+      "breach": "[!!] intrusion · stage {n} · {stage}",
+      "overBudget": "[!] over budget: {name} costs {cost}, you have {left} left. Remove a control first.",
+      "wrongZone": "[!] {name} protects the {zone}. Drop it on a stage there.",
+      "deployed": "[+] deployed: {name} → stage {n}",
+      "removed": "[-] removed: {name}",
+      "attempted": "[~] stage {n} · {stage}: attempted from outside. Can't be blocked here; defense starts at stage 2.",
+      "scoped": "[~] {name}: known assets only.",
+      "revealed": "[+] discovered: {asset}",
+      "deployedReveal": "[+] deployed: {name} (discovery)",
+      "locked": "[!] {name}: find the asset first. Deploy a discovery control.",
+      "removedDeps": "(it needs the discovery control)",
+      "viaUnknown": "[!!] entered via an asset not in your inventory",
+      "viaKnown": "[!!] entered via a known asset you didn't protect",
+      "impact": "[◆] impact · stage {n} · {stage}:",
+      "recover": "[+] recovery ready at stage {n}:"
+    },
+    "preventedMaxStage": 2,
+    "attemptedNote": "Spraying from outside can't be blocked by the defender. Defense starts at stage 2, when a guessed password meets the test account.",
+    "mapCmd": "> map ./tenants"
+  },
+  "voice": {
+    "patientZero": "Good eye. That's the test account they walked in through.",
+    "wrong": "Close, but that's noise. Check the timestamps.",
+    "hint": "No shame in asking. Real analysts check the docs too.",
+    "run": "Let's see if it holds.",
+    "breached": "They got in. Now you know where. Rebuild.",
+    "prevented": "Prevented. They never got in.",
+    "contained": "Contained. That's the job."
+  }
+}

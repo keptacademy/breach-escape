@@ -10,7 +10,23 @@
   },
   "routes": [
     {
+      "route": "/tools/*",
+      "statusCode": 404
+    },
+    {
+      "route": "/tests/*",
+      "statusCode": 404
+    },
+    {
+      "route": "/.git/*",
+      "statusCode": 404
+    },
+    {
       "route": "/.github/*",
+      "statusCode": 404
+    },
+    {
+      "route": "/docs/*",
       "statusCode": 404
     },
     {

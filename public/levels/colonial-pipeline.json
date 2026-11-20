@@ -1,0 +1,847 @@
+{
+  "id": "colonial-pipeline",
+  "levelId": 2,
+  "caseNo": "02",
+  "title": "Colonial Pipeline",
+  "victim": "Colonial Pipeline",
+  "status": {
+    "act1": "ready",
+    "act2": "ready"
+  },
+  "theme": "amber",
+  "note": "Facts come from the sources below: Joseph Blount's written Senate testimony and his hearing answers (June 8, 2021), CISA/FBI advisory AA21-131A (May 11, 2021) and the DOJ (N.D. Cal.) seizure release (June 2021). Evidence rows are recreated for training and are labelled so in the game. ATT&CK codes are a mapping for review, not a source fact. The date of first access isn't in these sources, so the game doesn't give one. Text in backticks is shown as code.",
+  "sources": [
+    {
+      "id": "blount",
+      "title": "Testimony of Joseph Blount, President and CEO, Colonial Pipeline Company",
+      "publisher": "U.S. Senate Committee on Homeland Security and Governmental Affairs",
+      "date": "June 8, 2021",
+      "url": "https://www.hsgac.senate.gov/imo/media/doc/Testimony-Blount-2021-06-08.pdf"
+    },
+    {
+      "id": "hearing",
+      "title": "Threats to Critical Infrastructure: Examining the Colonial Pipeline Cyberattack (S. Hrg. 117-429, Blount's answers)",
+      "publisher": "U.S. Senate HSGAC, via GovInfo",
+      "date": "June 8, 2021",
+      "url": "https://www.govinfo.gov/content/pkg/CHRG-117shrg46569/html/CHRG-117shrg46569.htm"
+    },
+    {
+      "id": "cisa",
+      "title": "Darkside Ransomware: Best Practices for Preventing Business Disruption from Ransomware Attacks (AA21-131A)",
+      "publisher": "CISA and FBI",
+      "date": "May 11, 2021",
+      "url": "https://www.cisa.gov/sites/default/files/publications/AA21-131A_Darkside_Ransomware.pdf"
+    },
+    {
+      "id": "doj",
+      "title": "Department of Justice Seizes $2.3 Million in Cryptocurrency Paid to the Ransomware Extortionists Darkside",
+      "publisher": "U.S. Attorney's Office, Northern District of California",
+      "date": "June 2021",
+      "url": "https://www.justice.gov/usao-ndca/pr/department-justice-seizes-23-million-cryptocurrency-paid-ransomware-extortionists"
+    }
+  ],
+  "briefing": {
+    "pages": [
+      {
+        "blocks": [
+          {
+            "type": "alert",
+            "bar": [
+              "INCIDENT ALERT",
+              "SEV 1"
+            ],
+            "eyebrow": "Case 02 · May 7, 2021",
+            "text": "An employee at Colonial Pipeline has just found a ransom note on a system in the IT network. DarkSide has encrypted IT systems and wants payment for the key.",
+            "kv": [
+              {
+                "k": "Victim",
+                "v": "Colonial Pipeline · largest refined products pipeline in the US by volume",
+                "source": "blount"
+              },
+              {
+                "k": "Discovered",
+                "v": "7 May 2021, just before 5:00 AM EDT",
+                "source": "blount"
+              },
+              {
+                "k": "Pipeline",
+                "v": "all 5,500 miles shut down by 6:10 AM",
+                "tone": "red",
+                "source": "blount"
+              },
+              {
+                "k": "Service",
+                "v": "lines begin returning to service on the evening of 12 May",
+                "source": "blount"
+              }
+            ]
+          },
+          {
+            "type": "note",
+            "text": "Facts in this case come from CEO Joseph Blount's Senate testimony and his answers at the hearing (June 2021), the CISA/FBI advisory on DarkSide (May 2021) and the U.S. Department of Justice (June 2021). Log entries in the game are recreated for training."
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "panel",
+            "eyebrow": "Threat actor profile",
+            "title": "DARKSIDE",
+            "kv": [
+              {
+                "k": "Type",
+                "v": "Cyber-criminal group",
+                "source": "blount"
+              },
+              {
+                "k": "Model",
+                "v": "Ransomware-as-a-service: the group builds the ransomware, other criminals use it, and the group takes a share",
+                "source": "cisa",
+                "quote": "Darkside is ransomware-as-a-service (RaaS)."
+              },
+              {
+                "k": "Goal",
+                "v": "Money: encrypt systems, steal data, demand payment for the key"
+              },
+              {
+                "k": "In this case",
+                "v": "Encrypted IT systems and copied data off the share drive.",
+                "source": "hearing"
+              }
+            ]
+          },
+          {
+            "type": "panel",
+            "eyebrow": "Why this matters to you",
+            "text": "The attacker didn't break in. They signed in, with a real password, through a remote-access door that was not intended to be in use any more. Your job is to find the forgotten door."
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "facts",
+            "eyebrow": "What we know",
+            "items": [
+              [
+                {
+                  "t": "Entry was a "
+                },
+                {
+                  "t": "legacy VPN profile",
+                  "tone": "b"
+                },
+                {
+                  "t": " that was not intended to be in use."
+                }
+              ],
+              [
+                {
+                  "t": "The profile had "
+                },
+                {
+                  "t": "single-factor authentication",
+                  "tone": "red"
+                },
+                {
+                  "t": ": a password and nothing else."
+                }
+              ],
+              [
+                {
+                  "t": "The password was "
+                },
+                {
+                  "t": "complicated",
+                  "tone": "b"
+                },
+                {
+                  "t": ". How the attacker got it was still under investigation."
+                }
+              ],
+              [
+                {
+                  "t": "Data was "
+                },
+                {
+                  "t": "exfiltrated off the share drive",
+                  "tone": "b"
+                },
+                {
+                  "t": " before the ransom note appeared."
+                }
+              ],
+              [
+                {
+                  "t": "The pipeline carries "
+                },
+                {
+                  "t": "nearly half",
+                  "tone": "b"
+                },
+                {
+                  "t": " of the fuel consumed on the East Coast."
+                }
+              ]
+            ]
+          },
+          {
+            "type": "timeline",
+            "eyebrow": "Incident timeline",
+            "items": [
+              {
+                "d": "DATE NOT PUBLIC HERE",
+                "t": "Attacker signs in through the legacy VPN profile.",
+                "tone": "red"
+              },
+              {
+                "d": "7 MAY · BEFORE 5:00 AM",
+                "t": "Employee finds the ransom note on an IT system.",
+                "tone": "red"
+              },
+              {
+                "d": "7 MAY · 5:55–6:10 AM",
+                "t": "Operators shut down all 5,500 miles of pipeline."
+              },
+              {
+                "d": "7 MAY · MORNING",
+                "t": "Colonial contacts the FBI, then debriefs the FBI and CISA."
+              },
+              {
+                "d": "8 MAY",
+                "t": "Colonial pays the ransom."
+              },
+              {
+                "d": "12 MAY · EVENING",
+                "t": "Pipelines begin returning to service."
+              },
+              {
+                "d": "JUNE 2021",
+                "t": "DOJ announces it seized 63.7 bitcoins (over $2.3M) of the ~75-bitcoin ransom paid on May 8.",
+                "source": "doj",
+                "quote": "seized 63.7 bitcoins currently valued at over $2.3 million"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "diagram",
+            "eyebrow": "The battlefield",
+            "text": "The pipeline is run by its own OT network. When the note appeared, nobody could yet tell whether the attack had reached it.",
+            "flow": [
+              {
+                "box": "Internet · attacker with a valid password",
+                "tone": "red"
+              },
+              {
+                "arrow": "▼ sign-in through a legacy VPN profile"
+              },
+              {
+                "zone": "IT NETWORK",
+                "boxes": [
+                  "Legacy VPN profile · single-factor",
+                  "Corporate IT systems"
+                ]
+              },
+              {
+                "teaser": "? What happened next is in the evidence"
+              },
+              {
+                "zone": "BUSINESS SYSTEMS",
+                "boxes": [
+                  "Share drive",
+                  "IT servers"
+                ]
+              },
+              {
+                "arrow": "▼ could it spread?"
+              },
+              {
+                "zone": "PIPELINE OPERATIONS (OT)",
+                "tone": "g",
+                "boxes": [
+                  "Control Center",
+                  "5,500 miles · about 260 delivery points"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "glossary",
+            "eyebrow": "Field glossary",
+            "terms": [
+              "VPN profile",
+              "single-factor",
+              "ransomware",
+              "OT"
+            ]
+          },
+          {
+            "type": "mission",
+            "eyebrow": "Your mission",
+            "items": [
+              {
+                "b": "Act 1 · Investigate:",
+                "t": "put the evidence in order and find patient zero."
+              },
+              {
+                "b": "Act 2 · Defend:",
+                "t": "Rewind to before the attacker got in. Deploy controls on a budget and replay the real attack."
+              }
+            ],
+            "small": "Stars: stop it early, waste nothing on decoys, keep users happy."
+          }
+        ]
+      }
+    ],
+    "opening": "Just before 5:00 AM. There's a ransom note on an IT system.",
+    "threatActor": {
+      "v": "DarkSide",
+      "source": "blount"
+    }
+  },
+  "act1": {
+    "title": "Rebuild the timeline",
+    "short": "Put the evidence in the order it happened. Red herrings go to Not related.",
+    "help": "Drag an evidence card onto the timeline in the order it happened, or onto Not related. You can also tap a card, then use the buttons.",
+    "pzTitle": "Find patient zero",
+    "pzHelp": "Tap the timeline entry that shows the first successful access.",
+    "doneTitle": "Timeline rebuilt",
+    "doneHelp": "Six steps from a forgotten VPN profile to a pipeline shutdown.",
+    "finding": "Patient zero was the legacy VPN profile: one sign-in with a valid password and no second factor. The profile was not intended to be in use and did not show up in penetration tests. From there the attacker reached the IT network, copied data off the share drive and encrypted IT systems. The pipeline was shut down to keep the malware away from the OT network.",
+    "scoring": {
+      "place": 50,
+      "dismiss": 30,
+      "wrong": -20,
+      "hint": -10,
+      "patientZero": 100,
+      "pzWrong": -20
+    },
+    "hints": {
+      "1": "Before anyone can sign in, they need something. Where does it come from?",
+      "2": "Which log shows the first time they actually got in?",
+      "3": "Once inside, where did the VPN session go next?",
+      "4": "Before encrypting, they took something with them.",
+      "5": "The moment everyone noticed.",
+      "6": "What did operators do to protect the pipeline?"
+    },
+    "wrongLines": {
+      "early": "Not yet. Something else had to happen before this.",
+      "decoy": "Not part of this attack.",
+      "dismissReal": "This one matters. Look again.",
+      "pz": "That is not the first successful access."
+    }
+  },
+  "evidence": [
+    {
+      "id": "E1",
+      "type": "alert",
+      "src": "threat intel",
+      "order": 1,
+      "illustrative": true,
+      "title": "A valid password for an account on a legacy VPN profile is in the attacker's hands. How they got it is unknown",
+      "rows": [
+        "intel  type=credential  account=<employee>  access=<legacy-vpn-profile>",
+        "note   password=complicated  origin=under investigation"
+      ]
+    },
+    {
+      "id": "E2",
+      "type": "signin",
+      "src": "vpn log",
+      "order": 2,
+      "illustrative": true,
+      "title": "VPN sign-in success through a legacy profile: password only, no second factor",
+      "rows": [
+        "SUCCESS  profile=<legacy-vpn>  user=<employee>  factors=1 (password)",
+        "note     profile not intended to be in use"
+      ]
+    },
+    {
+      "id": "E3",
+      "type": "audit",
+      "src": "network log",
+      "order": 3,
+      "illustrative": true,
+      "title": "The VPN session reaches systems across the IT network",
+      "rows": [
+        "conn  src=<vpn-session>  dst=<it-system-a>",
+        "conn  src=<vpn-session>  dst=<it-system-b>"
+      ],
+      "note": "Colonial has not published how the attacker moved inside; the rows are generic on purpose."
+    },
+    {
+      "id": "E4",
+      "type": "audit",
+      "src": "file server",
+      "order": 4,
+      "illustrative": true,
+      "title": "Large copy of files from the share drive",
+      "rows": [
+        "read  share=<share-drive>  files=<many>  by=<vpn-session>",
+        "copy  dst=<outside host>"
+      ]
+    },
+    {
+      "id": "E5",
+      "type": "alert",
+      "src": "it system",
+      "order": 5,
+      "illustrative": true,
+      "title": "Ransom note on a system in the IT network: data encrypted and exfiltrated",
+      "rows": [
+        "note found  host=<it-system>  time=just before 05:00 EDT, 7 May",
+        "note says  files encrypted · data exfiltrated · pay for the key"
+      ]
+    },
+    {
+      "id": "E6",
+      "type": "alert",
+      "src": "control center",
+      "order": 6,
+      "illustrative": true,
+      "title": "Stop work order: whole pipeline shut down to keep the malware off the OT network",
+      "rows": [
+        "05:55 EDT  shutdown begins",
+        "06:10 EDT  all 5,500 miles shut down",
+        "reason     protect the OT network · OT not visible"
+      ]
+    },
+    {
+      "id": "D1",
+      "type": "mail",
+      "src": "mail filter",
+      "order": null,
+      "illustrative": true,
+      "title": "Phishing email reported by an employee and quarantined",
+      "rows": [
+        "quarantined  from=<unknown sender>  to=<employee>  reported=yes"
+      ]
+    },
+    {
+      "id": "D2",
+      "type": "signin",
+      "src": "sign-in log",
+      "order": null,
+      "illustrative": true,
+      "title": "Field technician locked out after mistyping a new password",
+      "rows": [
+        "fail  user=<field-tech>  tries=10  ip=<field office>  result=locked out"
+      ]
+    }
+  ],
+  "patientZero": "E2",
+  "timeline": [
+    {
+      "stage": 1,
+      "date": null,
+      "mitre": [
+        "T1589.001"
+      ],
+      "source": "hearing",
+      "text": "The attacker obtained the password of an account that could use a legacy VPN profile. How was still under investigation.",
+      "why": "It happened outside Colonial's network. A complicated password doesn't help once someone else knows it."
+    },
+    {
+      "stage": 2,
+      "date": null,
+      "mitre": [
+        "T1133",
+        "T1078"
+      ],
+      "source": "hearing",
+      "text": "Signed in through a legacy VPN profile that was not intended to be in use. It had single-factor authentication.",
+      "why": "One password was enough. Colonial's normal remote access used RSA tokens, but this profile didn't, and it did not show up in penetration tests."
+    },
+    {
+      "stage": 3,
+      "date": null,
+      "mitre": [
+        "TA0008"
+      ],
+      "source": "blount",
+      "text": "Moved within Colonial's IT systems. The forensic investigation was still retracing exactly how.",
+      "why": "A valid VPN session looks like an employee working remotely."
+    },
+    {
+      "stage": 4,
+      "date": null,
+      "mitre": [
+        "T1039"
+      ],
+      "source": "hearing",
+      "text": "Exfiltrated data off the share drive. The ransom note told Colonial the data had been taken.",
+      "why": "Stolen data gives criminals a second lever: pay, or it leaks."
+    },
+    {
+      "stage": 5,
+      "date": "7 May 2021",
+      "mitre": [
+        "T1486"
+      ],
+      "source": "blount",
+      "text": "DarkSide ransomware encrypted IT systems. An employee found the ransom note just before 5:00 AM EDT.",
+      "why": "By the time the note appeared, the encryption had already run."
+    },
+    {
+      "stage": 6,
+      "date": "7–12 May 2021",
+      "mitre": [
+        "TA0040"
+      ],
+      "source": "blount",
+      "text": "To keep the malware from spreading to the OT network, operators shut down all 5,500 miles of pipeline by 6:10 AM. Lines began returning to service on the evening of May 12.",
+      "why": "Nobody could yet tell whether the malware had reached OT, so stopping everything was the safe call. Colonial paid the ransom on May 8."
+    }
+  ],
+  "rewind": "Now rewind. You're Colonial's security team, before anyone tried that VPN profile. Stop it.",
+  "map": {
+    "zones": [
+      {
+        "id": "out",
+        "name": "OUTSIDE",
+        "short": "OUTSIDE"
+      },
+      {
+        "id": "it",
+        "name": "IT NETWORK · LEGACY VPN ACCOUNT",
+        "short": "IT NETWORK"
+      },
+      {
+        "id": "biz",
+        "name": "BUSINESS SYSTEMS",
+        "short": "BUSINESS"
+      },
+      {
+        "id": "ot",
+        "name": "PIPELINE OPERATIONS (OT)",
+        "tone": "g",
+        "short": "OT"
+      }
+    ],
+    "links": {
+      "out": "▼ valid password, legacy VPN profile",
+      "it": "▼ inside the corporate network",
+      "biz": "▼ can it spread to OT?"
+    },
+    "stages": [
+      {
+        "n": 1,
+        "zone": "out",
+        "name": "Attacker gets a valid VPN password",
+        "unblockable": true
+      },
+      {
+        "n": 2,
+        "zone": "it",
+        "name": "Sign in via the legacy VPN profile, password only",
+        "reach": "inside the IT network",
+        "severity": "contained"
+      },
+      {
+        "n": 3,
+        "zone": "it",
+        "name": "Move through IT systems"
+      },
+      {
+        "n": 4,
+        "zone": "biz",
+        "name": "Copy data off the share drive",
+        "reach": "data stolen",
+        "severity": "severe"
+      },
+      {
+        "n": 5,
+        "zone": "biz",
+        "name": "Encrypt IT systems, leave ransom note",
+        "reach": "IT encrypted",
+        "severity": "severe"
+      },
+      {
+        "n": 6,
+        "zone": "ot",
+        "name": "Pipeline shut down to protect OT",
+        "reach": "operations halted",
+        "severity": "critical",
+        "impact": true,
+        "impactNote": "Not an attacker action: Colonial's operators shut the pipeline down to keep the malware away from the OT network."
+      }
+    ],
+    "note": "ATT&CK codes for each stage come from the timeline above, so Act 1 and Act 2 always match.",
+    "hidden": {
+      "stage": 2,
+      "name": "Legacy VPN profile · single-factor",
+      "source": "hearing"
+    }
+  },
+  "budget": 8,
+  "controls": [
+    {
+      "id": "mfa",
+      "name": "MFA on the VPN gateway (known profiles)",
+      "cost": 2,
+      "stage": 2,
+      "effect": "block",
+      "coversHidden": true,
+      "friction": 0,
+      "why": "Every profile in your inventory now asks for a second factor, including the legacy one you found.",
+      "whyScoped": "Covered the known profiles only. The legacy profile wasn't in your inventory, so a password alone still worked.",
+      "teach": "Blount told the Senate that MFA is “absolutely the correct advice.”"
+    },
+    {
+      "id": "audit",
+      "name": "Audit remote-access (VPN) profiles",
+      "cost": 2,
+      "stage": 2,
+      "effect": "reveal",
+      "friction": 0,
+      "why": "Found it: a legacy VPN profile that was not intended to be in use, with single-factor authentication.",
+      "teach": "Blount said it didn't show up in any pen testing. An inventory finds doors like this."
+    },
+    {
+      "id": "disable",
+      "name": "Disable the legacy VPN profile",
+      "cost": 1,
+      "stage": 2,
+      "effect": "block",
+      "needs": "reveal",
+      "friction": 0,
+      "why": "The legacy profile no longer existed, so the password opened nothing.",
+      "teach": "Colonial shut the profile down after the attack."
+    },
+    {
+      "id": "edr",
+      "name": "EDR on IT servers and laptops",
+      "cost": 3,
+      "stage": 3,
+      "effect": "detect",
+      "friction": 0,
+      "why": "Unusual activity from the VPN session raised an alert early.",
+      "teach": "EDR watches behaviour, not just known malware."
+    },
+    {
+      "id": "blockip",
+      "name": "Block traffic to known-malicious IPs",
+      "cost": 2,
+      "stage": 4,
+      "effect": "block",
+      "friction": 0,
+      "why": "Outbound connections to known-malicious addresses were filtered, so the stolen data had nowhere to go.",
+      "teach": "Game assumption: the destination was on a known-bad list. The sources don’t say where the data went.",
+      "source": "cisa",
+      "quote": "Filter network traffic to prohibit ingress and egress communications with known malicious IP addresses."
+    },
+    {
+      "id": "irp",
+      "name": "Rehearsed incident response plan",
+      "cost": 2,
+      "stage": 5,
+      "effect": "detect",
+      "friction": 0,
+      "why": "Trained staff acted at once: the note was reported, the response process started and the FBI was called that morning.",
+      "teach": "Blount credited Colonial's incident response process and everyone's stop work authority."
+    },
+    {
+      "id": "backup",
+      "name": "Offline, tested backups",
+      "cost": 3,
+      "stage": 5,
+      "effect": "recover",
+      "friction": 0,
+      "why": "IT systems can come back from backups the ransomware couldn't reach.",
+      "teach": "Blount said Mandiant told him Colonial had really good backups, and restoring still took days."
+    },
+    {
+      "id": "seg",
+      "name": "Segment IT from OT, with monitored crossings",
+      "cost": 3,
+      "stage": 6,
+      "effect": "block",
+      "friction": 1,
+      "why": "The ransomware stayed on the IT side and operators could show OT was separate, so the pipeline kept running.",
+      "teach": "After the attack Blount said Colonial wants “the best segmentation we can possibly have on our OT side.”"
+    },
+    {
+      "id": "complex",
+      "name": "Stronger password complexity rules",
+      "cost": 1,
+      "stage": 2,
+      "effect": "decoy",
+      "friction": 1,
+      "why": "The password was already complicated, “not a ‘Colonial 123’ type password.” Once known, it still worked."
+    },
+    {
+      "id": "lock",
+      "name": "Lockout after 5 failed tries",
+      "cost": 1,
+      "stage": 2,
+      "effect": "decoy",
+      "friction": 1,
+      "why": "The attacker had the right password. Lockout only counts wrong guesses."
+    },
+    {
+      "id": "geo",
+      "name": "Geo-block foreign VPN sign-ins",
+      "cost": 1,
+      "stage": 1,
+      "effect": "decoy",
+      "friction": 0,
+      "why": "A valid password works just as well from a server inside the country."
+    },
+    {
+      "id": "banner",
+      "name": "VPN login warning banner",
+      "cost": 1,
+      "stage": 2,
+      "effect": "decoy",
+      "friction": 0,
+      "why": "A banner only has legal value. Attackers click through it."
+    },
+    {
+      "id": "disk",
+      "name": "Disk encryption on file servers",
+      "cost": 2,
+      "stage": 4,
+      "effect": "decoy",
+      "friction": 0,
+      "why": "It protects a stolen disk. A signed-in session reads the files decrypted."
+    },
+    {
+      "id": "insure",
+      "name": "Cyber insurance policy",
+      "cost": 2,
+      "stage": 5,
+      "effect": "decoy",
+      "friction": 0,
+      "why": "It may pay some costs afterwards. It stops no stage of the attack."
+    }
+  ],
+  "stars": {
+    "one": "attack stopped at any stage",
+    "two": "stopped at the entry stage (damage NONE). That needs every way in discovered first.",
+    "three": "★★ plus at least one detect and one recover control in the build",
+    "nextOne": "★: stop the attack at any stage.",
+    "nextTwo": "★★: stop it at the entry stage. Find every way in before you lock the door.",
+    "nextThree": "★★★: add a detect and a recover layer in case prevention fails."
+  },
+  "ranks": [
+    "INTERN",
+    "ANALYST",
+    "ENGINEER",
+    "ARCHITECT"
+  ],
+  "glossary": [
+    "VPN",
+    "VPN profile",
+    "single-factor",
+    "MFA",
+    "one-time passcode",
+    "ransomware",
+    "share drive",
+    "offline backup",
+    "EDR",
+    "segmentation",
+    "OT",
+    "IT network",
+    "incident response plan",
+    "stop work authority",
+    "patient zero"
+  ],
+  "act2": {
+    "title": "Harden the network",
+    "short": "Before the break-in. Deploy controls on a budget, then run the real attack against your build.",
+    "help": "Tap a control to deploy or remove it, or drag it onto a stage in the zone it protects. Each control costs energy and the budget is 8, so you can't buy everything. Not every asset is in your inventory yet: discovery controls find what's missing. Then execute the attack: it replays stage by stage against your build, and the log explains every result.",
+    "rewindButton": "> REWIND TO BEFORE THE BREAK-IN",
+    "simName": "darkside",
+    "stepMs": 700,
+    "xpPerStar": 150,
+    "preventedMaxStage": 2,
+    "friction": {
+      "low": 1,
+      "medium": 3
+    },
+    "attemptedNote": "Getting hold of a password happens outside your network, so you can't block it there. Defense starts at stage 2, when the password meets the VPN.",
+    "outcomes": {
+      "prevented": {
+        "title": "Breach prevented",
+        "sub": "Attack chain broken at stage {n} of {total}. They never got in."
+      },
+      "contained": {
+        "title": "Breach contained",
+        "sub": "They got into IT, but you stopped them at stage {n} of {total}, before the pipeline."
+      },
+      "detected": {
+        "title": "Breach detected",
+        "sub": "The attack ran its course, but your detection caught it in progress."
+      },
+      "succeeded": {
+        "title": "Breach succeeded",
+        "sub": "Like the real incident: IT encrypted, data stolen and the pipeline down for days."
+      }
+    },
+    "tips": {
+      "notStopped": "The attack ran all the way. Check where it really got in, and whether that profile was in your inventory.",
+      "unknownAsset": "The attacker entered via an asset not in your inventory. You can't protect what you haven't found.",
+      "notEntry": "Stopped, but only after they got in. For ★★, stop it at the entry stage.",
+      "needLayers": "Prevention held. For ★★★, add a detect and a recover layer in case it fails next time.",
+      "decoys": "{n} decoy(s) cost budget but did nothing against this attack.",
+      "friction": "High friction: users will push back. Find a lighter build.",
+      "always": [
+        {
+          "t": "CISA and FBI's DarkSide advisory: require multi-factor authentication for remote access to OT and IT networks.",
+          "source": "cisa",
+          "quote": "Require multi-factor authentication for remote access to OT and IT networks."
+        },
+        {
+          "t": "The same advisory calls for robust network segmentation between IT and OT networks, and for backups kept offline.",
+          "source": "cisa",
+          "quote": [
+            "robust network segmentation between IT and OT networks",
+            "maintained offline"
+          ]
+        }
+      ]
+    },
+    "logs": {
+      "idle": "> deploy controls, then execute",
+      "start": "executing attack_sim :: {sim}",
+      "decoy": "[~] {name}: no effect.",
+      "detect": "[+] detected at stage {n}:",
+      "limit": "[+] limited at stage {n}:",
+      "block": "[✓] blocked at stage {n}:",
+      "breach": "[!!] intrusion · stage {n} · {stage}",
+      "attempted": "[~] stage {n} · {stage}: happens outside your network. Can't be blocked here; defense starts at stage 2.",
+      "overBudget": "[!] over budget: {name} costs {cost}, you have {left} left. Remove a control first.",
+      "wrongZone": "[!] {name} protects the {zone}. Drop it on a stage there.",
+      "deployed": "[+] deployed: {name} → stage {n}",
+      "removed": "[-] removed: {name}",
+      "scoped": "[~] {name}: known assets only.",
+      "revealed": "[+] discovered: {asset}",
+      "deployedReveal": "[+] deployed: {name} (discovery)",
+      "locked": "[!] {name}: find the asset first. Deploy a discovery control.",
+      "removedDeps": "(it needs the discovery control)",
+      "viaUnknown": "[!!] entered via an asset not in your inventory",
+      "viaKnown": "[!!] entered via a known asset you didn't protect",
+      "impact": "[◆] impact · stage {n} · {stage}:",
+      "recover": "[+] recovery ready at stage {n}:"
+    },
+    "mapCmd": "> map ./network"
+  },
+  "voice": {
+    "patientZero": "Good eye. That's the door they used.",
+    "wrong": "Close, but that's noise. Check the timestamps.",
+    "hint": "No shame in asking. Real operators check the manual too.",
+    "run": "Let's see if it holds.",
+    "breached": "They got through. Now you know where. Rebuild.",
+    "prevented": "Prevented. They never got in.",
+    "contained": "Contained. That's the job."
+  }
+}

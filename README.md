@@ -2,20 +2,27 @@
 
 **KEPT: Know the Exposure, Patch the Threat.** The school side uses "Know · Explore · Practice · Test".
 
-An installable web app (PWA) where Klar, a living drop of liquid glass, replays real, documented breaches. In each level the player picks the control that stops every step of the attack before it spreads.
+An installable web app (PWA) in a SOC-terminal look that replays real, documented breaches as cases: an intel briefing, Act 1 Investigate (rebuild the attack timeline from evidence and find patient zero), Act 2 Defend (deploy controls on a budget and replay the real attack against them) and a debrief.
 
 ## What's in this folder
 
+Only `public/` is deployed (an allow-list): the Azure workflow uses `app_location: "public"`, so nothing else in the repo is ever served. The 404 routes in `public/staticwebapp.config.json` stay as a second layer.
+
 | File | What it does |
 |---|---|
-| `index.html` | The page shell. Loads the styles, level data and app code. |
-| `styles.css` | The glass look, layout and all animations. |
-| `levels.js` | **The content.** One entry per breach: stages, answer choices, explanations, sources. |
-| `app.js` | The game: Breach Map, level intro, play screen, results, saved progress. |
-| `manifest.webmanifest` | Makes it installable ("Add to Home Screen"), with name, colors and icons. |
-| `sw.js` | Service worker: caches the app so it works offline. |
-| `icons/` | Klar app icons (192, 512, maskable, Apple touch icon). |
-| `staticwebapp.config.json` | Azure Static Web Apps settings, including the security headers. |
+| `public/index.html` | The page shell. Loads the theme, level list and app code. |
+| `public/theme.css` | The terminal theme for every screen, with colour tokens on `:root`. |
+| `public/levels.js` | The Breach Map list (one entry per breach, `case: 'levels/<id>.json'` for playable ones) and the shared glossary. |
+| `public/app.js` | App shell: Breach Map, saved progress, glossary terms, shared helpers. |
+| `public/case.js` | **Case engine:** Intel briefing, Act 1 Investigate, Act 2 Defend and Results. Reads a level JSON file. |
+| `public/levels/*.json` | **The content.** One file per breach: briefing, evidence, timeline, map, controls, scoring, outcomes, tips, sources. |
+| `public/manifest.webmanifest` | Makes it installable ("Add to Home Screen"), with name, colors and icons. |
+| `public/sw.js` | Service worker: caches the app so it works offline. |
+| `public/icons/` | App icons (192, 512, maskable, Apple touch icon). |
+| `public/staticwebapp.config.json` | Azure Static Web Apps settings: security headers and 404 routes. SWA reads it from `app_location`. |
+| `tools/` | Level tooling (Python, standard library): `level.schema.json`, `schema_check.py`, `validate`, `new_case`. Not deployed. |
+| `tests/` | `serve.js` (local server with the production headers) and `e2e.js` (Playwright end-to-end suite). Not deployed. |
+| `docs/redesign/` | Spec, prototype and STATUS. Not deployed. |
 
 ## Security choices
 
@@ -30,12 +37,11 @@ When player accounts are added later, use Microsoft Entra External ID rather tha
 
 ## Run it locally
 
-Service workers need `https` or `localhost`:
+Service workers need `https` or `localhost`. Serve the deployed folder, `public/`:
 
 ```bash
-cd breach-escape-app
-python3 -m http.server 8080
-# open http://localhost:8080
+node tests/serve.js public 8765
+# open http://localhost:8765 (served from public/ with the production CSP and headers)
 ```
 
 ## Deploy (Azure Static Web Apps, Free plan)
@@ -49,19 +55,16 @@ python3 -m http.server 8080
 
 ## Ship an update
 
-1. Edit the files (usually just `levels.js`).
-2. In `sw.js`, bump `VERSION` (for example `v1` → `v2`) so installed copies pick up the change.
+1. Edit the files (usually a level JSON in `levels/`).
+2. In `public/sw.js`, bump `VERSION` (for example `v1` → `v2`) so installed copies pick up the change.
 3. Push to GitHub; Azure deploys automatically.
+4. Pull requests to `main` get their own Azure preview environment (URL posted on the PR), removed when the PR closes. Production only deploys on push to `main`. The preview jobs run in a GitHub environment called `preview` and need the same `AZURE_STATIC_WEB_APPS_API_TOKEN` secret available there (or as a repository secret).
 
 ## Add a new level
 
-In `levels.js`, change the level's `status` from `'soon'` to `'ready'` and give it `intro`, `endNote`, `sources` and five `stages` with the same shape as Level 1. Each stage has:
+Run `tools/new_case <id> "<Title>"` (or copy `public/levels/midnight-blizzard.json` to `public/levels/<id>.json`) and fill it in: briefing pages, evidence cards (the real ones with `order`, red herrings with `order: null`), `patientZero`, hints, timeline (with ATT&CK codes and a source per stage), the Act 2 map (zones and stages; mark a stage the defender can't block with `unblockable: true`), controls and decoys, outcomes and tips. Act 2: `map.hidden` (the asset not in the defender's inventory), controls with `effect` block / detect / recover / reveal / decoy, `needs: "reveal"` and `coversHidden`, and `reach` / `severity` / `impact` on stages. Anything with a `todo` is never shown. Optional: `theme` (`green` or `amber`; the map uses `brand`), `briefing.opening` (the alert headline), `briefing.threatActor`, and `voice` (SOC LEAD lines; defaults are `window.VOICE` in `levels.js`). Run `tools/validate` until it reports 0 errors. Then in `public/levels.js` set the level's `status` to `'ready'` and add `case: 'levels/<id>.json'`, and add the file to `FILES` in `public/sw.js`.
 
-- `tile` and `icon` (an SVG path drawn on the scene tile)
-- `title`, `scenario` and `say` (Klar's line)
-- four `options`, each with `t` (the choice), `ok` (true for exactly one) and `w` (why it's right or wrong)
-
-Build every level only from primary sources: the company's own post-mortem, official testimony or a government report. List them in `sources`.
+Build every level only from primary sources: the company's own post-mortem, official testimony or a government report. List them in `sources`. Label recreated log rows with `illustrative: true` (shown as "recreated for training"), and mark anything not yet checked with a `todo` field.
 
 ## License
 
