@@ -657,6 +657,10 @@
             "type": "string",
             "minLength": 1
           },
+          "scope": {
+            "type": "string",
+            "minLength": 1
+          },
           "teach": {
             "type": "string",
             "minLength": 1
@@ -978,6 +982,10 @@
               "minLength": 1
             },
             "wrongZone": {
+              "type": "string",
+              "minLength": 1
+            },
+            "wrongZoneScoped": {
               "type": "string",
               "minLength": 1
             },

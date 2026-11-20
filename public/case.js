@@ -194,6 +194,32 @@
   function panel(cls, kids) { return h('div', { class: 'c-panel' + (cls ? ' ' + cls : '') }, kids); }
   function eyebrow(t, cls) { return h('div', { class: 'c-eyebrow' + (cls ? ' ' + cls : ''), text: t }); }
   function para(t, cls) { return rich(t, h('p', { class: cls || '' })); }
+  // Pinned bottom bar: the screen's bottom padding always equals the bar's real height (plus a gap), so the bar never
+  // covers content, whatever the bar's height (phone two-row bar, open sources list, safe area). Hidden bar: CSS default.
+  function pinBar(bar) {
+    function upd() { app.style.paddingBottom = bar.hidden || !bar.isConnected ? '' : (bar.offsetHeight + 12) + 'px'; }
+    if (window.ResizeObserver) {
+      var ro = new ResizeObserver(upd); ro.observe(bar);
+      BE.onLeave(function () { ro.disconnect(); app.style.paddingBottom = ''; });
+    }
+    setTimeout(upd, 0);
+    return bar;
+  }
+  // A "more ↓" line under a panel that scrolls inside itself; shown only while there is more below. Click scrolls it.
+  function scrollCue(box, label) {
+    var cue = h('div', { class: 'c-morecue', 'aria-hidden': 'true', hidden: true, text: label + ' \u2193', onclick: function () {
+      box.scrollBy({ top: Math.round(box.clientHeight * 0.8), behavior: BE.reduceMotion() ? 'auto' : 'smooth' });
+    } });
+    function upd() { cue.hidden = box.scrollHeight - box.clientHeight - box.scrollTop < 4; }
+    box.addEventListener('scroll', upd, { passive: true });
+    if (window.ResizeObserver) {
+      var ro = new ResizeObserver(upd); ro.observe(box);
+      Array.prototype.forEach.call(box.children, function (c) { ro.observe(c); });
+      BE.onLeave(function () { ro.disconnect(); });
+    }
+    setTimeout(upd, 0);
+    return cue;
+  }
 
   /* ---------- SOC LEAD voice ----------
      Short in-world lines on meaningful events, shown in the Act 1 toast, the Act 2 log or the results card (all aria-live polite).
@@ -268,10 +294,13 @@
     var body = h('div', { class: 'c-stack' });
     pages[page].blocks.forEach(function (b) { body.appendChild(block(b)); });
     app.appendChild(body);
+    var last = page === pages.length - 1;
+    var next = h('button', { class: 'c-btn c-briefnext', text: last ? '> OPEN THE EVIDENCE' : 'NEXT \u203a', onclick: function () { if (last) finishBrief(); else renderBrief(page + 1); } });
+    // Last page: the button follows the mission in the page, so it never sits on top of the mission text.
+    if (last) body.appendChild(next);
     app.appendChild(defBox);
 
-    // Pinned footer: back, a small sources toggle, NEXT.
-    var last = page === pages.length - 1;
+    // Pinned footer: back, a small sources toggle, NEXT (on the last page, back and sources only).
     var back = h('button', { class: 'c-ghost', text: '‹ back', onclick: function () { renderBrief(page - 1); } });
     if (!page) { back.disabled = true; back.classList.add('c-invisible'); }
     var srcBox = h('div', { class: 'c-srcbox', id: 'c-sources', hidden: true }, [sourcesPanel()]);
@@ -280,10 +309,9 @@
     } });
     openSourcesHook = function () { srcBox.hidden = false; srcBtn.setAttribute('aria-expanded', 'true'); };
     BE.onLeave(function () { openSourcesHook = null; });
-    app.appendChild(h('div', { class: 'c-bar c-briefbar' }, [h('div', { class: 'c-bar-in' }, [
-      srcBox, back, srcBtn,
-      h('button', { class: 'c-btn', text: last ? '> OPEN THE EVIDENCE' : 'NEXT ›', onclick: function () { if (last) finishBrief(); else renderBrief(page + 1); } })
-    ])]));
+    app.appendChild(pinBar(h('div', { class: 'c-bar c-briefbar' }, [h('div', { class: 'c-bar-in' }, [
+      srcBox, back, srcBtn, last ? null : next
+    ])])));
   }
   function finishBrief() {
     caseRec().briefed = true; BE.saveProgress();
@@ -411,18 +439,20 @@
     E.fold = h('button', { class: 'c-ghost c-fold', 'aria-controls': 'c-slots', onclick: function () { A.collapsed = !A.collapsed; drawAct1(); } });
     E.slots = h('ol', { class: 'c-slots', id: 'c-slots', 'data-drop': 'timeline', 'aria-label': 'Attack timeline' });
     E.toast = h('div', { class: 'c-toast', role: 'status', 'aria-live': 'polite' });
+    E.inspectSlot = h('div', { class: 'c-inspectslot' });
     var board = h('div', { class: 'c-board' }, [
       h('div', { class: 'c-hud' }, [h('span', {}, ['> timeline ', E.count]), E.fold]),
-      E.slots, E.toast, defBox
+      E.slots, E.toast, E.inspectSlot, defBox
     ]);
 
     // Right: the evidence grid scrolls inside its own panel.
     E.left = h('span', {});
     E.grid = h('div', { class: 'c-grid', role: 'group', 'aria-label': 'Evidence cards' });
     E.inspect = h('div', { class: 'c-inspect', hidden: true });
+    var gridWrap = h('div', { class: 'c-gridwrap' }, [E.grid]);
     E.deck = h('div', { class: 'c-deck' }, [
       h('div', { class: 'c-hud' }, [h('span', { text: '> ls ./evidence' }), E.left]),
-      h('div', { class: 'c-gridwrap' }, [E.grid]),
+      gridWrap, scrollCue(gridWrap, 'more evidence'),
       E.inspect
     ]);
 
@@ -438,7 +468,13 @@
     app.appendChild(head);
     app.appendChild(E.main);
     app.appendChild(E.done);
-    app.appendChild(E.bar);
+    app.appendChild(pinBar(E.bar));
+    // The log preview: under the evidence on phones; on desktop in the timeline column, so opening it never resizes the
+    // evidence grid under the pointer (a double-click then lands on the same card twice).
+    var wideMq = window.matchMedia('(min-width: 900px)');
+    function placeInspect() { (wideMq.matches ? E.inspectSlot : E.deck).appendChild(E.inspect); }
+    placeInspect();
+    if (wideMq.addEventListener) { wideMq.addEventListener('change', placeInspect); BE.onLeave(function () { wideMq.removeEventListener('change', placeInspect); }); }
     drawAct1();
   }
 
@@ -490,7 +526,7 @@
         drop: function (t) {
           A.sel = c;
           var kind = t && t.getAttribute('data-drop');
-          if (kind === 'timeline') place();
+          if (kind === 'timeline' && A.placed.length < total()) place();
           else if (kind === 'nr') dismiss();
           else { drawAct1(); restart(c.el, 'c-shake'); }   // dropped nowhere: wobble back, stay selected
         }
@@ -505,15 +541,19 @@
     var left = A.cards.filter(function (c) { return !c.done; }).length;
     E.left.textContent = left + ' left';
     drawInspect();
-    var hk = String(A.next), hasHint = A.phase === 'order' && C.d.act1.hints && C.d.act1.hints[hk];
+    // Timeline full: only Not related stays active while cards remain; add and hint are off and the step counter stops.
+    var full = A.placed.length >= total();
+    var hk = String(A.next), hasHint = A.phase === 'order' && !full && C.d.act1.hints && C.d.act1.hints[hk];
+    E.add.disabled = A.phase === 'order' && full;
     E.hint.disabled = !hasHint || !!A.hinted[hk];
     E.hint.textContent = '';
-    E.hint.appendChild(h('span', { text: A.hinted[hk] ? 'hint used' : '? hint' }));
-    E.hint.appendChild(h('span', { class: 'c-small', text: 'step ' + pad(A.next, 2) + (A.hinted[hk] ? '' : ' \u00b7 ' + C.d.act1.scoring.hint + ' XP') }));
+    E.hint.appendChild(h('span', { text: full ? '? hint' : A.hinted[hk] ? 'hint used' : '? hint' }));
+    E.hint.appendChild(h('span', { class: 'c-small', text: full ? 'timeline complete' : 'step ' + pad(A.next, 2) + (A.hinted[hk] ? '' : ' \u00b7 ' + C.d.act1.scoring.hint + ' XP') }));
     E.bar.hidden = A.phase !== 'order';
     // Highlight Not related once the timeline is full and only red herrings are left.
     E.nr.classList.toggle('c-call', A.phase === 'order' && A.placed.length === total() && A.cards.some(function (c) { return !c.done; }));
     E.main.classList.toggle('c-solo', A.phase !== 'order');
+    app.classList.toggle('c-readscreen', A.phase !== 'order');   // patient zero + debrief: the reading width
   }
   function drawInspect() {
     var c = A.sel;
@@ -525,6 +565,7 @@
     var pre = h('div', { class: 'c-rows' });
     (c.e.rows || []).forEach(function (r) { pre.appendChild(h('div', { text: r })); });
     E.inspect.appendChild(pre);
+    if (E.inspect.parentNode === E.inspectSlot) E.inspect.scrollIntoView({ block: 'nearest' });   // desktop: scrolls the timeline column only
   }
   var dbl = {}, lastPointer = 'mouse';
   document.addEventListener('pointerdown', function (e) { lastPointer = e.pointerType || 'mouse'; }, true);
@@ -551,7 +592,8 @@
   function needSel() { if (!A.sel) { toast('Select an evidence card first', false); return true; } return false; }
 
   function place() {
-    if (A.phase !== 'order' || needSel()) return;
+    if (A.phase !== 'order' || A.placed.length >= total()) return;   // full timeline: only Not related is left
+    if (needSel()) return;
     var c = A.sel, s = C.d.act1.scoring, w = C.d.act1.wrongLines;
     if (fitsNext(c.e)) {
       c.done = true; A.placed.push(c); A.next++; A.sel = null;
@@ -624,7 +666,7 @@
     box.textContent = ''; box.hidden = false;
     box.appendChild(panel('danger', [eyebrow('Case finding', 't-red'), para(d.act1.finding)]));
     var mm = Math.floor(A.secs / 60), ss = A.secs % 60;
-    box.appendChild(h('div', { class: 'c-stats' }, [
+    box.appendChild(h('div', { class: 'c-stats c-a1stats' }, [
       stat('XP earned', String(A.gained)),
       stat('mistakes', pad(A.mistakes, 2), A.mistakes ? 'y' : ''),
       stat('hints used', pad(A.hints, 2), A.hints ? 'y' : ''),
@@ -720,8 +762,10 @@
     F.deck = h('div', { class: 'c-ctlgrid', role: 'group', 'aria-label': 'Control deck' });
     F.count = h('span', {});
     var mapBox = F.mapBox = h('div', { class: 'c-a2map' }, [h('div', { class: 'c-hud' }, [h('span', { text: a2.mapCmd || '> map ./network' }), h('span', { class: 'c-small', text: 'drop controls on a stage' })]), F.map]);
-    var deckBox = h('div', { class: 'c-deck c-a2deck' }, [h('div', { class: 'c-hud' }, [h('span', { text: '> ls ./controls' }), F.count]), h('div', { class: 'c-gridwrap' }, [F.deck])]);
-    F.main = h('div', { class: 'c-a2' }, [mapBox, F.log, deckBox]);
+    var deckWrap = h('div', { class: 'c-gridwrap' }, [F.deck]);
+    var deckBox = h('div', { class: 'c-deck c-a2deck' }, [h('div', { class: 'c-hud' }, [h('span', { text: '> ls ./controls' }), F.count]), deckWrap, scrollCue(deckWrap, 'more controls')]);
+    var mapCol = h('div', { class: 'c-a2mapcol' }, [mapBox, scrollCue(mapBox, 'more stages')]);
+    F.main = h('div', { class: 'c-a2' }, [mapCol, F.log, deckBox]);
     app.appendChild(F.main);
     app.appendChild(defBox);
 
@@ -735,7 +779,7 @@
       B.on = []; say('k', fmt('[-] build cleared')); drawAct2();
     } });
     F.run = h('button', { class: 'c-btn red c-run', text: '> EXECUTE ATTACK_SIM', onclick: runAttack });
-    app.appendChild(h('div', { class: 'c-bar c-a2bar', role: 'toolbar', 'aria-label': 'Build actions' }, [h('div', { class: 'c-bar-in' }, [F.status, F.clear, F.run])]));
+    app.appendChild(pinBar(h('div', { class: 'c-bar c-a2bar', role: 'toolbar', 'aria-label': 'Build actions' }, [h('div', { class: 'c-bar-in' }, [F.status, F.clear, F.run])])));
 
     F.log.appendChild(h('div', {}, [a2.logs.idle, h('span', { class: 'c-blink', text: '_' })]));
     threat(0);
@@ -788,8 +832,11 @@
     C.d.controls.forEach(function (c) {
       var on = B.on.indexOf(c.id) >= 0, z = ctlZone(c), lock = locked(c);
       var b = h('button', { class: 'c-ctl' + (on ? ' on' : '') + (lock ? ' locked' : ''), 'aria-pressed': String(on),
-        'aria-label': plain(c.name) + '. Protects the ' + (z.short || z.name).toLowerCase() + '. Costs ' + c.cost + '.' + (lock ? ' Needs discovery first.' : '') }, [
-        h('span', { class: 'c-z', text: (z.short || z.name) + (c.effect === 'reveal' ? ' · DISCOVERY' : '') }),
+        'aria-label': plain(c.name) + '. ' + (c.scope ? 'Scoped to ' + c.scope + ' only; goes on stage ' + c.stage + '.' : 'Protects the ' + (z.short || z.name).toLowerCase() + '.') +
+          ' Costs ' + c.cost + '.' + (lock ? ' Needs discovery first.' : '') }, [
+        // Desktop: zone label and cost share the top row (the cost row below is hidden) so the whole deck fits on one screen.
+        h('span', { class: 'c-ztop' }, [h('span', { class: 'c-z', text: zoneLabel(c, z) }),
+          h('span', { class: 'c-costtop', 'aria-hidden': 'true' }, [bars(c.cost), h('span', { class: 'c-small', text: String(c.cost) })])]),
         h('span', { class: 'c-cname' }, [on ? '✓ ' : '', rich(c.name, null, false)]),
         lock ? h('span', { class: 'c-small', text: 'needs discovery first' }) : null,
         h('span', { class: 'c-costrow' }, [bars(c.cost), h('span', { class: 'c-small', text: c.cost + ' energy' })])
@@ -803,6 +850,12 @@
       F.deck.appendChild(b);
     });
     F.count.textContent = B.on.length + ' deployed';
+  }
+  // Card label: the zone the control protects. A scoped control (scope in the JSON) names its real scope instead,
+  // e.g. "PRODUCTION TENANT · SCOPED", so the trap reads as a policy boundary, not a typo. Placement rules are unchanged.
+  function zoneLabel(c, z) {
+    if (c.scope) return c.scope.toUpperCase() + ' \u00b7 SCOPED';
+    return (z.short || z.name) + (c.effect === 'reveal' ? ' \u00b7 DISCOVERY' : '');
   }
   function drawBudget() {
     var l = left();
@@ -854,7 +907,9 @@
     if (!t || t.getAttribute('data-drop') !== 'stage') { restart(el, 'c-shake'); return; }
     var z = ctlZone(c);
     if (t.getAttribute('data-zone') !== z.id) {
-      say('red', fmt(C.d.act2.logs.wrongZone, { name: c.name, zone: (z.short || z.name).toLowerCase() }));
+      var lg = C.d.act2.logs;
+      say('red', c.scope && lg.wrongZoneScoped ? fmt(lg.wrongZoneScoped, { name: c.name, scope: c.scope, n: c.stage })
+        : fmt(lg.wrongZone, { name: c.name, zone: (z.short || z.name).toLowerCase() }));
       restart(t, 'c-shake'); return;
     }
     if (B.on.indexOf(c.id) < 0) toggle(c);
@@ -1055,7 +1110,7 @@
       h('p', { class: 'c-small', text: newBest ? 'New best for this case.' : 'Best so far: ' + caseRec().act2.bestStars + '/3 stars.' })
     ]));
     var dmgTone = r.damage === 'NONE' ? '' : r.damage === 'CONTAINED' ? 'b' : 'red';
-    app.appendChild(h('div', { class: 'c-stats' }, [
+    app.appendChild(h('div', { class: 'c-stats c-resstats' }, [
       h('div', { class: 'c-stat c-span2' }, [h('span', { class: 'c-small', text: 'damage' }), tone(h('span', { class: 'c-v', text: r.damage }), dmgTone),
         h('span', { class: 'c-small c-reach', text: r.reach })]),
       stat('budget used', pad(r.spent, 2) + '/' + d.budget),

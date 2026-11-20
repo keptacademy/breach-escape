@@ -76,6 +76,9 @@ async function run(view, c, browser) {
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.type() + ': ' + m.text()); });
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
   page.on('request', (r) => { if (!r.url().startsWith(BASE)) errors.push('outside request: ' + r.url()); });
+  // 1280x720: Math.random() = 0, so the evidence shuffle is deterministic and puts the first real card last, below the
+  // evidence panel's fold (the worst case for the drag test). Other sizes keep a real shuffle.
+  if (view.name === '1280x720') await page.addInitScript(() => { Math.random = () => 0; });
   await page.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', (e) => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI)); });
   const data = JSON.parse(fs.readFileSync(REPO + 'levels/' + c.id + '.json'));
   const desktop = !view.phone;
@@ -100,6 +103,19 @@ async function run(view, c, browser) {
     }, buf.toString('base64'));
     if (px > 12) bad(tag + ' ' + where + ' bluish pixels at the bottom (' + px + ')');
     await page.evaluate(() => window.scrollTo(0, 0));
+  };
+  // The pinned bottom bar never covers content: scrolled to the end, every screen block ends above the bar.
+  const barCheck = async (where) => {
+    const r = await page.evaluate(() => {
+      const bar = [...document.querySelectorAll('#app > .c-bar')].find((b) => !b.hidden); if (!bar) return null;
+      window.scrollTo(0, document.scrollingElement.scrollHeight);
+      const top = bar.getBoundingClientRect().top;
+      const worst = [...document.querySelectorAll('#app > *')].filter((e) => e !== bar && !e.hidden && e.getBoundingClientRect().height)
+        .map((e) => [Math.round(e.getBoundingClientRect().bottom - top), e.className]).sort((a, b) => b[0] - a[0])[0];
+      window.scrollTo(0, 0);
+      return worst;
+    });
+    if (r && r[0] > 1) bad(tag + ' ' + where + ': bottom bar covers ' + r[1] + ' by ' + r[0] + 'px');
   };
   const theme = async (where) => {
     const t = await page.evaluate(() => ({ a: document.documentElement.getAttribute('data-theme'), rain: (document.querySelector('.c-rain') || {}).hidden }));
@@ -198,12 +214,19 @@ async function run(view, c, browser) {
       if (!/open source/.test(li)) bad(tag + ' sources panel item: ' + li);
       await page.click('.c-srcbtn');
     }
+    await barCheck('brief' + (i + 1));
+    if (i === data.briefing.pages.length - 1) {
+      // last page: "Open the evidence" sits in the page after the mission, not in the bar
+      const order = await page.evaluate(() => { const b = document.querySelector('.c-briefnext'), m = [...document.querySelectorAll('.c-eyebrow')].find((e) => /mission/i.test(e.textContent));
+        return { inBar: !!b.closest('.c-bar'), after: !!(m && (m.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)) }; });
+      if (order.inBar || !order.after) bad(tag + ' last briefing page: Open the evidence must follow the mission ' + JSON.stringify(order));
+    }
     if (i === 0 || i === 3) await shot('1brief' + (i + 1));
-    await page.click('.c-briefbar .c-btn');
+    await page.click('.c-briefnext');
   }
   // Act 1
   await page.waitForSelector('.c-card');
-  await checkFit('act1'); await contrast('act1');
+  await checkFit('act1'); await contrast('act1'); await barCheck('act1');
   await shot('2act1');
   const ordered = data.evidence.filter((e) => e.order).sort((a, b) => a.order - b.order);
   // Unordered groups (anyOrder): place them in reverse, which must still count as correct.
@@ -214,6 +237,8 @@ async function run(view, c, browser) {
   // drag the first card onto the timeline (mouse on desktop, press-and-hold touch on the phone)
   const first = cardFor(ordered[0]);
   if (desktop) {
+    // the evidence panel scrolls inside itself; the shuffled card may be below its fold, as for a player
+    await first.evaluate((el) => el.scrollIntoView({ block: 'center' })); await page.waitForTimeout(100);
     const a = await first.boundingBox(), b = await page.locator('.c-slots').boundingBox();
     await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2); await page.mouse.down();
     await page.mouse.move(a.x + 30, a.y + 30, { steps: 4 }); await page.mouse.move(b.x + b.width / 2, b.y + 20, { steps: 8 });
@@ -255,6 +280,10 @@ async function run(view, c, browser) {
   const callout = await page.textContent('.c-toast');
   if (!callout.includes('Timeline complete. ' + herrings.length + ' cards left: mark them Not related to close the case.')) bad(tag + ' no timeline-complete message: ' + callout);
   if (!(await page.locator('.c-nr.c-call').count())) bad(tag + ' Not related not highlighted');
+  // full timeline: add and hint are off, the step counter never passes the last slot; Not related stays active
+  const fullState = await page.evaluate(() => ({ add: document.querySelector('.c-add').disabled, hint: document.querySelector('.c-hintbtn').disabled,
+    hintTxt: document.querySelector('.c-hintbtn').textContent, nr: document.querySelector('.c-nr').disabled }));
+  if (!fullState.add || !fullState.hint || fullState.nr || /step\s*0?(\d+)/.test(fullState.hintTxt) && +fullState.hintTxt.match(/step\s*0?(\d+)/)[1] > ordered.length) bad(tag + ' full timeline state ' + JSON.stringify(fullState));
   if (c.level === 2) await shot('2act1-herrings');
   for (const e of herrings) { await cardFor(e).click(); await page.click('.c-nr'); }
   await page.waitForSelector('.c-slotbtn');
@@ -270,7 +299,7 @@ async function run(view, c, browser) {
   await page.click('text=' + data.act2.rewindButton);
   // Act 2
   await page.waitForSelector('.c-ctl');
-  await checkFit('act2'); await contrast('act2'); await theme('act2');
+  await checkFit('act2'); await contrast('act2'); await theme('act2'); await barCheck('act2');
   await shot('3act2');
   const ctlBtn = (id) => page.locator('.c-ctl', { hasText: data.controls.find((x) => x.id === id).name.replace(/`/g, '').slice(0, 24) });
   // first run animated: succeeded build, check the ATTEMPTED pill on stage 1
@@ -394,7 +423,7 @@ async function run(view, c, browser) {
     await pg.click('button.c-case >> nth=0'); await pg.waitForSelector('.c-briefbar');
     await pg.waitForTimeout(200);
     if ((await pg.evaluate(() => window.__ac)) !== 1) bad('no SEV 1 alert sound when the case opened');
-    for (let i = 0; i < 5; i++) await pg.click('.c-briefbar .c-btn');
+    for (let i = 0; i < 5; i++) await pg.click('.c-briefnext');
     await pg.waitForSelector('.c-card'); await pg.click('.c-helpbtn');
     if ((await pg.locator('.c-helpbox .c-soundbtn').count()) !== 1 || (await pg.locator('.c-helpbox .c-voicebtn').count()) !== 2) bad('help panel toggles missing');
     errs.forEach((e) => bad('sound test: ' + e));

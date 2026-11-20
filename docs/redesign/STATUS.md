@@ -1,6 +1,6 @@
 # Breach Escape v2 redesign: status and handoff
 
-Last updated: 2026-11-20. Branch `claude/uber-2022`, PR https://github.com/keptacademy/breach-escape/pull/2 (into `main`). PR #1 (`claude/keen-pasteur-o2a3hp`) is merged.
+Last updated: 2026-11-20. Branch `feature/desktop-polish`, PR https://github.com/keptacademy/breach-escape/pull/3 (into `main`). PR #1 and PR #2 (`claude/uber-2022`) are merged.
 Live v1 quiz is saved as tag `v1-quiz` (`e0df885`, main's commit before this work).
 
 ## Goal
@@ -37,7 +37,7 @@ The Breach Map itself scrolls at 720 px high (it lists 7 levels); that's allowed
 | `levels/*.json` | All case content and rules. Act 2 stage codes are read from `timeline[].mitre` (single source). Act 2 keys added this pass: `preventedMaxStage`, `lossLabel`, `attemptedNote`, `mapCmd`, `outcomes.{prevented,contained,detected,succeeded}`, `logs.attempted`, `map.stages[].unblockable`. |
 | `icons/` | App icon `>K_` in corner brackets (silver brackets and K, ice-blue `>` and `_`): `icon.svg`, `favicon.svg`, PNGs 192/512/maskable 512/Apple 180/favicon 32. Made by `tools/make_icons.js` (shapes only, no fonts). |
 | `brand/` | KEPT brand mark (KE / PT, silver, ice-blue brackets): SVG + 1024 PNG. About header only; the map header stays one-line "KEPT ACADEMY". |
-| `sw.js` | Offline cache, network-first. Currently `v34`; bump on every deploy. Caches all three case files and the icons. |
+| `sw.js` | Offline cache, network-first. Currently `v42`; bump on every deploy. Caches all three case files and the icons. |
 | `staticwebapp.config.json` | Strict CSP and security headers; 404 for `/docs/*`, `/*.md`, `/.github/*`. Unchanged. |
 | `.github/workflows/deploy.yml` | CodeQL → production deploy (push to main only, `production` environment). PRs: `preview` job deploys an Azure preview environment, and `close_preview` removes it when the PR closes. Fork PRs are skipped. |
 | `.github/dependabot.yml` | Weekly updates for the pinned Actions. |
@@ -175,6 +175,23 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - Tests: the e2e places an `anyOrder` group in reverse and expects it valid; it checks neutral stages (label, note, marker, never BREACHED, and the next stage BREACHED when nothing blocks). Affected tests (Uber at 1280×720 and 390×844) passed; **one full run, all passing**.
 - Validator: 0 errors, 50 warnings (Uber 25, all S1). `sw.js` `v34`.
 
+## Round 14 (2026-11-20): desktop polish (PR #3, `feature/desktop-polish`)
+On desktop (~1100–1440px) the game looked like a phone layout in the middle of a big screen. Phone layouts are unchanged except where an item asked for it (results tiles).
+1. **Text size:** every font size in `theme.css` is rem. At 1024px+ the root is 18px and two tokens set floors: `--fs-l` 13px (labels: eyebrows, tags, pills, zone labels, chips, small print) and `--fs-b` 16px (body: paragraphs, briefing rows, glossary, timelines, evidence cards, map stages, log). Both are 0 below 1024px, so phones keep their sizes. Label columns (briefing kv, damage scale, sources) widen with the root, so "Threat actor" fits on one line.
+2. **Widths:** reading screens 800px, work screens up to 1100px (see Layout below). Act 1 adds `c-readscreen` once the timeline phase ends; the briefing bar's inner row lines up with the column.
+3. **Act 2 deck (900px+):** the deck takes the whole right column in 4 columns; zone label and cost share the card's top row; card titles use the label size (13px), not body size. The attack log is hidden until the sim runs and then takes the deck's place (the bar keeps the last message). The threat meter sits beside the title; under 820px high the intro line is left to the "?" panel. Every control card is visible without scrolling at 1024×768, 1280×720, 1366×768 and 1920×1080 in all three cases. Panels that scroll inside themselves (Act 2 map, Act 1 evidence, the deck if ever needed) show a thin scrollbar and a "more … ↓" cue (`scrollCue()`; click scrolls). Phones keep the stacked card, cost row and log, and their deck never scrolls inside itself (the page scrolls).
+4. **Scoped controls:** new optional control field `scope` (schema too). The card label names it instead of the zone: Midnight "PRODUCTION TENANT · SCOPED", Colonial "KNOWN VPN PROFILES · SCOPED", Uber "EMPLOYEE ACCOUNTS · SCOPED". The aria-label says "Scoped to … only; goes on stage n", and a drop on the wrong zone uses the new `logs.wrongZoneScoped`. Placement and simulation unchanged.
+5. **Bottom bar:** `pinBar()` keeps each screen's bottom padding equal to its pinned bar's real height + 12px (briefing, Act 1, Act 2; a hidden bar falls back to the CSS default). Last briefing page: "> OPEN THE EVIDENCE" is in the page right after the Your mission card; the bar keeps back and sources. The next button has class `c-briefnext` on every page.
+6. **Act 1 full timeline:** "+ add to timeline" and the hint are disabled (also the A key and drops on the timeline); the hint reads "timeline complete" instead of "step 08". Not related stays active.
+7. **Stat tiles:** Act 1 debrief 2×2 on phones, 4 across from 600px. Results: damage on its own row and the other three across under it; 900px+ one row with damage twice as wide.
+8. **Splash:** checked with no input at 1280×720 and on iPhone 13: 7 login lines (4 commands, 3 outputs) → K, E, P, T 300 ms apart → tagline → 3.5 s hold → 0.3 s fade → map, about 10 s. No step skipped; no change needed.
+- **Act 1 log preview (found by full run 1):** with the bigger desktop cards, the first click of a double-click opened the log preview under the evidence grid, the grid shrank, and the second click hit the preview. On desktop the preview now sits under the timeline (it scrolls that column only), so the evidence grid never resizes under the pointer. Phones keep it under the grid.
+9. Tests: new `barCheck` (no screen block ends below the bar, scrolled to the end) on every briefing page, Act 1 and Act 2; last-page order check (button after the mission, not in the bar); full-timeline state check. The briefing next button is `.c-briefnext`.
+- At 1280×720 the e2e sets `Math.random()` to 0, so the evidence shuffle is deterministic and puts the first real card last, below the evidence panel's fold (worst case for the drag test). Other sizes keep a real shuffle.
+- **Test runs this round (per CLAUDE.md):** full run 1: one failure, 1280×720 Midnight (the double-click bug above, an app bug); fixed, that test rerun alone: passed. Full run 2: one failure, 1280×720 Midnight again, a test bug: the desktop drag grabbed the shuffled first card without scrolling it into view, so when the shuffle put it below the evidence panel's fold the press missed (the knock-on failures followed). Fixed (scroll into view, like the phone branch) and made deterministic (above); checked that the pinned order fails without the fix (7 failures) and passes with it (rerun alone). Every other test passed in both full runs (sound, splash/reset, allow-list, symlinks, replay hero, bad links, all three cases at 1920×1080 and 390×844, Colonial and Uber at 1280×720). No third full run, per the two-run limit. **Before merging, one clean full run of the final code is still required.**
+- Screenshots (1280×720, Midnight Blizzard): `docs/redesign/screenshots/round14/` (briefing alert, briefing mission, Act 1, Act 1 timeline full, debrief, Act 2 with discovery deployed, results). Not deployed.
+- Validator: 0 errors, 50 warnings (quotes, unchanged). `sw.js` `v42`.
+
 ## Decisions made
 - **Act 1 scoring:** +50 for each correct placement, +30 per red herring dismissed, −20 per mistake, −10 per hint, +100 for patient zero. XP never goes below 0.
 - **Act 2 scoring:** ID Protection is **detect** (no random chance). **3 stars** = blocked at stage ≤ 2 **and** no decoys; **2** = blocked later (or early with decoys); **1** = only detected or limited; **0** = breach succeeded.
@@ -200,7 +217,7 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - **Layout:**
   - Desktop (900px and wider): Act 1 and Act 2 fit on one screen, content capped at 1100px. Panels scroll inside themselves; the page doesn't.
   - Act 2 at 720px high: the map panel scrolls and follows the stage under attack.
-  - Briefing pages are 640px wide. Phones stack everything above a pinned bottom bar.
+  - Reading screens (briefing, About, Act 1 patient zero + debrief, results) share one 800px column at 900px+ (640px below); work screens (map, Act 1 board, Act 2) go up to 1100px. Phones stack everything above a pinned bottom bar whose height is the screen's bottom padding.
 - **Wording and fact corrections:**
   - "a limited number of accounts" (not 412 or hundreds).
   - "a very small percentage" of mailboxes (MSRC).
@@ -242,7 +259,7 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
   6. AA21-131A and DOJ titles, dates and URLs.
 - **The PR preview secret isn't set:** the `preview` jobs need `AZURE_STATIC_WEB_APPS_API_TOKEN` in a GitHub environment called `preview` (or as a repository secret). Until then the PR preview run fails.
 - **Not tested on real devices:** touch drag (press-and-hold) was only checked in iPhone 13 emulation. iOS Safari and Android Chrome still need a real check.
-- **Tight fit at 1280×720:** Act 2 uses the inner map scroll; at heights under about 650px, panels get cramped.
+- **Tight fit at 1280×720:** every Act 2 control fits with 0–25px to spare (Midnight's 18 controls are the tightest); the map scrolls in its column. Under about 700px high the deck needs its own scroll (the "more controls ↓" cue shows). A case with more or longer controls must be rechecked at 1280×720.
 - **Phones:** the page scrolls in Act 1 and Act 2 (accepted).
 - **Not reviewed:** CodeQL and preview results on PR #1 haven't been looked at.
 - **About contact email:** not set. Add it in `levels.js` (`window.SITE.contactEmail`); the row appears automatically.

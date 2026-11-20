@@ -586,6 +586,7 @@
   "controls": [
     {
       "id": "mfa",
+      "scope": "known VPN profiles",
       "name": "MFA on the VPN gateway (known profiles)",
       "cost": 2,
       "stage": 2,
@@ -821,6 +822,7 @@
       "attempted": "[~] stage {n} · {stage}: happens outside your network. Can't be blocked here; defense starts at stage 2.",
       "overBudget": "[!] over budget: {name} costs {cost}, you have {left} left. Remove a control first.",
       "wrongZone": "[!] {name} protects the {zone}. Drop it on a stage there.",
+      "wrongZoneScoped": "[!] {name} is scoped to {scope} only, but it is set on stage {n}. Drop it there.",
       "deployed": "[+] deployed: {name} → stage {n}",
       "removed": "[-] removed: {name}",
       "scoped": "[~] {name}: known assets only.",
