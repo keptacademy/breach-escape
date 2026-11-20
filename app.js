@@ -218,7 +218,7 @@
 
   /* ---------- About ---------- */
   var STORE_KEYS = [STORE_KEY, 'breach-escape-voice', SOUND_KEY];   // every localStorage key this app writes
-  var ABOUT_UPDATED = '2026-11-20';
+  var ABOUT_UPDATED = '2026-11-19';
   function extLink(href, text) { return h('a', { href: href, target: '_blank', rel: 'noopener noreferrer', text: text }); }
   function renderAbout() {
     leave();
