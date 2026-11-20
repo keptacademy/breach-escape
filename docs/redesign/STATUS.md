@@ -143,6 +143,15 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - Validator: 0 errors, 25 warnings (quotes). `sw.js` `v26`.
 - PR #1 marked ready for review; merge left to Nura.
 
+## Round 11 (2026-11-20): Breach Map redesign, source footnotes
+- **Map header:** one line, never wraps: "KEPT ACADEMY" left; "?" help and stars right. Title "Breach Escape". The tagline stays on the splash and About only. "Real breaches, replayed. Investigate, then defend." and the 01/02/03 step line live in the map's "?" panel.
+- **Hero card (option B):** one large ice-blue card, label "NEXT CASE": the first playable case without stars yet (case 01 on a first visit), with title, victim · year, teaser and "> OPEN CASE FILE". When every playable case has stars: "REPLAY A CASE", the case with the fewest stars, "> REOPEN CASE". It is the only highlighted element.
+- **ALL CASES:** heading with "<n> of 7 playable"; compact rows (number, title, stars if any, "›"). Playable rows are whole-row buttons; SOON rows are plain divs, dimmer (`#9AA4AD`, about 8:1), not tappable, no lock icons.
+- **Layout:** phones one column; 600–899px one column, max 720px; 900px+ hero ~60% | cases ~40%, top-aligned, max 1100px. The desktop hero adds the threat actor and year, read from the case briefing via `BreachCase.caseData` (fetched only at 900px+; a fact with a todo is never shown). No page scroll on the map at 1280×720.
+- **Source footnotes:** inline "source: …" links are gone from the briefing, debrief timeline, tips and build list. Each sourced fact has a dim `[n]` button (numbered per case by first use: briefing, debrief timeline, tips, controls; same source = same number), 24×24px tap target with negative margins so lines don't grow, `aria-label` "Source n: title". It opens the numbered sources panel (the briefing's "sources" button, or the list at the end of the debrief and results) scrolled to and focused on that source: title, publisher, date, link (`rel="noopener noreferrer"`). Sources gained `publisher` and `date` fields (schema and the new-case template too); titles were split accordingly.
+- Tests: map header, hero (first visit, returning player, all finished), case counts and rows, help panel, desktop actor row, no map scroll on desktop, footnote markers (format, label, size, opening the panel), no inline "source:" on briefing/debrief/results. The bad-link test now allows the hero's fetch of a known case file but nothing else.
+- Validator: 0 errors, 25 warnings. `sw.js` `v27`.
+
 ## Decisions made
 - **Act 1 scoring:** +50 for each correct placement, +30 per red herring dismissed, −20 per mistake, −10 per hint, +100 for patient zero. XP never goes below 0.
 - **Act 2 scoring:** ID Protection is **detect** (no random chance). **3 stars** = blocked at stage ≤ 2 **and** no decoys; **2** = blocked later (or early with decoys); **1** = only detected or limited; **0** = breach succeeded.

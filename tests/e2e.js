@@ -99,7 +99,7 @@ async function run(view, c, browser) {
   const shot = (n) => page.screenshot({ path: SHOTS + '/' + view.name + '-' + c.id + '-' + n + '.png' });
 
   await page.goto(BASE);
-  await page.waitForSelector('.c-level');
+  await page.waitForSelector('.c-case');
   // splash: terminal login, then K-E-P-T typed one by one, tagline, 3.5 s hold; once per session, one label, skip button
   if (!(await page.locator('.c-splash').count())) bad(tag + ' no splash on first load');
   else {
@@ -135,10 +135,25 @@ async function run(view, c, browser) {
     else { await page.keyboard.press('Space'); }
     if (await page.locator('.c-splash').count()) bad(tag + ' splash still there');
   }
-  const names = await page.$$eval('.c-lname', (e) => e.map((x) => x.textContent));
-  if (names[0] !== 'The Forgotten Test Account' || names[1] !== 'The Legacy VPN') bad(tag + ' map names ' + names.slice(0, 2));
-  if (!(await page.textContent('.c-levels')).includes('One legacy VPN profile, password only.')) bad(tag + ' colonial teaser');
-  if (!(await page.textContent('.c-intro')).startsWith('Real breaches, replayed')) bad(tag + ' intro');
+  const names = await page.$$eval('.c-ctitle', (e) => e.map((x) => x.textContent));
+  if (names[0] !== 'The Forgotten Test Account' || names[1] !== 'The Legacy VPN' || names.length !== 7) bad(tag + ' map names ' + names.slice(0, 2));
+  // Map: one-line header, hero NEXT CASE = case 01 on a first visit (the only highlight), ALL CASES list
+  const head = await page.evaluate(() => ({ h: document.querySelector('.c-maphead').getBoundingClientRect().height, t: document.querySelector('.c-mapscreen .c-brand').getBoundingClientRect().height,
+    fs: parseFloat(getComputedStyle(document.querySelector('.c-mapscreen .c-brand')).fontSize), sw: document.querySelector('.c-maphead').scrollWidth, cw: document.querySelector('.c-maphead').clientWidth }));
+  if (head.h > 44 || head.t > head.fs * 1.6 || head.sw > head.cw) bad(tag + ' map header wraps: ' + JSON.stringify(head));
+  if ((await page.textContent('.c-herolabel')) !== 'NEXT CASE' || (await page.textContent('.c-herotitle')) !== 'The Forgotten Test Account') bad(tag + ' hero on first visit');
+  if ((await page.textContent('.c-herobtn')) !== '> OPEN CASE FILE') bad(tag + ' hero button');
+  if ((await page.textContent('.c-caseshead .c-count')) !== '2 of 7 playable') bad(tag + ' playable count');
+  if ((await page.locator('div.c-case.soon').count()) !== 5 || (await page.locator('button.c-case').count()) !== 2) bad(tag + ' playable/soon rows');
+  if (await page.locator('.c-intro').count()) bad(tag + ' intro paragraph still on the map');
+  await page.click('.c-maphead .c-helpbtn');
+  const help = await page.textContent('.c-maphelp');
+  if (!help.includes('Real breaches, replayed. Investigate, then defend.') || !help.includes('01 brief')) bad(tag + ' map help panel: ' + help);
+  await page.click('.c-maphead .c-helpbtn');
+  if (desktop) {
+    await checkFit('map');
+    await page.waitForSelector('.c-heroactor:not([hidden])', { timeout: 3000 }).catch(() => bad(tag + ' desktop hero has no threat actor row'));
+  } else if (await page.locator('.c-heroactor').isVisible()) bad(tag + ' threat actor row visible on a phone');
   if ((await page.evaluate(() => document.documentElement.getAttribute('data-theme'))) !== 'brand') bad(tag + ' map is not the brand theme');
   await bottomCheck('map');
   if (c.level === 1) await shot('0map');
@@ -147,11 +162,11 @@ async function run(view, c, browser) {
   const rels = await page.$$eval('.c-aboutscreen a[target]', (a) => a.map((x) => x.rel));
   if (rels.length < 2 || rels.some((r) => r !== 'noopener noreferrer')) bad(tag + ' about link rel ' + rels);
   if (c.level === 1) await shot('0about');
-  await page.click('.c-exit'); await page.waitForSelector('.c-level');
+  await page.click('.c-exit'); await page.waitForSelector('.c-case');
   if (await page.locator('.c-splash').count()) bad(tag + ' splash shown again');
   await page.evaluate(() => 0); await contrast('map');
   if (c.level === 1) await shot('0map');
-  await page.click('.c-level >> nth=' + (c.level - 1));
+  await page.click('button.c-case >> nth=' + (c.level - 1));
   // briefing
   for (let i = 0; i < data.briefing.pages.length; i++) {
     await page.waitForSelector('.c-briefbar');
@@ -162,6 +177,15 @@ async function run(view, c, browser) {
       if (!kv.includes('Threat actor' + data.briefing.threatActor.v)) bad(tag + ' threat actor row: ' + kv.slice(0, 120));
       if ((await page.textContent('.c-display')) !== data.briefing.opening) bad(tag + ' opening line');
       if (/TODO/.test(await page.textContent('#app'))) bad(tag + ' placeholder or todo text visible in the briefing');
+      if (/source:/.test(await page.textContent('#app'))) bad(tag + ' inline "source:" link in the briefing');
+      const fns = await page.$$eval('.c-fn', (x) => x.map((b) => [b.textContent, b.getAttribute('aria-label'), b.getBoundingClientRect().height, b.getBoundingClientRect().width]));
+      if (!fns.length || fns.some((f) => !/^\[\d+\]$/.test(f[0]) || !/^Source \d+: ./.test(f[1]) || f[2] < 24 || f[3] < 24)) bad(tag + ' briefing footnote markers: ' + JSON.stringify(fns.slice(0, 3)));
+      await page.click('.c-fn >> nth=0');
+      const n0 = fns[0] && fns[0][0].replace(/\D/g, '');
+      if ((await page.evaluate(() => document.activeElement && document.activeElement.id)) !== 'c-src-' + n0 || await page.locator('#c-sources[hidden]').count()) bad(tag + ' marker did not open the sources panel at its source');
+      const li = await page.textContent('#c-src-' + n0);
+      if (!/open source/.test(li)) bad(tag + ' sources panel item: ' + li);
+      await page.click('.c-srcbtn');
     }
     if (i === 0 || i === 3) await shot('1brief' + (i + 1));
     await page.click('.c-briefbar .c-btn');
@@ -220,6 +244,8 @@ async function run(view, c, browser) {
   await checkFit('act1-pz');
   await page.click('.c-slotbtn >> nth=' + (data.evidence.find((e) => e.id === data.patientZero).order - 1));
   await page.waitForSelector('.c-reveal');
+  if (/source:/.test(await page.textContent('#app'))) bad(tag + ' inline "source:" link in the debrief');
+  if (!(await page.locator('.c-reveal .c-fn').count())) bad(tag + ' no footnote markers in the debrief timeline');
   if (!(await page.textContent('.c-toast')).includes('SOC LEAD > ' + data.voice.patientZero)) bad(tag + ' no patient zero voice');
   await contrast('debrief');
   const xp = await page.textContent('.c-xp');
@@ -289,6 +315,8 @@ async function run(view, c, browser) {
     await contrast('results-' + kind);
     await bottomCheck('results-' + kind);
     if (firstRun) await shot('5results');
+    if (firstRun && /source:/.test(await page.textContent('#app'))) bad(tag + ' inline "source:" link on the results');
+    if (firstRun && !(await page.locator('.c-srclist li').count())) bad(tag + ' no sources panel on the results');
     if (kind === 'contained') await shot('6contained');
     if (run.stars === 3) await shot('7threestar');
     firstRun = false;
@@ -297,8 +325,12 @@ async function run(view, c, browser) {
   // code style: neutral, not yellow
   const codeColor = await page.evaluate(() => { const c = document.createElement('code'); document.getElementById('app').appendChild(c); const v = getComputedStyle(c).color; c.remove(); return v; });
   if (codeColor === 'rgb(255, 211, 77)') bad(tag + ' code is yellow');
-  await page.click('.c-exit'); await page.waitForSelector('.c-level');
+  await page.click('.c-exit'); await page.waitForSelector('.c-case');
   if ((await page.evaluate(() => document.documentElement.getAttribute('data-theme'))) !== 'brand') bad(tag + ' map theme not brand after a case');
+  const other = c.id === 'midnight-blizzard' ? 'The Legacy VPN' : 'The Forgotten Test Account';
+  if ((await page.textContent('.c-herolabel')) !== 'NEXT CASE' || (await page.textContent('.c-herotitle')) !== other) bad(tag + ' returning hero is not the next unfinished case');
+  if (!(await page.textContent('.c-cases')).includes('\u2605')) bad(tag + ' stars not shown in the list after a case');
+  if (c.level === 1) await shot('9map-returning');
   await page.click('.c-voicebtn');
   await page.reload(); await page.waitForSelector('.c-voicebtn');
   if ((await page.textContent('.c-voicebtn')) !== 'voice: off') bad(tag + ' voice toggle not saved');
@@ -334,7 +366,7 @@ async function run(view, c, browser) {
     await pg.reload(); await pg.waitForSelector('.c-soundbtn');
     if ((await pg.textContent('.c-foot .c-soundbtn')) !== 'sound: on') bad('sound toggle not saved');
     if (await pg.evaluate(() => window.__ac)) bad('AudioContext created on reload before a gesture');
-    await pg.click('.c-level >> nth=0'); await pg.waitForSelector('.c-briefbar');
+    await pg.click('button.c-case >> nth=0'); await pg.waitForSelector('.c-briefbar');
     await pg.waitForTimeout(200);
     if ((await pg.evaluate(() => window.__ac)) !== 1) bad('no SEV 1 alert sound when the case opened');
     for (let i = 0; i < 5; i++) await pg.click('.c-briefbar .c-btn');
@@ -362,10 +394,10 @@ async function run(view, c, browser) {
     await pg.click('.c-spl-skip');
     await pg.click('text=> about'); await pg.click('.c-resetbtn');
     if (await pg.locator('.c-confirm[hidden]').count()) bad('reset confirm not shown');
-    await pg.click('.c-confirm .c-yes'); await pg.waitForSelector('.c-level');
+    await pg.click('.c-confirm .c-yes'); await pg.waitForSelector('.c-case');
     const ls = await pg.evaluate(() => Object.keys(localStorage).sort().join(','));
     if (ls !== 'other-app') bad('reset left keys: ' + ls);
-    if ((await pg.textContent('.c-levels')).includes('\u2605')) bad('stars still on the map after reset');
+    if ((await pg.textContent('.c-cases')).includes('\u2605')) bad('stars still on the map after reset');
     await ctx.close();
     const rm = await browser.newContext({ viewport: { width: 1280, height: 720 }, reducedMotion: 'reduce' });
     const p3 = await rm.newPage(); await p3.goto(BASE);
@@ -407,14 +439,25 @@ async function run(view, c, browser) {
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log('ok symlinks');
   }
+  // Every playable case finished: the hero offers the case with the fewest stars.
+  if (!process.env.CASE) {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+    await ctx.addInitScript(() => { sessionStorage.setItem('breach-escape-splash', '1');
+      localStorage.setItem('breach-escape-progress-v1', JSON.stringify({ cases: { 'midnight-blizzard': { act2: { bestStars: 3 } }, 'colonial-pipeline': { act2: { bestStars: 1 } } } })); });
+    const pg = await ctx.newPage(); await pg.goto(BASE); await pg.waitForSelector('.c-hero');
+    if ((await pg.textContent('.c-herolabel')) !== 'REPLAY A CASE' || (await pg.textContent('.c-herotitle')) !== 'The Legacy VPN' || (await pg.textContent('.c-herobtn')) !== '> REOPEN CASE') bad('all-finished hero');
+    await ctx.close();
+    console.log('ok replay hero');
+  }
   // Bad #case/ links: land on the map, no case fetch, nothing echoed.
   for (const hash of ['#case/../../evil', '#case/unknown']) {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
     const pg = await ctx.newPage(); const reqs = [];
     pg.on('request', (r) => reqs.push(r.url()));
-    await pg.goto(BASE + hash); await pg.waitForSelector('.c-level');
+    await pg.goto(BASE + hash); await pg.waitForSelector('.c-case');
     await pg.waitForTimeout(300);
-    const extra = reqs.filter((u) => /levels\/|evil|unknown/.test(u.replace(BASE + hash, '')));
+    // The desktop hero may load a known case file for its threat-actor row; anything else is an extra request.
+    const extra = reqs.filter((u) => { const x = u.replace(BASE + hash, ''); return /evil|unknown/.test(x) || (/levels\//.test(x) && !/levels\/(midnight-blizzard|colonial-pipeline)\.json$/.test(x)); });
     if (extra.length) bad('bad link ' + hash + ' requested ' + extra);
     const txt = await pg.evaluate(() => document.body.textContent + location.href);
     if (/evil|unknown/.test(txt)) bad('bad link ' + hash + ' echoed on the page or kept in the URL');
