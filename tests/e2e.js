@@ -275,6 +275,10 @@ async function run(view, c, browser) {
   const callout = await page.textContent('.c-toast');
   if (!callout.includes('Timeline complete. ' + herrings.length + ' cards left: mark them Not related to close the case.')) bad(tag + ' no timeline-complete message: ' + callout);
   if (!(await page.locator('.c-nr.c-call').count())) bad(tag + ' Not related not highlighted');
+  // full timeline: add and hint are off, the step counter never passes the last slot; Not related stays active
+  const fullState = await page.evaluate(() => ({ add: document.querySelector('.c-add').disabled, hint: document.querySelector('.c-hintbtn').disabled,
+    hintTxt: document.querySelector('.c-hintbtn').textContent, nr: document.querySelector('.c-nr').disabled }));
+  if (!fullState.add || !fullState.hint || fullState.nr || /step\s*0?(\d+)/.test(fullState.hintTxt) && +fullState.hintTxt.match(/step\s*0?(\d+)/)[1] > ordered.length) bad(tag + ' full timeline state ' + JSON.stringify(fullState));
   if (c.level === 2) await shot('2act1-herrings');
   for (const e of herrings) { await cardFor(e).click(); await page.click('.c-nr'); }
   await page.waitForSelector('.c-slotbtn');

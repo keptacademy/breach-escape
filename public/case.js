@@ -519,7 +519,7 @@
         drop: function (t) {
           A.sel = c;
           var kind = t && t.getAttribute('data-drop');
-          if (kind === 'timeline') place();
+          if (kind === 'timeline' && A.placed.length < total()) place();
           else if (kind === 'nr') dismiss();
           else { drawAct1(); restart(c.el, 'c-shake'); }   // dropped nowhere: wobble back, stay selected
         }
@@ -534,11 +534,14 @@
     var left = A.cards.filter(function (c) { return !c.done; }).length;
     E.left.textContent = left + ' left';
     drawInspect();
-    var hk = String(A.next), hasHint = A.phase === 'order' && C.d.act1.hints && C.d.act1.hints[hk];
+    // Timeline full: only Not related stays active while cards remain; add and hint are off and the step counter stops.
+    var full = A.placed.length >= total();
+    var hk = String(A.next), hasHint = A.phase === 'order' && !full && C.d.act1.hints && C.d.act1.hints[hk];
+    E.add.disabled = A.phase === 'order' && full;
     E.hint.disabled = !hasHint || !!A.hinted[hk];
     E.hint.textContent = '';
-    E.hint.appendChild(h('span', { text: A.hinted[hk] ? 'hint used' : '? hint' }));
-    E.hint.appendChild(h('span', { class: 'c-small', text: 'step ' + pad(A.next, 2) + (A.hinted[hk] ? '' : ' \u00b7 ' + C.d.act1.scoring.hint + ' XP') }));
+    E.hint.appendChild(h('span', { text: full ? '? hint' : A.hinted[hk] ? 'hint used' : '? hint' }));
+    E.hint.appendChild(h('span', { class: 'c-small', text: full ? 'timeline complete' : 'step ' + pad(A.next, 2) + (A.hinted[hk] ? '' : ' \u00b7 ' + C.d.act1.scoring.hint + ' XP') }));
     E.bar.hidden = A.phase !== 'order';
     // Highlight Not related once the timeline is full and only red herrings are left.
     E.nr.classList.toggle('c-call', A.phase === 'order' && A.placed.length === total() && A.cards.some(function (c) { return !c.done; }));
@@ -581,7 +584,8 @@
   function needSel() { if (!A.sel) { toast('Select an evidence card first', false); return true; } return false; }
 
   function place() {
-    if (A.phase !== 'order' || needSel()) return;
+    if (A.phase !== 'order' || A.placed.length >= total()) return;   // full timeline: only Not related is left
+    if (needSel()) return;
     var c = A.sel, s = C.d.act1.scoring, w = C.d.act1.wrongLines;
     if (fitsNext(c.e)) {
       c.done = true; A.placed.push(c); A.next++; A.sel = null;
