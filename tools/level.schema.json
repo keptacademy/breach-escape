@@ -111,6 +111,10 @@
           "todo": {
             "type": "string",
             "pattern": "^TODO: verify"
+          },
+          "verified": {
+            "type": "string",
+            "minLength": 1
           }
         },
         "required": [

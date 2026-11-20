@@ -13,8 +13,9 @@
   "sources": [
     {
       "id": "msrc",
-      "title": "MSRC: Microsoft Actions Following Attack by Nation State Actor Midnight Blizzard (Jan 19, 2024)",
-      "url": "https://www.microsoft.com/en-us/msrc/blog/2024/01/microsoft-actions-following-attack-by-nation-state-actor-midnight-blizzard"
+      "title": "MSRC Blog: Microsoft Actions Following Attack by Nation State Actor Midnight Blizzard (Jan 19, 2024)",
+      "url": "https://msrc.microsoft.com/blog/2024/01/microsoft-actions-following-attack-by-nation-state-actor-midnight-blizzard/",
+      "verified": "2026-11-20, link checked by Nura"
     },
     {
       "id": "blog",
@@ -23,8 +24,9 @@
     },
     {
       "id": "8k",
-      "title": "Microsoft Form 8-K filings, U.S. SEC (Jan 19, 2024)",
-      "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000789019&type=8-K"
+      "title": "Microsoft Form 8-K, U.S. SEC (filed Jan 19, 2024; date of report Jan 17, 2024)",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312524011295/d708866d8k.htm",
+      "verified": "2026-11-20, link checked by Nura"
     },
     {
       "id": "insider",
