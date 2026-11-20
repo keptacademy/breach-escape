@@ -869,6 +869,7 @@
     if (B.running) return;
     var a2 = C.d.act2, res = simulate();
     B.running = true; B.alarmed = false; app.classList.add('c-running'); drawBudget();
+    lastVoice = null;   // each run is a new outcome, so its results line may repeat the previous run's
     // Reduced motion: no animation. The results screen lists every stage instead.
     if (BE.reduceMotion()) { finishRun(res); return; }
     drawMap();
