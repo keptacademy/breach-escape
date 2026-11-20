@@ -370,6 +370,27 @@ async function run(view, c, browser) {
     }
     console.log('ok allow-list');
   }
+  // Symlinks inside the served folder that point outside it must 404 (made in a temp copy, never committed).
+  if (!process.env.CASE) {
+    const fs = require('fs'), os = require('os'), { spawn } = require('child_process');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'be-symlink-'));
+    const pub = path.join(tmp, 'public');
+    fs.cpSync(REPO, pub, { recursive: true });
+    fs.symlinkSync(path.resolve(REPO, '..', 'CLAUDE.md'), path.join(pub, 'outside.md.txt'));   // file outside
+    fs.symlinkSync(path.resolve(REPO, '..'), path.join(pub, 'repo'));                           // directory outside
+    fs.symlinkSync(path.join(pub, 'index.html'), path.join(pub, 'alias.html'));               // inside: allowed
+    const srv = spawn(process.execPath, [path.join(__dirname, 'serve.js'), pub, '8766'], { stdio: 'ignore' });
+    await new Promise((r) => setTimeout(r, 600));
+    const get = (u) => new Promise((res) => require('http').get('http://localhost:8766/' + u, (r) => { r.resume(); res(r.statusCode); }).on('error', () => res(0)));
+    for (const u of ['outside.md.txt', 'repo/CLAUDE.md', 'repo/tools/validate', 'repo/public/index.html']) {
+      const st = await get(u); if (st !== 404) bad('symlink escape served: /' + u + ' (' + st + ')');
+    }
+    if ((await get('alias.html')) !== 200) bad('symlink inside the served folder not served');
+    if ((await get('index.html')) !== 200) bad('temp server did not serve index.html');
+    srv.kill();
+    fs.rmSync(tmp, { recursive: true, force: true });
+    console.log('ok symlinks');
+  }
   // Bad #case/ links: land on the map, no case fetch, nothing echoed.
   for (const hash of ['#case/../../evil', '#case/unknown']) {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
