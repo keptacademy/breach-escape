@@ -194,6 +194,21 @@
   function panel(cls, kids) { return h('div', { class: 'c-panel' + (cls ? ' ' + cls : '') }, kids); }
   function eyebrow(t, cls) { return h('div', { class: 'c-eyebrow' + (cls ? ' ' + cls : ''), text: t }); }
   function para(t, cls) { return rich(t, h('p', { class: cls || '' })); }
+  // A "more ↓" line under a panel that scrolls inside itself; shown only while there is more below. Click scrolls it.
+  function scrollCue(box, label) {
+    var cue = h('div', { class: 'c-morecue', 'aria-hidden': 'true', hidden: true, text: label + ' \u2193', onclick: function () {
+      box.scrollBy({ top: Math.round(box.clientHeight * 0.8), behavior: BE.reduceMotion() ? 'auto' : 'smooth' });
+    } });
+    function upd() { cue.hidden = box.scrollHeight - box.clientHeight - box.scrollTop < 4; }
+    box.addEventListener('scroll', upd, { passive: true });
+    if (window.ResizeObserver) {
+      var ro = new ResizeObserver(upd); ro.observe(box);
+      Array.prototype.forEach.call(box.children, function (c) { ro.observe(c); });
+      BE.onLeave(function () { ro.disconnect(); });
+    }
+    setTimeout(upd, 0);
+    return cue;
+  }
 
   /* ---------- SOC LEAD voice ----------
      Short in-world lines on meaningful events, shown in the Act 1 toast, the Act 2 log or the results card (all aria-live polite).
@@ -420,9 +435,10 @@
     E.left = h('span', {});
     E.grid = h('div', { class: 'c-grid', role: 'group', 'aria-label': 'Evidence cards' });
     E.inspect = h('div', { class: 'c-inspect', hidden: true });
+    var gridWrap = h('div', { class: 'c-gridwrap' }, [E.grid]);
     E.deck = h('div', { class: 'c-deck' }, [
       h('div', { class: 'c-hud' }, [h('span', { text: '> ls ./evidence' }), E.left]),
-      h('div', { class: 'c-gridwrap' }, [E.grid]),
+      gridWrap, scrollCue(gridWrap, 'more evidence'),
       E.inspect
     ]);
 
@@ -721,8 +737,10 @@
     F.deck = h('div', { class: 'c-ctlgrid', role: 'group', 'aria-label': 'Control deck' });
     F.count = h('span', {});
     var mapBox = F.mapBox = h('div', { class: 'c-a2map' }, [h('div', { class: 'c-hud' }, [h('span', { text: a2.mapCmd || '> map ./network' }), h('span', { class: 'c-small', text: 'drop controls on a stage' })]), F.map]);
-    var deckBox = h('div', { class: 'c-deck c-a2deck' }, [h('div', { class: 'c-hud' }, [h('span', { text: '> ls ./controls' }), F.count]), h('div', { class: 'c-gridwrap' }, [F.deck])]);
-    F.main = h('div', { class: 'c-a2' }, [mapBox, F.log, deckBox]);
+    var deckWrap = h('div', { class: 'c-gridwrap' }, [F.deck]);
+    var deckBox = h('div', { class: 'c-deck c-a2deck' }, [h('div', { class: 'c-hud' }, [h('span', { text: '> ls ./controls' }), F.count]), deckWrap, scrollCue(deckWrap, 'more controls')]);
+    var mapCol = h('div', { class: 'c-a2mapcol' }, [mapBox, scrollCue(mapBox, 'more stages')]);
+    F.main = h('div', { class: 'c-a2' }, [mapCol, F.log, deckBox]);
     app.appendChild(F.main);
     app.appendChild(defBox);
 
@@ -790,7 +808,9 @@
       var on = B.on.indexOf(c.id) >= 0, z = ctlZone(c), lock = locked(c);
       var b = h('button', { class: 'c-ctl' + (on ? ' on' : '') + (lock ? ' locked' : ''), 'aria-pressed': String(on),
         'aria-label': plain(c.name) + '. Protects the ' + (z.short || z.name).toLowerCase() + '. Costs ' + c.cost + '.' + (lock ? ' Needs discovery first.' : '') }, [
-        h('span', { class: 'c-z', text: (z.short || z.name) + (c.effect === 'reveal' ? ' · DISCOVERY' : '') }),
+        // Desktop: zone label and cost share the top row (the cost row below is hidden) so the whole deck fits on one screen.
+        h('span', { class: 'c-ztop' }, [h('span', { class: 'c-z', text: (z.short || z.name) + (c.effect === 'reveal' ? ' · DISCOVERY' : '') }),
+          h('span', { class: 'c-costtop', 'aria-hidden': 'true' }, [bars(c.cost), h('span', { class: 'c-small', text: String(c.cost) })])]),
         h('span', { class: 'c-cname' }, [on ? '✓ ' : '', rich(c.name, null, false)]),
         lock ? h('span', { class: 'c-small', text: 'needs discovery first' }) : null,
         h('span', { class: 'c-costrow' }, [bars(c.cost), h('span', { class: 'c-small', text: c.cost + ' energy' })])
