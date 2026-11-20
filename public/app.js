@@ -165,12 +165,27 @@
     app.appendChild(h('h1', { class: 'c-brand', text: 'Breach Escape' }));
     app.appendChild(helpBox);
 
+    var grid = h('div', { class: 'c-mapgrid' });
     if (next) {
-      app.appendChild(h('section', { class: 'c-hero', 'aria-labelledby': 'c-herotitle' }, [
+      // Desktop only: threat actor and year from the case briefing (a fact with a todo is never shown).
+      var actorRow = h('p', { class: 'c-small c-heroactor', hidden: true });
+      if (window.BreachCase && window.matchMedia('(min-width: 900px)').matches) {
+        window.BreachCase.caseData(next.case).then(function (d) {
+          var ta = d && d.briefing && d.briefing.threatActor;
+          if (!ta || ta.todo || !ta.v || !actorRow.isConnected) return;
+          actorRow.appendChild(h('span', { class: 'c-heroactork', text: 'Threat actor ' }));
+          actorRow.appendChild(document.createTextNode(ta.v + ' \u00b7 '));
+          actorRow.appendChild(h('span', { class: 'c-heroactork', text: 'Year ' }));
+          actorRow.appendChild(document.createTextNode(String(next.year)));
+          actorRow.hidden = false;
+        }).catch(function () { /* offline or missing: the row stays hidden */ });
+      }
+      grid.appendChild(h('section', { class: 'c-hero', 'aria-labelledby': 'c-herotitle' }, [
         h('div', { class: 'c-eyebrow c-herolabel', text: allDone ? 'REPLAY A CASE' : 'NEXT CASE' }),
         h('h2', { class: 'c-herotitle', id: 'c-herotitle', text: next.name }),
         h('p', { class: 'c-small c-herosub', text: next.victim + ' \u00b7 ' + next.year }),
         h('p', { class: 'c-heroteaser', text: next.teaser }),
+        actorRow,
         h('button', { class: 'c-btn c-herobtn', text: allDone ? '> REOPEN CASE' : '> OPEN CASE FILE', onclick: function () { openLevel(next); } })
       ]));
     }
@@ -191,11 +206,12 @@
         list.appendChild(h('li', {}, [h('div', { class: 'c-case soon', 'aria-label': 'Case ' + pad2(L.id) + ': ' + L.name + ', coming soon' }, kids)]));
       }
     });
-    app.appendChild(h('section', { class: 'c-allcases', 'aria-labelledby': 'c-casesh' }, [
+    grid.appendChild(h('section', { class: 'c-allcases', 'aria-labelledby': 'c-casesh' }, [
       h('div', { class: 'c-caseshead' }, [h('h2', { class: 'c-casesh', id: 'c-casesh', text: 'ALL CASES' }),
         h('span', { class: 'c-small c-count', text: ready.length + ' of ' + LEVELS.length + ' playable' })]),
       list
     ]));
+    app.appendChild(grid);
 
     var lock = svgEl('svg', { viewBox: '0 0 16 16', width: '14', height: '14', 'aria-hidden': 'true' }, [
       svgEl('rect', { x: '3', y: '7', width: '10', height: '7', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5' }),

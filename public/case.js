@@ -162,15 +162,20 @@
   }
 
   /* ---------- load + start ---------- */
+  // Same-origin case file, cached for the session (also used by the Breach Map's hero card).
+  function loadCase(url) {
+    if (dataCache[url]) return Promise.resolve(dataCache[url]);
+    return fetch(url, { credentials: 'same-origin' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (d) { dataCache[url] = d; return d; });
+  }
   function start(L) {
     C = { L: L, d: null, xp: 0 }; lastVoice = null;
     frame('LOADING');
     app.appendChild(panel('', [h('p', {}, ['> fetching case file', h('span', { class: 'c-blink', text: '_' })])]));
     var url = L.case;
-    var p = dataCache[url] ? Promise.resolve(dataCache[url]) : fetch(url, { credentials: 'same-origin' }).then(function (r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    });
+    var p = loadCase(url);
     p.then(function (d) {
       if (!C || C.L !== L) return;
       dataCache[url] = d; C.d = d;
@@ -1144,5 +1149,5 @@
     else if (k === 'escape') endDrag();
   });
 
-  window.BreachCase = { start: start, voiceToggle: voiceToggle, backdrop: function (theme) { enterTerminal(theme); BE.onLeave(leaveTerminal); BE.onLeave(endDrag); } };
+  window.BreachCase = { start: start, caseData: loadCase, voiceToggle: voiceToggle, backdrop: function (theme) { enterTerminal(theme); BE.onLeave(leaveTerminal); BE.onLeave(endDrag); } };
 })();

@@ -334,7 +334,7 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 
 
 /* ---------- Breach Map ---------- */
-.app.case.c-mapscreen{max-width:760px}
+
 .c-brand{font-size:28px;line-height:1.1;color:var(--c-title);margin:2px 0 0;font-weight:600;letter-spacing:-.01em}
 .c-privacy{display:flex;gap:8px;align-items:center}
 .c-privacy svg{flex:none}
@@ -440,3 +440,14 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-cstars{letter-spacing:1px;white-space:nowrap}
 .c-cgo{font-size:16px}
 .c-csoon{font-size:11px;letter-spacing:.08em;color:var(--c-mute)}
+
+/* ---------- Breach Map layout: phone 1 column; 600-899px 1 column max 720px; 900px+ hero ~60% | cases ~40%, max 1100px ---------- */
+.c-mapgrid{display:flex;flex-direction:column;gap:16px}
+.c-heroactor{color:var(--c-mute)}
+.c-heroactork{color:var(--c-mute);letter-spacing:.08em;text-transform:uppercase;font-size:10px}
+@media (min-width: 600px){ .app.case.c-mapscreen{max-width:720px} }
+@media (max-width: 899px){ .case .c-heroactor{display:none!important} }
+@media (min-width: 900px){
+  .app.case.c-mapscreen{max-width:1100px}
+  .c-mapgrid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:20px;align-items:start}
+}
