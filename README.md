@@ -18,7 +18,8 @@ Only `public/` is deployed (an allow-list): the Azure workflow uses `app_locatio
 | `public/levels/*.json` | **The content.** One file per breach: briefing, evidence, timeline, map, controls, scoring, outcomes, tips, sources. |
 | `public/manifest.webmanifest` | Makes it installable ("Add to Home Screen"), with name, colors and icons. |
 | `public/sw.js` | Service worker: caches the app so it works offline. |
-| `public/icons/` | App icons (192, 512, maskable, Apple touch icon). |
+| `public/icons/` | App icon `>K_`: SVG source and favicon, PNGs 192, 512, maskable 512, Apple touch 180, favicon 32. Made by `tools/make_icons.js`. |
+| `public/brand/` | KEPT brand mark (KE / PT block): SVG and a 1024 PNG. Shown on the About page. |
 | `public/staticwebapp.config.json` | Azure Static Web Apps settings: security headers and 404 routes. SWA reads it from `app_location`. |
 | `tools/` | Level tooling (Python, standard library): `level.schema.json`, `schema_check.py`, `validate`, `new_case`. Not deployed. |
 | `tests/` | `serve.js` (local server with the production headers) and `e2e.js` (Playwright end-to-end suite). Not deployed. |
