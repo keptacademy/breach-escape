@@ -290,9 +290,11 @@
       tag.appendChild(h('span', { class: p[1] ? 'c-spl-k' : 'c-spl-d', text: p[0] }));
     });
     var term = h('div', { class: 'c-spl-term', 'aria-hidden': 'true' });
+    var kept = h('span', { class: 'c-spl-kept' });
+    var tagrow = h('div', { class: 'c-spl-tagrow' }, [tag]);
     var logo = h('div', { class: 'c-spl-logo', 'aria-hidden': 'true', hidden: true }, [
-      h('div', { class: 'c-spl-row' }, [h('span', { class: 'c-spl-kept', text: 'KEPT' }), h('span', { class: 'c-spl-cur', text: '_' })]),
-      h('div', { class: 'c-spl-tagrow' }, [tag])
+      h('div', { class: 'c-spl-row' }, [kept, h('span', { class: 'c-spl-cur', text: '_' })]),
+      tagrow
     ]);
     var cursor = h('span', { class: 'c-spl-cur', text: '_' });
     var skip = h('button', { class: 'c-ghost c-spl-skip', text: 'skip \u203a' });
@@ -301,7 +303,9 @@
     var timers = [];
     function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
     function showLogo() { term.hidden = true; logo.hidden = false; }
-    if (reduceMotion()) { showLogo(); later(end, 1000); }
+    var HOLD = 3500;   // the full KEPT + tagline screen stays this long, so it can be read on a phone
+    // Reduced motion: the finished screen at once, held, then a plain cut (no fade, no per-letter typing).
+    if (reduceMotion()) { kept.textContent = 'KEPT'; tagrow.classList.add('on'); showLogo(); later(end, HOLD); }
     else {
       var t = 300;
       script.forEach(function (s) {
@@ -315,9 +319,17 @@
         t += 140;
         if (s.out) { later(outLine(s.out), t); t += 260; }
       });
-      later(showLogo, t + 100);
-      later(function () { el.classList.add('c-spl-fade'); }, t + 1200);
-      later(end, t + 1500);
+      // After "clear": the cursor blinks alone, then K, E, P, T appear one at a time like typed keys,
+      // then the tagline fades in, the full screen holds, and everything fades into the map.
+      t += 100;
+      later(showLogo, t);
+      t += 500;
+      ['K', 'KE', 'KEP', 'KEPT'].forEach(function (txt, i) { later(typeTo(kept, txt), t + i * 300); });
+      t += 3 * 300 + 300;
+      later(function () { tagrow.classList.add('on'); }, t);
+      t += HOLD;
+      later(function () { el.classList.add('c-spl-fade'); }, t);
+      later(end, t + 300);
     }
     function typeTo(node, text) { return function () { node.textContent = text; }; }
     function outLine(text) { return function () { term.appendChild(h('div', { class: 'c-spl-out', text: text })); }; }

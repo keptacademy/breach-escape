@@ -383,7 +383,9 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-spl-row{display:flex;align-items:baseline;font-size:56px;line-height:1;font-weight:600}
 .c-spl-kept{color:var(--c-title);letter-spacing:.12em}
 .c-spl-cur{color:var(--c-title);animation:c-blink .9s steps(2) infinite}
-.c-spl-tagrow{font-size:14px;letter-spacing:0;text-align:center}
+.c-spl-tagrow{font-size:14px;letter-spacing:0;text-align:center;opacity:0;transition:opacity .4s ease-out}
+.c-spl-tagrow.on{opacity:1}
+.c-spl-row{min-height:1em}
 .c-spl-k{color:var(--c-g);font-weight:600}
 .c-spl-d{color:var(--c-mute)}
 .case .c-spl-skip,.c-spl-skip{position:absolute;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));min-height:40px;padding:8px 14px;
@@ -392,7 +394,7 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-spl-fade{animation:c-spl-out .3s ease-in forwards}
 @keyframes c-spl-out{to{opacity:0;visibility:hidden}}
 @media (max-width: 380px){ .c-spl-tagrow{font-size:12px} .c-spl-row{font-size:44px} .c-spl-term{font-size:13px} }
-@media (prefers-reduced-motion: reduce){ .c-splash,.c-splash *{animation:none} }
+@media (prefers-reduced-motion: reduce){ .c-splash,.c-splash *{animation:none;transition:none} }
 .c-toggles{display:flex;gap:8px;flex-wrap:wrap}
 
 /* ---------- round 6: Act 1 red-herring call-out, Act 2 hidden asset, impact, layers, damage, About reset ---------- */

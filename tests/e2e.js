@@ -100,7 +100,7 @@ async function run(view, c, browser) {
 
   await page.goto(BASE);
   await page.waitForSelector('.c-level');
-  // splash: terminal login, shown once per session, one label, skip button; ~5.5 s
+  // splash: terminal login, then K-E-P-T typed one by one, tagline, 3.5 s hold; once per session, one label, skip button
   if (!(await page.locator('.c-splash').count())) bad(tag + ' no splash on first load');
   else {
     const lbl = await page.getAttribute('.c-spl-art', 'aria-label');
@@ -116,8 +116,21 @@ async function run(view, c, browser) {
       await shot('0splash');
       await page.waitForSelector('.c-spl-logo:not([hidden])', { timeout: 5000 });
       if (await page.locator('.c-spl-term').isVisible()) bad(tag + ' terminal still visible with the logo');
+      // K, E, P, T appear one at a time
+      const seen = await page.evaluate(() => new Promise((res) => {
+        const el = document.querySelector('.c-spl-kept'), got = [];
+        const iv = setInterval(() => { const t = el.textContent; if (got[got.length - 1] !== t) got.push(t); if (t === 'KEPT') { clearInterval(iv); res(got); } }, 30);
+        setTimeout(() => { clearInterval(iv); res(got); }, 4000);
+      }));
+      if (seen[seen.length - 1] !== 'KEPT' || !seen.includes('K') || !seen.includes('KEP')) bad(tag + ' KEPT not typed letter by letter: ' + seen.join('|'));
+      await page.waitForSelector('.c-spl-tagrow.on', { timeout: 3000 });
+      const shown = Date.now();
+      await page.waitForTimeout(600);
+      if (view.name === '1280x720') await contrast('splash-final');
       await shot('0splash-logo');
-      await page.waitForSelector('.c-splash', { state: 'detached', timeout: 4000 }).catch(() => {});
+      await page.waitForSelector('.c-splash', { state: 'detached', timeout: 7000 }).catch(() => {});
+      const held = Date.now() - shown;
+      if (held < 3400) bad(tag + ' final KEPT screen held only ' + held + ' ms');
     } else if (c.level === 2 && view.phone) { await page.click('.c-spl-skip'); }
     else { await page.keyboard.press('Space'); }
     if (await page.locator('.c-splash').count()) bad(tag + ' splash still there');
@@ -357,7 +370,10 @@ async function run(view, c, browser) {
     const rm = await browser.newContext({ viewport: { width: 1280, height: 720 }, reducedMotion: 'reduce' });
     const p3 = await rm.newPage(); await p3.goto(BASE);
     if (!(await p3.locator('.c-spl-logo:not([hidden])').count()) || (await p3.locator('.c-spl-term .c-spl-line').count())) bad('reduced-motion splash is not the static logo');
-    await p3.waitForSelector('.c-splash', { state: 'detached', timeout: 2500 }).catch(() => bad('reduced-motion splash longer than ~1 s'));
+    if ((await p3.textContent('.c-spl-kept')) !== 'KEPT' || !(await p3.locator('.c-spl-tagrow.on').count())) bad('reduced-motion splash is not the finished KEPT + tagline screen');
+    await p3.waitForTimeout(3000);
+    if (!(await p3.locator('.c-splash').count())) bad('reduced-motion splash gone before 3 s');
+    await p3.waitForSelector('.c-splash', { state: 'detached', timeout: 2500 }).catch(() => bad('reduced-motion splash longer than ~3.5 s'));
     await rm.close();
     console.log('ok splash/reset');
   }
