@@ -536,7 +536,9 @@
       {
         "n": 2,
         "zone": "test",
-        "name": "Guessed password works on the test account"
+        "name": "Guessed password works on the test account",
+        "reach": "test tenant account taken",
+        "severity": "contained"
       },
       {
         "n": 3,
@@ -546,7 +548,9 @@
       {
         "n": 4,
         "zone": "corp",
-        "name": "Register malicious OAuth apps"
+        "name": "Register malicious OAuth apps",
+        "reach": "malicious apps registered",
+        "severity": "contained"
       },
       {
         "n": 5,
@@ -561,29 +565,60 @@
       {
         "n": 7,
         "zone": "corp",
-        "name": "Read leadership mailboxes"
+        "name": "Read leadership mailboxes",
+        "reach": "leadership mailboxes read",
+        "severity": "severe"
       }
     ],
-    "note": "ATT&CK codes for each stage come from the timeline above, so Act 1 and Act 2 always match."
+    "note": "ATT&CK codes for each stage come from the timeline above, so Act 1 and Act 2 always match.",
+    "hidden": {
+      "stage": 2,
+      "name": "Legacy, non-production test tenant account · no MFA",
+      "source": "blog"
+    }
   },
-  "budget": 10,
+  "budget": 9,
   "controls": [
     {
-      "id": "mfa",
-      "name": "MFA on all accounts, incl. test tenants",
+      "id": "caprod",
+      "name": "Conditional Access: require MFA in the production tenant",
       "cost": 2,
       "stage": 2,
       "effect": "block",
+      "coversHidden": false,
+      "friction": 0,
+      "why": "Every production sign-in needs MFA.",
+      "whyScoped": "Covered the production tenant only. The sprayed account lived in a legacy test tenant outside the policy.",
+      "teach": "A policy only protects what's in its scope."
+    },
+    {
+      "id": "inventory",
+      "name": "Inventory non-production tenants",
+      "cost": 2,
+      "stage": 2,
+      "effect": "reveal",
+      "friction": 0,
+      "why": "Found it: a legacy, non-production test tenant account with no MFA.",
+      "teach": "You can't protect what you haven't found."
+    },
+    {
+      "id": "testmfa",
+      "name": "Require MFA in the test tenant too",
+      "cost": 2,
+      "stage": 2,
+      "effect": "block",
+      "needs": "reveal",
       "friction": 0,
       "why": "Spray found the password, but MFA stopped the login.",
       "teach": "Test tenants are real attack surface."
     },
     {
       "id": "decom",
-      "name": "Decommission test tenant & unused apps",
+      "name": "Decommission the legacy test tenant",
       "cost": 2,
       "stage": 2,
       "effect": "block",
+      "needs": "reveal",
       "friction": 1,
       "why": "No forgotten test tenant, no target.",
       "teach": "Asset inventory and hygiene."
@@ -643,9 +678,9 @@
       "name": "Scope app mailbox access",
       "cost": 2,
       "stage": 7,
-      "effect": "limit",
+      "effect": "block",
       "friction": 0,
-      "why": "App could reach only the mailboxes it was scoped to.",
+      "why": "The app could reach only the mailboxes it was scoped to, and leadership mailboxes weren't in scope.",
       "teach": "Scope app access."
     },
     {
@@ -657,6 +692,16 @@
       "friction": 0,
       "why": "Mass mailbox reading by an app detected.",
       "teach": "Detection engineering."
+    },
+    {
+      "id": "runbook",
+      "name": "Rehearsed IR runbook: revoke app access fast",
+      "cost": 3,
+      "stage": 7,
+      "effect": "recover",
+      "friction": 0,
+      "why": "Your team can cut the attacker's apps off and rotate credentials quickly.",
+      "teach": "Recovery is a layer too: plan the way back."
     },
     {
       "id": "lock",
@@ -705,10 +750,9 @@
     }
   ],
   "stars": {
-    "three": "Blocked at stage 2 or earlier and no decoys bought",
-    "two": "Blocked at any stage",
-    "one": "Detected or limited, not blocked",
-    "zero": "Breach succeeded"
+    "one": "attack stopped",
+    "two": "+ detection at a later stage",
+    "three": "+ a recovery control"
   },
   "ranks": [
     "INTERN",
@@ -732,12 +776,11 @@
   "act2": {
     "title": "Harden the tenant",
     "short": "October 2023. Deploy controls on a budget, then run the real attack against your build.",
-    "help": "Tap a control to deploy or remove it, or drag it onto a stage in the zone it protects. Each control costs energy and the budget is 10, so you can't buy everything. Then execute the attack: it replays stage by stage against your build, and the log explains every result.",
+    "help": "Tap a control to deploy or remove it, or drag it onto a stage in the zone it protects. Each control costs energy and the budget is 9, so you can't buy everything. Not every asset is in your inventory yet: discovery controls find what's missing. Then execute the attack: it replays stage by stage against your build, and the log explains every result.",
     "rewindButton": "> REWIND TO OCTOBER 2023",
     "simName": "midnight_blizzard",
     "stepMs": 700,
     "xpPerStar": 150,
-    "threeStarMaxStage": 2,
     "friction": {
       "low": 1,
       "medium": 3
@@ -745,31 +788,26 @@
     "outcomes": {
       "prevented": {
         "title": "Breach prevented",
-        "sub": "Attack chain broken at stage {n} of {total}. They never got in.",
-        "loss": "0"
+        "sub": "Attack chain broken at stage {n} of {total}. They never got in."
       },
       "contained": {
         "title": "Breach contained",
-        "sub": "They got in, but you stopped them at stage {n} of {total}, before the mailboxes.",
-        "loss": "0"
+        "sub": "They got in, but you stopped them at stage {n} of {total}, before the mailboxes."
       },
       "detected": {
         "title": "Breach detected",
-        "subDetected": "They reached the mailboxes, but you caught them early.",
-        "subLimited": "They reached the mailboxes, but you limited the damage.",
-        "subBoth": "They reached the mailboxes, but you caught them early and limited the damage.",
-        "lossBoth": "FEW",
-        "lossOne": "SOME"
+        "sub": "They reached the mailboxes, but your detection caught them in progress."
       },
       "succeeded": {
         "title": "Breach succeeded",
-        "sub": "Like the real incident: weeks of mailbox access before anyone noticed.",
-        "loss": "MANY"
+        "sub": "Like the real incident: weeks of mailbox access before anyone noticed."
       }
     },
     "tips": {
-      "notThree": "For 3 stars, stop it at stage 2 with no decoys. One control on the test account keeps them out.",
-      "decoyStar": "You stopped it early, but decoys cost you the third star.",
+      "notStopped": "The attack ran all the way. Check where it really got in, and whether that account was in your inventory.",
+      "unknownAsset": "The attacker entered via an asset not in your inventory. You can't protect what you haven't found.",
+      "noDetect": "Stopped, but nothing would notice if that layer failed. Add detection at a later stage for the second star.",
+      "noRecover": "Prevent and detect are in place. Add a way back after an attack for the third star.",
       "decoys": "{n} decoy(s) cost budget but did nothing against this attack.",
       "friction": "High friction: users will push back. Find a lighter build.",
       "always": "Microsoft's Jan 25 guidance covers two areas: protecting against password spray, and defending against malicious OAuth apps by auditing privileged apps, consent and mailbox access."
@@ -786,10 +824,18 @@
       "wrongZone": "[!] {name} protects the {zone}. Drop it on a stage there.",
       "deployed": "[+] deployed: {name} → stage {n}",
       "removed": "[-] removed: {name}",
-      "attempted": "[~] stage {n} · {stage}: attempted from outside. Can't be blocked here; defense starts at stage 2."
+      "attempted": "[~] stage {n} · {stage}: attempted from outside. Can't be blocked here; defense starts at stage 2.",
+      "scoped": "[~] {name}: known assets only.",
+      "revealed": "[+] discovered: {asset}",
+      "deployedReveal": "[+] deployed: {name} (discovery)",
+      "locked": "[!] {name}: find the asset first. Deploy a discovery control.",
+      "removedDeps": "(it needs the discovery control)",
+      "viaUnknown": "[!!] entered via an asset not in your inventory",
+      "viaKnown": "[!!] entered via a known asset you didn't protect",
+      "impact": "[◆] impact · stage {n} · {stage}:",
+      "recover": "[+] recovery ready at stage {n}:"
     },
     "preventedMaxStage": 2,
-    "lossLabel": "mailboxes lost",
     "attemptedNote": "Spraying from outside can't be blocked by the defender. Defense starts at stage 2, when a guessed password meets the test account.",
     "mapCmd": "> map ./tenants"
   },

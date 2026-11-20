@@ -14,10 +14,10 @@
     "TODO: verify: DarkSide is ransomware-as-a-service run with affiliates (briefing page 2), against CISA/FBI AA21-131A.",
     "TODO: verify: AA21-131A recommends MFA for remote access to IT and OT networks (Act 2 tip, MFA control), against CISA/FBI AA21-131A.",
     "TODO: verify: AA21-131A recommends segmenting IT and OT networks and keeping regular, offline backups (Act 2 tip, controls), against CISA/FBI AA21-131A.",
-    "TODO: verify: AA21-131A wording on endpoint detection (EDR control) and on monitoring outbound traffic (egress control).",
     "TODO: verify: DOJ announced on June 7, 2021 that it seized part of the ransom (briefing timeline). The amount (63.7 of about 75 bitcoin) is only stated by Senators in the hearing record, so the game does not show it.",
     "TODO: verify: the AA21-131A and DOJ source titles, dates and URLs (both sites refused automated access during this pass).",
-    "Not used: the date of first access (widely reported as April 29, 2021) is not in Blount's testimony, so the game shows it as not public in this case."
+    "Not used: the date of first access (widely reported as April 29, 2021) is not in Blount's testimony, so the game shows it as not public in this case.",
+    "Not shown in the game: AA21-131A wording on endpoint detection (EDR control) and on monitoring outbound traffic (egress control). The controls' text doesn't cite the advisory."
   ],
   "sources": [
     {
@@ -81,7 +81,7 @@
           },
           {
             "type": "note",
-            "text": "Facts in this case come from CEO Joseph Blount's Senate testimony (June 2021), the CISA/FBI advisory on DarkSide and the U.S. Department of Justice. Log entries in the game are recreated for training."
+            "text": "Facts in this case come from CEO Joseph Blount's Senate testimony and his answers at the hearing (June 2021). Log entries in the game are recreated for training."
           }
         ]
       },
@@ -378,7 +378,7 @@
         "conn  src=<vpn-session>  dst=<it-system-a>",
         "conn  src=<vpn-session>  dst=<it-system-b>"
       ],
-      "todo": "Colonial has not published how the attacker moved inside; the rows are generic on purpose."
+      "note": "Colonial has not published how the attacker moved inside; the rows are generic on purpose."
     },
     {
       "id": "E4",
@@ -544,7 +544,9 @@
       {
         "n": 2,
         "zone": "it",
-        "name": "Sign in via the legacy VPN profile, password only"
+        "name": "Sign in via the legacy VPN profile, password only",
+        "reach": "inside the IT network",
+        "severity": "contained"
       },
       {
         "n": 3,
@@ -554,42 +556,68 @@
       {
         "n": 4,
         "zone": "biz",
-        "name": "Copy data off the share drive"
+        "name": "Copy data off the share drive",
+        "reach": "data stolen",
+        "severity": "severe"
       },
       {
         "n": 5,
         "zone": "biz",
-        "name": "Encrypt IT systems, leave ransom note"
+        "name": "Encrypt IT systems, leave ransom note",
+        "reach": "IT encrypted",
+        "severity": "severe"
       },
       {
         "n": 6,
         "zone": "ot",
-        "name": "Pipeline shut down to protect OT"
+        "name": "Pipeline shut down to protect OT",
+        "reach": "operations halted",
+        "severity": "critical",
+        "impact": true,
+        "impactNote": "Not an attacker action: Colonial's operators shut the pipeline down to keep the malware away from the OT network."
       }
     ],
-    "note": "ATT&CK codes for each stage come from the timeline above, so Act 1 and Act 2 always match."
+    "note": "ATT&CK codes for each stage come from the timeline above, so Act 1 and Act 2 always match.",
+    "hidden": {
+      "stage": 2,
+      "name": "Legacy VPN profile · single-factor",
+      "source": "hearing"
+    }
   },
-  "budget": 10,
+  "budget": 8,
   "controls": [
     {
       "id": "mfa",
-      "name": "MFA on every VPN profile",
+      "name": "MFA on the VPN gateway (known profiles)",
       "cost": 2,
       "stage": 2,
       "effect": "block",
+      "coversHidden": true,
       "friction": 0,
-      "why": "Right password, but no second factor: the sign-in stopped.",
+      "why": "Every profile in your inventory now asks for a second factor, including the legacy one you found.",
+      "whyScoped": "Covered the known profiles only. The legacy profile wasn't in your inventory, so a password alone still worked.",
       "teach": "Blount told the Senate that MFA is “absolutely the correct advice.”"
     },
     {
-      "id": "decom",
-      "name": "Disable unused accounts & VPN profiles",
+      "id": "audit",
+      "name": "Audit remote-access (VPN) profiles",
       "cost": 2,
       "stage": 2,
+      "effect": "reveal",
+      "friction": 0,
+      "why": "Found it: a legacy VPN profile that was not intended to be in use, with single-factor authentication.",
+      "teach": "Blount said it didn't show up in any pen testing. An inventory finds doors like this."
+    },
+    {
+      "id": "disable",
+      "name": "Disable the legacy VPN profile",
+      "cost": 1,
+      "stage": 2,
       "effect": "block",
+      "needs": "reveal",
       "friction": 0,
       "why": "The legacy profile no longer existed, so the password opened nothing.",
-      "teach": "Inventory every remote-access path. Colonial shut the profile down after the attack."
+      "teach": "Colonial shut the profile down after the attack."
     },
     {
       "id": "edr",
@@ -599,8 +627,7 @@
       "effect": "detect",
       "friction": 0,
       "why": "Unusual activity from the VPN session raised an alert early.",
-      "teach": "EDR watches behaviour, not just known malware.",
-      "todo": "TODO: verify: AA21-131A wording on endpoint detection."
+      "teach": "EDR watches behaviour, not just known malware."
     },
     {
       "id": "egress",
@@ -610,18 +637,7 @@
       "effect": "detect",
       "friction": 0,
       "why": "A big copy from the share drive to an outside host raised an alert.",
-      "teach": "Stolen data has to leave through your network. Watch what leaves.",
-      "todo": "TODO: verify: AA21-131A wording on monitoring outbound traffic."
-    },
-    {
-      "id": "backup",
-      "name": "Offline, tested backups",
-      "cost": 2,
-      "stage": 5,
-      "effect": "limit",
-      "friction": 0,
-      "why": "IT systems came back from backups the ransomware couldn't reach.",
-      "teach": "Blount said Mandiant told him Colonial had really good backups, and restoring still took days."
+      "teach": "Stolen data has to leave through your network. Watch what leaves."
     },
     {
       "id": "irp",
@@ -630,8 +646,18 @@
       "stage": 5,
       "effect": "detect",
       "friction": 0,
-      "why": "Trained staff acted at once: the note was reported, the pipeline stopped safely and the FBI was called that morning.",
+      "why": "Trained staff acted at once: the note was reported, the response process started and the FBI was called that morning.",
       "teach": "Blount credited Colonial's incident response process and everyone's stop work authority."
+    },
+    {
+      "id": "backup",
+      "name": "Offline, tested backups",
+      "cost": 3,
+      "stage": 5,
+      "effect": "recover",
+      "friction": 0,
+      "why": "IT systems can come back from backups the ransomware couldn't reach.",
+      "teach": "Blount said Mandiant told him Colonial had really good backups, and restoring still took days."
     },
     {
       "id": "seg",
@@ -699,10 +725,9 @@
     }
   ],
   "stars": {
-    "three": "Blocked at stage 2 or earlier and no decoys bought",
-    "two": "Blocked at any stage",
-    "one": "Detected or limited, not blocked",
-    "zero": "Breach succeeded"
+    "one": "attack stopped",
+    "two": "+ detection at a later stage",
+    "three": "+ a recovery control"
   },
   "ranks": [
     "INTERN",
@@ -730,51 +755,46 @@
   "act2": {
     "title": "Harden the network",
     "short": "Before the break-in. Deploy controls on a budget, then run the real attack against your build.",
-    "help": "Tap a control to deploy or remove it, or drag it onto a stage in the zone it protects. Each control costs energy and the budget is 10, so you can't buy everything. Then execute the attack: it replays stage by stage against your build, and the log explains every result.",
+    "help": "Tap a control to deploy or remove it, or drag it onto a stage in the zone it protects. Each control costs energy and the budget is 8, so you can't buy everything. Not every asset is in your inventory yet: discovery controls find what's missing. Then execute the attack: it replays stage by stage against your build, and the log explains every result.",
     "rewindButton": "> REWIND TO BEFORE THE BREAK-IN",
     "simName": "darkside",
     "stepMs": 700,
     "xpPerStar": 150,
-    "threeStarMaxStage": 2,
     "preventedMaxStage": 2,
     "friction": {
       "low": 1,
       "medium": 3
     },
-    "lossLabel": "damage",
     "attemptedNote": "Getting hold of a password happens outside your network, so you can't block it there. Defense starts at stage 2, when the password meets the VPN.",
     "outcomes": {
       "prevented": {
         "title": "Breach prevented",
-        "sub": "Attack chain broken at stage {n} of {total}. They never got in.",
-        "loss": "NONE"
+        "sub": "Attack chain broken at stage {n} of {total}. They never got in."
       },
       "contained": {
         "title": "Breach contained",
-        "sub": "They got into IT, but you stopped them at stage {n} of {total}, before the pipeline.",
-        "loss": "IT ONLY"
+        "sub": "They got into IT, but you stopped them at stage {n} of {total}, before the pipeline."
       },
       "detected": {
         "title": "Breach detected",
-        "subDetected": "The pipeline still stopped, but you caught them early.",
-        "subLimited": "The pipeline still stopped, but you recovered without the criminals' key.",
-        "subBoth": "The pipeline still stopped, but you caught them early and recovered from your own backups.",
-        "lossBoth": "REDUCED",
-        "lossOne": "SOME"
+        "sub": "The attack ran its course, but your detection caught it in progress."
       },
       "succeeded": {
         "title": "Breach succeeded",
-        "sub": "Like the real incident: IT encrypted, data stolen and the pipeline down for days.",
-        "loss": "SEVERE"
+        "sub": "Like the real incident: IT encrypted, data stolen and the pipeline down for days."
       }
     },
     "tips": {
-      "notThree": "For 3 stars, stop it at stage 2 with no decoys. One control on the legacy VPN profile keeps them out.",
-      "decoyStar": "You stopped it early, but decoys cost you the third star.",
+      "notStopped": "The attack ran all the way. Check where it really got in, and whether that profile was in your inventory.",
+      "unknownAsset": "The attacker entered via an asset not in your inventory. You can't protect what you haven't found.",
+      "noDetect": "Stopped, but nothing would notice if that layer failed. Add detection at a later stage for the second star.",
+      "noRecover": "Prevent and detect are in place. Add a way back after an attack for the third star.",
       "decoys": "{n} decoy(s) cost budget but did nothing against this attack.",
       "friction": "High friction: users will push back. Find a lighter build.",
-      "always": "CISA and FBI's DarkSide advisory starts with MFA for remote access to IT and OT networks, and covers IT/OT segmentation and regular offline backups.",
-      "todo": "TODO: verify: the 'always' tip against AA21-131A."
+      "always": {
+        "t": "CISA and FBI's DarkSide advisory starts with MFA for remote access to IT and OT networks, and covers IT/OT segmentation and regular offline backups.",
+        "todo": "TODO: verify: the 'always' tip against AA21-131A."
+      }
     },
     "logs": {
       "idle": "> deploy controls, then execute",
@@ -788,7 +808,16 @@
       "overBudget": "[!] over budget: {name} costs {cost}, you have {left} left. Remove a control first.",
       "wrongZone": "[!] {name} protects the {zone}. Drop it on a stage there.",
       "deployed": "[+] deployed: {name} → stage {n}",
-      "removed": "[-] removed: {name}"
+      "removed": "[-] removed: {name}",
+      "scoped": "[~] {name}: known assets only.",
+      "revealed": "[+] discovered: {asset}",
+      "deployedReveal": "[+] deployed: {name} (discovery)",
+      "locked": "[!] {name}: find the asset first. Deploy a discovery control.",
+      "removedDeps": "(it needs the discovery control)",
+      "viaUnknown": "[!!] entered via an asset not in your inventory",
+      "viaKnown": "[!!] entered via a known asset you didn't protect",
+      "impact": "[◆] impact · stage {n} · {stage}:",
+      "recover": "[+] recovery ready at stage {n}:"
     },
     "mapCmd": "> map ./network"
   },

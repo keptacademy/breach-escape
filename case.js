@@ -48,7 +48,10 @@
     return el;
   }
   function plain(text) { return String(text || '').replace(/`/g, ''); }
-  function srcById(id) { return (C.d.sources || []).filter(function (s) { return s.id === id; })[0]; }
+  // Anything in the level JSON that carries a "todo" (an unverified fact) is never shown to players.
+  function shown(x) { return !(x && typeof x === 'object' && x.todo); }
+  function tipText(x) { return !x || !shown(x) ? null : typeof x === 'object' ? x.t : x; }
+  function srcById(id) { return (C.d.sources || []).filter(function (s) { return s.id === id && shown(s); })[0]; }
 
   /* ---------- terminal backdrop: code rain + red edge flash ---------- */
   var rain = { cv: null, ctx: null, cols: [], timer: null, red: false };
@@ -225,6 +228,7 @@
   function kvList(kv) {
     var dl = h('dl', { class: 'c-kv' });
     kv.forEach(function (r) {
+      if (!shown(r)) return;
       dl.appendChild(h('dt', { text: r.k }));
       var dd = tone(rich(r.v, h('dd', {})), r.tone), src = r.source && srcById(r.source);
       if (src) dd.appendChild(h('a', { class: 'c-small c-cite', href: src.url, target: '_blank', rel: 'noopener noreferrer', text: 'source: ' + src.title }));
@@ -242,7 +246,7 @@
         kids.push(para(b.text));
         // The threat actor row comes from briefing.threatActor and goes right after the first row (Victim).
         var kv = (b.kv || []).slice(), ta = C.d.briefing.threatActor;
-        if (ta) kv.splice(Math.min(1, kv.length), 0, { k: 'Threat actor', v: ta.v, source: ta.source });
+        if (ta && shown(ta)) kv.splice(Math.min(1, kv.length), 0, { k: 'Threat actor', v: ta.v, source: ta.source });
         if (kv.length) kids.push(kvList(kv));
         return panel('danger', kids);
       case 'note':
@@ -264,7 +268,7 @@
       case 'timeline':
         kids.push(eyebrow(b.eyebrow));
         var tl = h('div', { class: 'c-tl' });
-        b.items.forEach(function (it) { tl.appendChild(tone(h('div', {}, [h('b', { text: it.d }), it.t]), it.tone)); });
+        b.items.filter(shown).forEach(function (it) { tl.appendChild(tone(h('div', {}, [h('b', { text: it.d }), it.t]), it.tone)); });
         kids.push(tl);
         return panel('', kids);
       case 'diagram':
@@ -299,7 +303,7 @@
   }
   function sourcesLine() {
     var p = h('p', { class: 'c-small c-src' }, ['Sources: ']);
-    (C.d.sources || []).forEach(function (s, n) {
+    (C.d.sources || []).filter(shown).forEach(function (s, n) {
       if (n) p.appendChild(document.createTextNode(' \u00b7 '));
       p.appendChild(h('a', { href: s.url, target: '_blank', rel: 'noopener noreferrer', text: s.title }));
     });
@@ -326,6 +330,7 @@
     E.line = para(a1.short || a1.help, 'c-line');
     E.helpBox = h('div', { class: 'c-helpbox', id: 'c-help', hidden: true }, [
       para(a1.help),
+      h('p', { class: 'c-small', text: 'Tip: double-click a card (or press Enter) to add it to the timeline.' }),
       h('p', { class: 'c-small', text: 'Keys: A add to timeline \u00b7 X not related \u00b7 H hint. Tap a dotted word to see what it means.' }),
       h('div', { class: 'c-toggles' }, [voiceToggle(), BE.soundToggle()])
     ]);
@@ -410,7 +415,14 @@
       attachDrag(b, {
         can: function () { return A.phase === 'order'; },
         pick: function () { A.sel = c; },
-        click: function () { select(c); },
+        click: function () {
+          // Desktop double-click: two mouse clicks on the same card within 400 ms add it, exactly like a drop on the timeline.
+          // (Timed per card, because each click redraws the grid.) Touch keeps tap-to-select + "add to timeline".
+          var now = Date.now();
+          if (lastPointer === 'mouse' && dbl.id === c.e.id && now - dbl.t < 400) { dbl = {}; A.sel = c; place(); refocus(c); return; }
+          dbl = { id: c.e.id, t: now };
+          select(c);
+        },
         targets: function () { return [E.slots, E.add, E.nr]; },
         drop: function (t) {
           A.sel = c;
@@ -419,6 +431,11 @@
           else if (kind === 'nr') dismiss();
           else { drawAct1(); restart(c.el, 'c-shake'); }   // dropped nowhere: wobble back, stay selected
         }
+      });
+      b.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' || A.phase !== 'order' || e.altKey || e.ctrlKey || e.metaKey) return;
+        e.preventDefault();          // Enter adds the card (Space still just selects it)
+        A.sel = c; place(); refocus(c);
       });
       E.grid.appendChild(b);
     });
@@ -431,6 +448,8 @@
     E.hint.appendChild(h('span', { text: A.hinted[hk] ? 'hint used' : '? hint' }));
     E.hint.appendChild(h('span', { class: 'c-small', text: 'step ' + pad(A.next, 2) + (A.hinted[hk] ? '' : ' \u00b7 ' + C.d.act1.scoring.hint + ' XP') }));
     E.bar.hidden = A.phase !== 'order';
+    // Highlight Not related once the timeline is full and only red herrings are left.
+    E.nr.classList.toggle('c-call', A.phase === 'order' && A.placed.length === total() && A.cards.some(function (c) { return !c.done; }));
     E.main.classList.toggle('c-solo', A.phase !== 'order');
   }
   function drawInspect() {
@@ -443,6 +462,14 @@
     var pre = h('div', { class: 'c-rows' });
     (c.e.rows || []).forEach(function (r) { pre.appendChild(h('div', { text: r })); });
     E.inspect.appendChild(pre);
+  }
+  var dbl = {}, lastPointer = 'mouse';
+  document.addEventListener('pointerdown', function (e) { lastPointer = e.pointerType || 'mouse'; }, true);
+  // After a keyboard or double-click add, keep focus in the evidence grid.
+  function refocus(c) {
+    if (A.phase !== 'order') return;
+    var el = c.el && c.el.isConnected && !c.done ? c.el : E.grid.querySelector('.c-card');
+    if (el) el.focus({ preventScroll: true });
   }
   function select(c) { A.sel = A.sel === c ? null : c; drawAct1(); if (A.sel && A.sel.el) A.sel.el.focus({ preventScroll: true }); }
   function toast(msg, ok, voiceKey) {
@@ -488,6 +515,11 @@
   }
   function afterMove() {
     drawAct1();
+    var leftN = A.cards.filter(function (c) { return !c.done; }).length;
+    if (A.placed.length === total() && leftN) {
+      E.toast.appendChild(h('span', { class: 'c-voice c-callmsg', text: fmt(C.d.act1.herringsLeft || 'Timeline complete. {n} {cards} left: mark {them} Not related to close the case.',
+        { n: leftN, cards: leftN > 1 ? 'cards' : 'card', them: leftN > 1 ? 'them' : 'it' }) }));
+    }
     if (A.cards.every(function (c) { return c.done; })) {
       A.phase = 'pz';
       E.deck.hidden = true;
@@ -536,7 +568,7 @@
       stat('time', mm + ':' + (ss < 10 ? '0' : '') + ss)
     ]));
     var tl = h('ol', { class: 'c-reveal' });
-    d.timeline.forEach(function (t) {
+    d.timeline.filter(shown).forEach(function (t) {
       var src = srcById(t.source);
       var li = h('li', {}, [
         h('div', { class: 'c-hud' }, [h('b', { text: 'STAGE ' + t.stage + (t.date ? ' \u00b7 ' + t.date.toUpperCase() : '') }),
@@ -558,9 +590,23 @@
   function stat(label, v, t) { return h('div', { class: 'c-stat' }, [h('span', { class: 'c-small', text: label }), tone(h('span', { class: 'c-v', text: v }), t)]); }
 
   /* ---------- Act 2: Defend (defense map + control deck + replay) ----------
-     Everything comes from the level JSON: map zones/stages, controls (cost, stage, effect, friction, why),
-     budget, star rules, outcomes, tips and log lines. Effects: block | detect | limit | decoy. */
+     Everything comes from the level JSON: map zones and stages, the hidden asset, controls (cost, stage, effect, friction, why),
+     budget, outcomes, tips and log lines.
+     Effects: block | detect | recover | reveal | decoy. Layers: block = prevent, detect = detect, recover = recover.
+     Hidden asset (map.hidden): the door the real attack uses at its stage. It isn't in the defender's inventory until a
+     "reveal" (discovery) control is deployed. A block control on that stage stops the attack only if it covers the asset:
+     controls with needs:"reveal" always do (they can only be deployed once it's found); others only with coversHidden:true
+     once the asset is revealed. Anything else there is "scoped": it covers known assets only.
+     Stages can be "unblockable" (it happens outside the defender's network: ATTEMPTED) or "impact" (the victim's own
+     defensive decision, e.g. a shutdown: IMPACT, never BREACHED). "reach" and "severity" on a stage build the damage line. */
   var B = null, F = {};   // Act 2 state (the build survives "try another build") and element refs
+  var SEV = ['none', 'contained', 'severe', 'critical'];
+  var DAMAGE_SCALE = [
+    ['NONE', 'stopped at entry'],
+    ['CONTAINED', 'in, but stopped before data or systems were hit'],
+    ['SEVERE', 'data stolen or systems encrypted'],
+    ['CRITICAL', 'operations halted']
+  ];
   function fmt(t, v) { return String(t || '').replace(/\{(\w+)\}/g, function (_, k) { return v && v[k] != null ? v[k] : ''; }); }
   function ctl(id) { return C.d.controls.filter(function (c) { return c.id === id; })[0]; }
   function stageOf(n) { return C.d.map.stages.filter(function (s) { return s.n === n; })[0]; }
@@ -574,6 +620,10 @@
   function deployed() { return C.d.controls.filter(function (c) { return B.on.indexOf(c.id) >= 0; }); }
   function spent() { return deployed().reduce(function (a, c) { return a + c.cost; }, 0); }
   function left() { return C.d.budget - spent(); }
+  function hidden() { return C.d.map.hidden || null; }
+  function revealed() { return deployed().some(function (c) { return c.effect === 'reveal'; }); }
+  function locked(c) { return c.needs === 'reveal' && !revealed(); }
+  function layerOf(c) { return { block: 'prevent', detect: 'detect', recover: 'recover', reveal: 'discovery', decoy: 'decoy' }[c.effect] || c.effect; }
 
   function startAct2() {
     if (!B) B = { on: [] };
@@ -590,7 +640,7 @@
     BE.onLeave(stopRun);
 
     F.title = h('h2', { class: 'c-h2', text: a2.title });
-    var helpBox = h('div', { class: 'c-helpbox', id: 'c-help2', hidden: true }, [para(a2.help), h('div', { class: 'c-toggles' }, [voiceToggle(), BE.soundToggle()])]);
+    var helpBox = h('div', { class: 'c-helpbox', id: 'c-help2', hidden: true }, [para(a2.help), scaleHelp(), h('div', { class: 'c-toggles' }, [voiceToggle(), BE.soundToggle()])]);
     var helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How to play', 'aria-expanded': 'false', 'aria-controls': 'c-help2', text: '?', onclick: function () {
       var open = helpBox.hidden; helpBox.hidden = !open; helpBtn.setAttribute('aria-expanded', String(open));
     } });
@@ -631,16 +681,28 @@
     drawAct2();
   }
 
+  // "?" panel: how stars work and what each damage label means.
+  function scaleHelp() {
+    var st = C.d.stars || {};
+    var dl = h('dl', { class: 'c-kv c-scale' });
+    DAMAGE_SCALE.forEach(function (d) { dl.appendChild(h('dt', { text: d[0] })); dl.appendChild(h('dd', { text: d[1] })); });
+    return h('div', { class: 'c-stack' }, [
+      h('p', { class: 'c-small', text: 'Stars: ★ ' + (st.one || 'attack stopped') + ' · ★★ ' + (st.two || '+ detection at a later stage') + ' · ★★★ ' + (st.three || '+ a recovery control') + '.' }),
+      h('p', { class: 'c-small', text: 'Damage scale (what the attacker reached):' }),
+      dl
+    ]);
+  }
+
   function drawAct2() { drawMap(); drawDeck(); drawBudget(); }
 
   function drawMap() {
-    var links = C.d.map.links || {};
+    var links = C.d.map.links || {}, hid = hidden(), rev = revealed();
     F.map.textContent = ''; F.nodes = {};
     C.d.map.zones.forEach(function (z) {
       var wrap = tone(h('div', { class: 'c-zone c-mzone' }, [h('span', { class: 'c-zt', text: z.name })]), z.tone);
       var list = C.d.map.stages.filter(function (s) { return s.zone === z.id; });
       list.forEach(function (s, i) {
-        var chips = deployed().filter(function (c) { return c.stage === s.n; }).map(function (c) { return rich(c.name, h('span', { class: 'c-chip' }), false); });
+        var chips = deployed().filter(function (c) { return c.stage === s.n && c.effect !== 'reveal'; }).map(function (c) { return rich(c.name, h('span', { class: 'c-chip' }), false); });
         var codes = h('span', { class: 'c-chips' }, stageCodes(s.n).map(function (m) { return h('span', { class: 'c-mt', text: m }); }));
         var node = h('div', { class: 'c-node', 'data-drop': 'stage', 'data-n': String(s.n), 'data-zone': z.id }, [
           h('div', { class: 'c-ntop' }, [h('span', { class: 'c-nname' }, [h('b', { class: 'c-nn', text: s.n + ' · ' }), rich(s.name, null, false)]), codes]),
@@ -648,6 +710,8 @@
         ]);
         F.nodes[s.n] = node;
         wrap.appendChild(node);
+        // A discovered asset appears under its stage.
+        if (hid && rev && s.n === hid.stage) wrap.appendChild(h('div', { class: 'c-asset' }, [h('span', { class: 'c-pill o', text: 'FOUND' }), rich(hid.name, h('span', {}), false)]));
         if (i < list.length - 1) wrap.appendChild(h('div', { class: 'c-link', 'aria-hidden': 'true' }));
       });
       F.map.appendChild(wrap);
@@ -658,11 +722,12 @@
   function drawDeck() {
     F.deck.textContent = '';
     C.d.controls.forEach(function (c) {
-      var on = B.on.indexOf(c.id) >= 0, z = ctlZone(c);
-      var b = h('button', { class: 'c-ctl' + (on ? ' on' : ''), 'aria-pressed': String(on),
-        'aria-label': plain(c.name) + '. Protects the ' + (z.short || z.name).toLowerCase() + '. Costs ' + c.cost + '.' }, [
-        h('span', { class: 'c-z', text: z.short || z.name }),
+      var on = B.on.indexOf(c.id) >= 0, z = ctlZone(c), lock = locked(c);
+      var b = h('button', { class: 'c-ctl' + (on ? ' on' : '') + (lock ? ' locked' : ''), 'aria-pressed': String(on),
+        'aria-label': plain(c.name) + '. Protects the ' + (z.short || z.name).toLowerCase() + '. Costs ' + c.cost + '.' + (lock ? ' Needs discovery first.' : '') }, [
+        h('span', { class: 'c-z', text: (z.short || z.name) + (c.effect === 'reveal' ? ' · DISCOVERY' : '') }),
         h('span', { class: 'c-cname' }, [on ? '✓ ' : '', rich(c.name, null, false)]),
+        lock ? h('span', { class: 'c-small', text: 'needs discovery first' }) : null,
         h('span', { class: 'c-costrow' }, [bars(c.cost), h('span', { class: 'c-small', text: c.cost + ' energy' })])
       ]);
       attachDrag(b, {
@@ -696,10 +761,24 @@
   }
   function toggle(c) {
     if (B.running) return;
-    var logs = C.d.act2.logs, i = B.on.indexOf(c.id);
-    if (i >= 0) { B.on.splice(i, 1); say('k', fmt(logs.removed, { name: c.name })); }
+    var logs = C.d.act2.logs, i = B.on.indexOf(c.id), hid = hidden();
+    if (i >= 0) {
+      B.on.splice(i, 1); say('k', fmt(logs.removed, { name: c.name }));
+      // Losing the last discovery control also drops the controls that depend on it.
+      if (c.effect === 'reveal' && !revealed()) {
+        deployed().filter(function (d) { return d.needs === 'reveal'; }).forEach(function (d) {
+          B.on.splice(B.on.indexOf(d.id), 1); logLine('k', fmt(logs.removed, { name: d.name }), logs.removedDeps);
+        });
+      }
+    }
+    else if (locked(c)) { say('red', fmt(logs.locked, { name: c.name })); restart(F.status, 'c-shake'); return; }
     else if (c.cost > left()) { overBudget(c); return; }
-    else { B.on.push(c.id); BE.sound('blip'); say('k', fmt(logs.deployed, { name: c.name, n: c.stage })); }
+    else {
+      var wasRevealed = revealed();
+      B.on.push(c.id); BE.sound('blip');
+      say('k', fmt(c.effect === 'reveal' ? logs.deployedReveal : logs.deployed, { name: c.name, n: c.stage }));
+      if (c.effect === 'reveal' && !wasRevealed && hid) logLine('k', fmt(logs.revealed, { asset: hid.name }), c.why);
+    }
     drawAct2();
   }
   function overBudget(c) {
@@ -725,41 +804,57 @@
 
   // The attack against the current build, worked out in full before anything animates.
   function simulate() {
-    var on = deployed(), out = { steps: [], blocked: 0, detected: false, limited: false };
+    var on = deployed(), hid = hidden(), rev = revealed();
+    var out = { steps: [], blocked: 0, detected: false, viaHidden: false, unknown: false };
     C.d.map.stages.forEach(function (s) {
       if (out.blocked) return;
       var here = on.filter(function (c) { return c.stage === s.n; });
+      var blocks = here.filter(function (c) { return c.effect === 'block'; });
       var st = {
-        s: s,
+        s: s, scoped: [],
         decoys: here.filter(function (c) { return c.effect === 'decoy'; }),
         detect: here.filter(function (c) { return c.effect === 'detect'; })[0],
-        limit: here.filter(function (c) { return c.effect === 'limit'; })[0],
-        block: here.filter(function (c) { return c.effect === 'block'; })[0]
+        recover: here.filter(function (c) { return c.effect === 'recover'; })[0],
+        block: blocks[0] || null
       };
+      if (hid && s.n === hid.stage) {
+        var cover = blocks.filter(function (c) { return c.needs === 'reveal' || (rev && c.coversHidden); });
+        st.block = cover[0] || null;
+        st.scoped = blocks.filter(function (c) { return cover.indexOf(c) < 0; });
+        if (!st.block) { st.viaHidden = true; st.unknown = !rev; out.viaHidden = true; out.unknown = !rev; }
+      }
       if (st.detect) out.detected = true;
-      if (st.limit) out.limited = true;
       if (st.block) out.blocked = s.n;
       out.steps.push(st);
     });
     return out;
   }
+  // Stars for defense in depth: 1 = stopped, 2 = stopped + detection at a later stage, 3 = also a recovery control.
+  // Damage comes only from what the attacker actually reached (detection and recovery don't reduce it).
   function score(res) {
     var a2 = C.d.act2, on = deployed(), total = C.d.map.stages.length, o = a2.outcomes;
     var decoys = on.filter(function (c) { return c.effect === 'decoy'; }).length;
     var fr = on.reduce(function (a, c) { return a + (c.friction || 0); }, 0);
     var r = { decoys: decoys, friction: fr, spent: spent(), total: total };
-    // Outcome by where the chain broke: prevented (blocked at stage <= preventedMaxStage), contained (blocked later),
-    // detected (only detected or limited), succeeded (not stopped).
+    var stopper = res.blocked ? res.steps[res.steps.length - 1].block : null;
+    var det = on.filter(function (c) { return c.effect === 'detect' && (!res.blocked || c.stage > res.blocked); });
+    var rec = on.filter(function (c) { return c.effect === 'recover'; });
+    r.layers = { prevent: stopper ? [stopper] : [], detect: det, recover: rec };
+    r.stars = !res.blocked ? 0 : 1 + (det.length ? 1 : 0) + (det.length && rec.length ? 1 : 0);
     if (res.blocked) {
-      r.stars = res.blocked <= a2.threeStarMaxStage && !decoys ? 3 : 2;
       var oc = res.blocked <= a2.preventedMaxStage ? o.prevented : o.contained;
       r.kind = oc === o.prevented ? 'prevented' : 'contained';
-      r.title = oc.title; r.sub = fmt(oc.sub, { n: res.blocked, total: total }); r.loss = oc.loss;
-    } else if (res.detected || res.limited) {
-      r.stars = 1; r.kind = 'detected'; r.title = o.detected.title;
-      r.sub = res.detected && res.limited ? o.detected.subBoth : res.detected ? o.detected.subDetected : o.detected.subLimited;
-      r.loss = res.detected && res.limited ? o.detected.lossBoth : o.detected.lossOne;
-    } else { r.stars = 0; r.kind = 'succeeded'; r.title = o.succeeded.title; r.sub = o.succeeded.sub; r.loss = o.succeeded.loss; }
+      r.title = oc.title; r.sub = fmt(oc.sub, { n: res.blocked, total: total });
+    } else if (res.detected) { r.kind = 'detected'; r.title = o.detected.title; r.sub = o.detected.sub; }
+    else { r.kind = 'succeeded'; r.title = o.succeeded.title; r.sub = o.succeeded.sub; }
+    var ran = res.steps.filter(function (st) { return !st.block; });
+    if (res.blocked && res.blocked <= a2.preventedMaxStage) { r.damage = 'NONE'; r.reach = 'stopped at entry'; }
+    else {
+      var sev = 1;
+      ran.forEach(function (st) { sev = Math.max(sev, Math.max(0, SEV.indexOf(st.s.severity || 'contained'))); });
+      r.damage = SEV[sev].toUpperCase();
+      r.reach = ran.map(function (st) { return st.s.reach; }).filter(Boolean).join(' · ') || 'inside, nothing reached';
+    }
     r.frictionLabel = fr <= a2.friction.low ? 'LOW' : fr <= a2.friction.medium ? 'MED' : 'HIGH';
     r.rank = C.d.ranks[r.stars];
     return r;
@@ -804,8 +899,9 @@
   function showStep(st, node, total) {
     var L = C.d.act2.logs, n = st.s.n;
     st.decoys.forEach(function (c) { logLine('y', fmt(L.decoy, { name: c.name }), c.why); });
+    st.scoped.forEach(function (c) { logLine('y', fmt(L.scoped, { name: c.name }), c.whyScoped); });
     if (st.detect) { logLine('k', fmt(L.detect, { n: n }), st.detect.why); pill(node, 'y', '! DETECTED'); }
-    if (st.limit) { logLine('k', fmt(L.limit, { n: n }), st.limit.why); pill(node, 'y', '◐ LIMITED'); }
+    if (st.recover) logLine('k', fmt(L.recover, { n: n }), st.recover.why);
     if (st.block) {
       node.classList.add('block'); pill(node, 'g', '✓ BLOCKED'); BE.sound('contained');
       logLine('k', fmt(L.block, { n: n }), st.block.why);
@@ -819,6 +915,14 @@
       threat(Math.round(n / total * 100));
       return;
     }
+    // The victim's own defensive decision (e.g. shutting operations down): IMPACT, neutral, never BREACHED.
+    if (st.s.impact) {
+      node.classList.add('impact'); pill(node, 'o', '◆ IMPACT');
+      logLine('b', fmt(L.impact, { n: n, stage: st.s.name }), st.s.impactNote);
+      threat(Math.round(n / total * 100));
+      return;
+    }
+    if (st.viaHidden) logLine('red', st.unknown ? L.viaUnknown : L.viaKnown);
     node.classList.add('breach'); pill(node, 'r', '✕ BREACHED');
     if (!B.alarmed) { B.alarmed = true; BE.sound('alarm'); }   // once per run
     logLine('red', fmt(L.breach, { n: n, stage: st.s.name }));
@@ -834,7 +938,7 @@
     stopRun();
     var r = score(res), rec = caseRec(), prev = rec.act2 || {};
     // Reduced motion skips the replay, so the outcome sound plays with the results instead.
-    if (BE.reduceMotion()) BE.sound(r.kind === 'prevented' || r.kind === 'contained' ? 'contained' : 'alarm');
+    if (BE.reduceMotion()) BE.sound(res.blocked ? 'contained' : 'alarm');
     C.xp = C.xpAct1 + r.stars * C.d.act2.xpPerStar;
     rec.act2 = {
       bestStars: Math.max(r.stars, prev.bestStars || 0),
@@ -859,48 +963,68 @@
     return row;
   }
   function renderResults(res, r, prevBest) {
-    var a2 = C.d.act2, d = C.d, total = r.total;
+    var a2 = C.d.act2, d = C.d, total = r.total, hid = hidden(), T = a2.tips;
     frame('DEBRIEF');
     app.classList.add('c-resscreen');
-    var good = r.stars > 0;
+    var good = !!res.blocked;
     var newBest = prevBest == null || r.stars > prevBest;
     app.appendChild(panel((good ? 'hl' : 'danger') + ' c-rescard', [
       eyebrow('Case ' + d.caseNo + ' · Debrief'),
       h('h1', { class: 'c-display' + (good ? '' : ' t-red'), text: r.title }),
       para(r.sub),
-      voiceP(voiceLine(r.kind === 'prevented' || r.kind === 'contained' ? 'contained' : 'breached')),
+      voiceP(voiceLine(good ? 'contained' : 'breached')),
       starRow(r.stars),
       h('span', { class: 'c-pill ' + (good ? 'g' : 'r'), text: 'CLEARANCE · ' + r.rank }),
       h('p', { class: 'c-small', text: newBest ? 'New best for this case.' : 'Best so far: ' + caseRec().act2.bestStars + '/3 stars.' })
     ]));
+    var dmgTone = r.damage === 'NONE' ? '' : r.damage === 'CONTAINED' ? 'b' : 'red';
     app.appendChild(h('div', { class: 'c-stats' }, [
-      stat(a2.lossLabel, r.loss, r.loss === a2.outcomes.prevented.loss ? '' : 'red'),
+      h('div', { class: 'c-stat c-span2' }, [h('span', { class: 'c-small', text: 'damage' }), tone(h('span', { class: 'c-v', text: r.damage }), dmgTone),
+        h('span', { class: 'c-small c-reach', text: r.reach })]),
       stat('budget used', pad(r.spent, 2) + '/' + d.budget),
       stat('user friction', r.frictionLabel, r.frictionLabel === 'LOW' ? '' : 'y'),
       stat('decoys bought', pad(r.decoys, 2), r.decoys ? 'y' : '')
     ]));
 
+    // Defense layers the build had: prevent / detect / recover.
+    var layers = h('ul', { class: 'c-buildlist c-layers' });
+    [['prevent', 'stops the attack'], ['detect', 'at a later stage than where it stopped'], ['recover', 'a way back after an attack']].forEach(function (ly) {
+      var list = r.layers[ly[0]], has = list.length > 0;
+      layers.appendChild(h('li', { class: has ? 'on' : '' }, [
+        h('div', { class: 'c-hud' }, [h('b', { text: ly[0].toUpperCase() }), h('span', { class: 'c-pill ' + (has ? 'g' : 'o'), text: has ? '✓ IN BUILD' : '— MISSING' })]),
+        h('p', { class: 'c-why' }, has ? [list.map(function (c) { return plain(c.name) + ' (stage ' + c.stage + ')'; }).join(' · ')] : [ly[1]])
+      ]));
+    });
+    app.appendChild(panel('', [eyebrow('Defense layers'), layers]));
+
     var tips = [];
-    if (r.stars < 3) tips.push(['k', res.blocked && res.blocked <= a2.threeStarMaxStage && r.decoys ? a2.tips.decoyStar : a2.tips.notThree]);
-    if (r.decoys) tips.push(['y', fmt(a2.tips.decoys, { n: r.decoys })]);
-    if (r.frictionLabel === 'HIGH') tips.push(['y', a2.tips.friction]);
-    tips.push(['k', a2.tips.always]);
+    if (!res.blocked) tips.push(['k', tipText(T.notStopped)]);
+    if (res.unknown) tips.push(['k', tipText(T.unknownAsset)]);
+    if (res.blocked && !r.layers.detect.length) tips.push(['k', tipText(T.noDetect)]);
+    if (res.blocked && r.layers.detect.length && !r.layers.recover.length) tips.push(['k', tipText(T.noRecover)]);
+    if (r.decoys) tips.push(['y', fmt(tipText(T.decoys), { n: r.decoys })]);
+    if (r.frictionLabel === 'HIGH') tips.push(['y', tipText(T.friction)]);
+    tips.push(['k', tipText(T.always)]);
     var tipBox = h('div', { class: 'c-log c-tips' });
-    tips.forEach(function (t) { tipBox.appendChild(h('div', {}, [h('span', { class: 't-' + t[0], text: '> ' }), rich(t[1], null, false)])); });
+    tips.filter(function (t) { return t[1]; }).forEach(function (t) { tipBox.appendChild(h('div', {}, [h('span', { class: 't-' + t[0], text: '> ' }), rich(t[1], null, false)])); });
     app.appendChild(panel('', [eyebrow('Tips'), tipBox]));
 
     // Stage by stage: the same results the replay animated (and the only view with reduced motion).
     var list = h('ol', { class: 'c-replay' });
     res.steps.forEach(function (st) {
-      var n = st.s.n, kind = st.block ? 'block' : st.s.unblockable ? 'attempt' : 'breach';
+      var n = st.s.n, kind = st.block ? 'block' : st.s.unblockable ? 'attempt' : st.s.impact ? 'impact' : 'breach';
       var li = h('li', { class: kind }, [
         h('div', { class: 'c-hud' }, [h('b', {}, [n + ' · ', rich(st.s.name, null, false)]),
-          h('span', { class: 'c-pill ' + { block: 'g', attempt: 'y', breach: 'r' }[kind], text: { block: '✓ BLOCKED', attempt: '⚠ ATTEMPTED', breach: '✕ BREACHED' }[kind] })])
+          h('span', { class: 'c-pill ' + { block: 'g', attempt: 'y', impact: 'o', breach: 'r' }[kind], text: { block: '✓ BLOCKED', attempt: '⚠ ATTEMPTED', impact: '◆ IMPACT', breach: '✕ BREACHED' }[kind] })])
       ]);
-      if (kind === 'attempt' && C.d.act2.attemptedNote) li.appendChild(h('p', { class: 'c-why', text: C.d.act2.attemptedNote }));
+      if (kind === 'attempt' && a2.attemptedNote) li.appendChild(h('p', { class: 'c-why', text: a2.attemptedNote }));
+      if (kind === 'impact' && st.s.impactNote) li.appendChild(h('p', { class: 'c-why', text: st.s.impactNote }));
       st.decoys.forEach(function (c) { li.appendChild(h('p', { class: 'c-why' }, [h('span', { class: 't-y', text: '[~] ' }), rich(c.name, null, false), ': no effect. ', rich(c.why, null, false)])); });
-      [['detect', 'detected'], ['limit', 'limited'], ['block', 'blocked']].forEach(function (k) {
-        var c = st[k[0]]; if (c) li.appendChild(h('p', { class: 'c-why' }, [h('span', { class: 't-g', text: '[+] ' + k[1] + ' by ' }), rich(c.name, null, false), ': ', rich(c.why, null, false)]));
+      st.scoped.forEach(function (c) { li.appendChild(h('p', { class: 'c-why' }, [h('span', { class: 't-y', text: '[~] ' }), rich(c.name, null, false), ': ', rich(c.whyScoped, null, false)])); });
+      if (st.viaHidden && hid) li.appendChild(h('p', { class: 'c-why' }, [h('span', { class: 't-red', text: '[!] ' }),
+        (st.unknown ? 'Entered via an asset not in your inventory: ' : 'Entered via a known but unprotected asset: '), rich(hid.name, null, false), '.']));
+      [['detect', 'detected at stage ' + n + ' by '], ['recover', 'recovery ready at stage ' + n + ': '], ['block', 'blocked by ']].forEach(function (k) {
+        var c = st[k[0]]; if (c) li.appendChild(h('p', { class: 'c-why' }, [h('span', { class: 't-g', text: '[+] ' + k[1] }), rich(c.name, null, false), ': ', rich(c.why, null, false)]));
       });
       list.appendChild(li);
     });
@@ -911,7 +1035,7 @@
     var build = h('ul', { class: 'c-buildlist' });
     deployed().forEach(function (c) {
       build.appendChild(h('li', {}, [
-        h('div', { class: 'c-hud' }, [rich(c.name, h('b', {}), false), h('span', { class: 'c-pill ' + (c.effect === 'decoy' ? 'y' : 'o'), text: c.effect.toUpperCase() })]),
+        h('div', { class: 'c-hud' }, [rich(c.name, h('b', {}), false), h('span', { class: 'c-pill ' + (c.effect === 'decoy' ? 'y' : 'o'), text: layerOf(c).toUpperCase() })]),
         h('p', { class: 'c-why' }, [rich(c.why, null, false), c.teach ? ' ' + c.teach : ''])
       ]));
     });
@@ -1013,5 +1137,5 @@
     else if (k === 'escape') endDrag();
   });
 
-  window.BreachCase = { start: start, voiceToggle: voiceToggle, backdrop: function () { enterTerminal(); BE.onLeave(leaveTerminal); BE.onLeave(endDrag); } };
+  window.BreachCase = { start: start, voiceToggle: voiceToggle, backdrop: function (theme) { enterTerminal(theme); BE.onLeave(leaveTerminal); BE.onLeave(endDrag); } };
 })();

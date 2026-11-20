@@ -64,6 +64,7 @@
     o.start(t); o.stop(t + dur + 0.02);
   }
   var SOUNDS = {
+    key: function (t) { note(t, 2100, 0.012, 'square', 0.12); },
     tick: function (t) { for (var i = 0; i < 3; i++) note(t + i * 0.045, 1900, 0.018, 'square', 0.18); },
     alert: function (t) { [880, 660, 880, 660].forEach(function (f, i) { note(t + i * 0.14, f, 0.12, 'triangle', 0.5); }); },
     blip: function (t) { note(t, 660, 0.08, 'sine', 0.45, 990); },
@@ -140,7 +141,7 @@
   function renderMap() {
     leave();
     app.textContent = ''; app.className = 'app case c-mapscreen';
-    if (window.BreachCase) window.BreachCase.backdrop();
+    if (window.BreachCase) window.BreachCase.backdrop('brand');
     var ready = LEVELS.filter(function (L) { return L.status === 'ready' && L.case; });
     var cleared = ready.filter(function (L) { return bestStars(L) > 0; });
     var totalStars = ready.reduce(function (a, L) { return a + (bestStars(L) || 0); }, 0);
@@ -216,11 +217,13 @@
   }
 
   /* ---------- About ---------- */
+  var STORE_KEYS = [STORE_KEY, 'breach-escape-voice', SOUND_KEY];   // every localStorage key this app writes
+  var ABOUT_UPDATED = '2026-11-20';
   function extLink(href, text) { return h('a', { href: href, target: '_blank', rel: 'noopener noreferrer', text: text }); }
   function renderAbout() {
     leave();
     app.textContent = ''; app.className = 'app case c-aboutscreen';
-    if (window.BreachCase) window.BreachCase.backdrop();
+    if (window.BreachCase) window.BreachCase.backdrop('brand');
     app.appendChild(h('div', { class: 'c-hud' }, [
       h('button', { class: 'c-ghost c-exit', onclick: renderMap }, ['\u2039 back to map']),
       h('span', { class: 'c-act', text: 'ABOUT' }), h('span', {})
@@ -238,47 +241,103 @@
     app.appendChild(panel('', 'Not affiliated', [
       h('p', { text: 'Breach Escape is not affiliated with or endorsed by any company or organization named in the cases.' })
     ]));
+    // Checked against the code: the only storage is localStorage (keys above) and sessionStorage (splash flag),
+    // no cookies are set, and every request goes to this site (CSP connect-src 'self').
+    var resetBox = h('div', { class: 'c-confirm', role: 'group', 'aria-label': 'Confirm reset', hidden: true });
+    var resetBtn = h('button', { class: 'c-ghost c-resetbtn', 'aria-expanded': 'false', text: '> reset my progress', onclick: function () {
+      resetBox.hidden = false; resetBtn.setAttribute('aria-expanded', 'true');
+      var yes = resetBox.querySelector('.c-yes'); if (yes) yes.focus();
+    } });
+    resetBox.appendChild(h('p', { text: 'Delete all saved progress, stars and settings for Breach Escape on this device? This can\u2019t be undone.' }));
+    resetBox.appendChild(h('div', { class: 'c-toggles' }, [
+      h('button', { class: 'c-btn red c-yes', text: 'Yes, reset', onclick: resetProgress }),
+      h('button', { class: 'c-ghost', text: 'Cancel', onclick: function () { resetBox.hidden = true; resetBtn.setAttribute('aria-expanded', 'false'); resetBtn.focus(); } })
+    ]));
     app.appendChild(panel('', 'Privacy', [
-      h('p', { text: 'Your progress and settings are stored only in your browser. There are no accounts, no analytics and no tracking, and the app makes no requests to other sites.' }),
-      h('p', { class: 'c-small', text: 'Like any website, the host may keep standard server logs of page requests.' })
+      h('p', { text: 'Your progress and settings stay in your browser. No account needed. No cookies, ads or tracking, and the game doesn\u2019t send your data anywhere. Like any website, our host keeps standard server logs.' }),
+      h('p', { class: 'c-small', text: 'Last updated: ' + ABOUT_UPDATED }),
+      resetBtn, resetBox
     ]));
     var who = [
-      h('p', { text: 'Built by Nura Avazova, KEPT Academy (Knowledge and Education for Protection Training).' }),
+      h('p', { text: 'Built by Nura Avazova, KEPT Academy \u2014 Know the Exposure, Patch the Threat.' }),
       h('p', {}, [extLink('https://keptacademy.com', 'keptacademy.com'), ' \u00b7 ', extLink('https://www.linkedin.com/in/nura-avazova/', 'LinkedIn: Nura Avazova')])
     ];
     if (site.contactEmail) who.push(h('p', {}, ['Corrections and contact: ', h('a', { href: 'mailto:' + site.contactEmail, text: site.contactEmail })]));
     app.appendChild(panel('', 'Who made this', who));
     window.scrollTo(0, 0);
   }
+  function resetProgress() {
+    STORE_KEYS.forEach(function (k) { try { localStorage.removeItem(k); } catch (e) { /* storage unavailable */ } });
+    progress = {};
+    renderMap();
+  }
 
-  /* ---------- opening splash: once per browser session, never on a direct case link ---------- */
+  /* ---------- opening splash: a short terminal "login", once per browser session, never on a direct case link ----------
+     Commands type with slight human-like timing; output appears at once; then the KEPT logo, then a fade into the map (~5.5 s).
+     Reduced motion: the logo alone for about 1 s. Any click, tap or key (or the skip button) ends it. */
   var SPLASH_LABEL = 'KEPT Academy \u2014 Know the Exposure, Patch the Threat';
   function splash() {
     try { if (sessionStorage.getItem('breach-escape-splash')) return; sessionStorage.setItem('breach-escape-splash', '1'); } catch (e) { /* storage unavailable: show it */ }
+    var ready = LEVELS.filter(function (L) { return L.status === 'ready' && L.case; }), N = ready.length;
+    var closed = ready.filter(function (L) { return bestStars(L) > 0; }).length;
+    var returning = !!(progress.cases && Object.keys(progress.cases).length);
+    var script = [
+      { cmd: 'ssh analyst@kept-soc', out: 'connecting... ok' },
+      { cmd: 'whoami', out: 'analyst' },
+      { cmd: 'load ./season-1', out: returning ? '[ok] welcome back \u00b7 ' + closed + '/' + N + ' cases closed' : '[ok] ' + N + ' real breaches loaded' },
+      { cmd: 'clear' }
+    ];
     var tag = h('span', { class: 'c-spl-tag' });
     [['K', 1], ['now the ', 0], ['E', 1], ['xposure, ', 0], ['P', 1], ['atch the ', 0], ['T', 1], ['hreat', 0]].forEach(function (p) {
       tag.appendChild(h('span', { class: p[1] ? 'c-spl-k' : 'c-spl-d', text: p[0] }));
     });
-    var el = h('div', { class: 'c-splash', role: 'img', 'aria-label': SPLASH_LABEL }, [
-      h('div', { class: 'c-spl-row', 'aria-hidden': 'true' }, [h('span', { class: 'c-spl-p', text: '>' }), h('span', { class: 'c-spl-kept', text: 'KEPT' }), h('span', { class: 'c-spl-cur', text: '_' })]),
-      h('div', { class: 'c-spl-tagrow', 'aria-hidden': 'true' }, [tag])
+    var term = h('div', { class: 'c-spl-term', 'aria-hidden': 'true' });
+    var logo = h('div', { class: 'c-spl-logo', 'aria-hidden': 'true', hidden: true }, [
+      h('div', { class: 'c-spl-row' }, [h('span', { class: 'c-spl-kept', text: 'KEPT' }), h('span', { class: 'c-spl-cur', text: '_' })]),
+      h('div', { class: 'c-spl-tagrow' }, [tag])
     ]);
-    if (reduceMotion()) el.classList.add('c-spl-static');
+    var cursor = h('span', { class: 'c-spl-cur', text: '_' });
+    var skip = h('button', { class: 'c-ghost c-spl-skip', text: 'skip \u203a' });
+    var el = h('div', { class: 'c-splash' }, [h('div', { class: 'c-spl-art', role: 'img', 'aria-label': SPLASH_LABEL }, [term, logo]), skip]);
     document.body.appendChild(el);
-    var timer = setTimeout(end, reduceMotion() ? 900 : 2000);
+    var timers = [];
+    function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+    function showLogo() { term.hidden = true; logo.hidden = false; }
+    if (reduceMotion()) { showLogo(); later(end, 1000); }
+    else {
+      var t = 300;
+      script.forEach(function (s) {
+        var typed = h('span', {});
+        var line = h('div', { class: 'c-spl-line' }, [h('span', { class: 'c-spl-p', text: '> ' }), typed]);
+        later(function () { term.appendChild(line); line.appendChild(cursor); }, t);
+        for (var i = 1; i <= s.cmd.length; i++) {
+          t += 40 + Math.round(Math.random() * 32);   // slight human-like variation
+          later(typeTo(typed, s.cmd.slice(0, i)), t);
+        }
+        t += 140;
+        if (s.out) { later(outLine(s.out), t); t += 260; }
+      });
+      later(showLogo, t + 100);
+      later(function () { el.classList.add('c-spl-fade'); }, t + 1200);
+      later(end, t + 1500);
+    }
+    function typeTo(node, text) { return function () { node.textContent = text; sound('key'); }; }
+    function outLine(text) { return function () { term.appendChild(h('div', { class: 'c-spl-out', text: text })); }; }
     function end(e) {
-      clearTimeout(timer);
+      timers.forEach(clearTimeout); timers = [];
       // The tap or key that skips the splash must not also act on the map underneath.
       if (e && e.type === 'keydown') e.preventDefault();
       if (e && e.type === 'pointerdown') {
         var swallow = function (ev) { ev.preventDefault(); ev.stopPropagation(); document.removeEventListener('click', swallow, true); };
         document.addEventListener('click', swallow, true);
-        setTimeout(function () { document.removeEventListener('click', swallow, true); }, 600);
+        // Only the click from this same tap: it fires right after pointerup, so stop swallowing just after that.
+        var release = function () { document.removeEventListener('pointerup', release, true); setTimeout(function () { document.removeEventListener('click', swallow, true); }, 0); };
+        document.addEventListener('pointerup', release, true);
       }
       ['pointerdown', 'keydown'].forEach(function (t) { document.removeEventListener(t, end, true); });
       el.remove();
     }
-    // Any click, tap or key skips it. Focus never moves into the splash.
+    // Any click, tap or key (including the skip button) ends it. Focus never moves into the splash.
     ['pointerdown', 'keydown'].forEach(function (t) { document.addEventListener(t, end, true); });
   }
 
