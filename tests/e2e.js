@@ -76,6 +76,9 @@ async function run(view, c, browser) {
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.type() + ': ' + m.text()); });
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
   page.on('request', (r) => { if (!r.url().startsWith(BASE)) errors.push('outside request: ' + r.url()); });
+  // 1280x720: Math.random() = 0, so the evidence shuffle is deterministic and puts the first real card last, below the
+  // evidence panel's fold (the worst case for the drag test). Other sizes keep a real shuffle.
+  if (view.name === '1280x720') await page.addInitScript(() => { Math.random = () => 0; });
   await page.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', (e) => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI)); });
   const data = JSON.parse(fs.readFileSync(REPO + 'levels/' + c.id + '.json'));
   const desktop = !view.phone;
@@ -234,6 +237,8 @@ async function run(view, c, browser) {
   // drag the first card onto the timeline (mouse on desktop, press-and-hold touch on the phone)
   const first = cardFor(ordered[0]);
   if (desktop) {
+    // the evidence panel scrolls inside itself; the shuffled card may be below its fold, as for a player
+    await first.evaluate((el) => el.scrollIntoView({ block: 'center' })); await page.waitForTimeout(100);
     const a = await first.boundingBox(), b = await page.locator('.c-slots').boundingBox();
     await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2); await page.mouse.down();
     await page.mouse.move(a.x + 30, a.y + 30, { steps: 4 }); await page.mouse.move(b.x + b.width / 2, b.y + 20, { steps: 8 });
