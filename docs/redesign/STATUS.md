@@ -131,6 +131,11 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - **Full e2e suite:** one run, all passing (allow-list check, sound, splash/reset, bad links, both cases at 1280×720, 1920×1080 and 390×844 under the production CSP, including the new stage 3 build and the reworded Colonial ★★★ build).
 - `sw.js` `v24`.
 
+## Round 9 (2026-11-20): pre-merge fixes
+- **CodeQL (tests/serve.js):** the request path is resolved with `fs.realpathSync` (symlinks followed) and served only if the real path stays inside the served root; files are opened once, checked as regular files with `fstat` on the same handle, read and closed (no exists/stat-then-read). The 404 route list stays. New test: symlinks in a temp copy of `public/` that point outside it (a file and a directory) return 404; one pointing inside is served. Nothing under `public/` changed for this.
+- **Source links (verified by Nura, not fetched):** MSRC blog now `msrc.microsoft.com/blog/2024/01/...` and the 8-K now links the filing itself (filed Jan 19, 2024; date of report Jan 17, 2024). Both carry `"verified"` (new optional schema field). Briefing text "Disclosed 19 Jan 2024 (SEC 8-K)" unchanged. Removed from the PR's "Review before merging" list; the MITRE stages 4–6 item stays.
+- Validator: 0 errors, 25 warnings (quotes). One-off e2e checks rerun (sound, splash/reset, allow-list, symlinks, bad links): all pass. No full run, since no game behaviour changed. `sw.js` `v25` (a level file changed).
+
 ## Decisions made
 - **Act 1 scoring:** +50 for each correct placement, +30 per red herring dismissed, −20 per mistake, −10 per hint, +100 for patient zero. XP never goes below 0.
 - **Act 2 scoring:** ID Protection is **detect** (no random chance). **3 stars** = blocked at stage ≤ 2 **and** no decoys; **2** = blocked later (or early with decoys); **1** = only detected or limited; **0** = breach succeeded.
@@ -175,9 +180,9 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
   - Checked against Blount's written testimony and his answers in the Senate hearing record. Old quiz facts from Mandiant / the House hearing were dropped (not an allowed source), and so were the April 29 entry date, the 75 / 63.7 bitcoin figures and "no failed attempts".
   - The Colonial ATT&CK codes (T1589.001, T1133, T1078, TA0008, T1039, T1486, TA0040) are a mapping to review, like Level 1's.
 - **Sources** (primary only; checked 2026-11-19):
-  - MSRC, Jan 19 2024: https://www.microsoft.com/en-us/msrc/blog/2024/01/microsoft-actions-following-attack-by-nation-state-actor-midnight-blizzard
+  - MSRC Blog, Jan 19 2024: https://msrc.microsoft.com/blog/2024/01/microsoft-actions-following-attack-by-nation-state-actor-midnight-blizzard/ (verified by Nura, 2026-11-20)
   - Microsoft Security Blog, Jan 25 2024: https://www.microsoft.com/en-us/security/blog/2024/01/25/midnight-blizzard-guidance-for-responders-on-nation-state-attack/
-  - SEC 8-K, Jan 19 2024: currently links the EDGAR 8-K filings list for Microsoft (CIK 0000789019).
+  - SEC Form 8-K, filed Jan 19 2024 (date of report Jan 17 2024): https://www.sec.gov/Archives/edgar/data/789019/000119312524011295/d708866d8k.htm (verified by Nura, 2026-11-20)
 
 ## Rules that always apply
 - Strict CSP, unchanged: no inline `<script>` and no `style=""` attributes (setting styles from JS, e.g. `el.style.width`, is fine). No `innerHTML`; build DOM with `h()` or `createElementNS`, text via `textContent`.
@@ -196,7 +201,6 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
   5. DOJ announced on June 7, 2021 that it seized part of the ransom (briefing timeline).
   6. AA21-131A and DOJ titles, dates and URLs.
 - **The PR preview secret isn't set:** the `preview` jobs need `AZURE_STATIC_WEB_APPS_API_TOKEN` in a GitHub environment called `preview` (or as a repository secret). Until then the PR preview run fails.
-- **8-K link:** points to the filings list, not the filing itself. Replace it with the direct document URL once confirmed.
 - **Not tested on real devices:** touch drag (press-and-hold) was only checked in iPhone 13 emulation. iOS Safari and Android Chrome still need a real check.
 - **Tight fit at 1280×720:** Act 2 uses the inner map scroll; at heights under about 650px, panels get cramped.
 - **Phones:** the page scrolls in Act 1 and Act 2 (accepted).
@@ -208,5 +212,5 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 0. Add short quotes from the sources for the remaining 25 validator warnings.
 1. Verify the Colonial `todo` facts against AA21-131A and the DOJ release, then remove the `todo` fields.
 2. Review the Colonial content and ATT&CK mapping (Nura).
-3. MITRE bonus chips in Act 1, Practice and Challenge modes, Go Deeper (KQL hunting queries), and a fix for the 8-K link.
+3. MITRE bonus chips in Act 1, Practice and Challenge modes, Go Deeper (KQL hunting queries), 
 4. Share card for results (spec 2.6), if still wanted.
