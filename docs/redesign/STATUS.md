@@ -37,7 +37,7 @@ The Breach Map itself scrolls at 720 px high (it lists 7 levels); that's allowed
 | `levels/*.json` | All case content and rules. Act 2 stage codes are read from `timeline[].mitre` (single source). Act 2 keys added this pass: `preventedMaxStage`, `lossLabel`, `attemptedNote`, `mapCmd`, `outcomes.{prevented,contained,detected,succeeded}`, `logs.attempted`, `map.stages[].unblockable`. |
 | `icons/` | App icon `>K_` in corner brackets (silver brackets and K, ice-blue `>` and `_`): `icon.svg`, `favicon.svg`, PNGs 192/512/maskable 512/Apple 180/favicon 32. Made by `tools/make_icons.js` (shapes only, no fonts). |
 | `brand/` | KEPT brand mark (KE / PT, silver, ice-blue brackets): SVG + 1024 PNG. About header only; the map header stays one-line "KEPT ACADEMY". |
-| `sw.js` | Offline cache, network-first. Currently `v32`; bump on every deploy. Caches all three case files and the icons. |
+| `sw.js` | Offline cache, network-first. Currently `v34`; bump on every deploy. Caches all three case files and the icons. |
 | `staticwebapp.config.json` | Strict CSP and security headers; 404 for `/docs/*`, `/*.md`, `/.github/*`. Unchanged. |
 | `.github/workflows/deploy.yml` | CodeQL → production deploy (push to main only, `production` environment). PRs: `preview` job deploys an Azure preview environment, and `close_preview` removes it when the PR closes. Fork PRs are skipped. |
 | `.github/dependabot.yml` | Weekly updates for the pinned Actions. |
@@ -167,6 +167,13 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - **Validator:** 0 errors; 49 warnings (sourced facts without a quote: 14 Colonial, 11 Midnight, 24 Uber, all S1).
 - **Tests:** Uber added to the suite (5 builds, violet theme, IMPACT on stage 7, never CRITICAL, desktop drag of the discovery control); map counts now 3 of 7 playable; returning splash `1/3 cases closed`. Full run 1: one failure, a test bug (the returning-splash test hard-coded `1/2`); fixed, rerun alone (ONLY=none), passed. Full run 2: **all passing** (sound, splash/reset, allow-list, symlinks, replay hero, bad links, all three cases at 1280×720, 1920×1080 and 390×844 under the production CSP).
 - `sw.js` `v32`.
+
+## Round 13 (2026-11-20): small fixes on PR #2
+- **Unordered evidence (`anyOrder`):** real evidence cards that share an `anyOrder` value (consecutive orders) may fill each other's slots in either order, and both orders score as correct (`fitsNext()` in `case.js`). Uber E5 (Slack post) and E6 (OpenDNS change) share `stage-6`, since S1 gives no order. Schema field; `tools/validate` checks each group is 2+ real cards with consecutive orders.
+- **Neutral stage (`neutral: {label, note, source}`):** a stage the attack passes without getting in yet. Shown as "⚠ LABEL" in the neutral (impact) style in the replay, log and results, with the note and a [n] source marker. Never BREACHED, no alarm or red flash. Uber stage 2: "⚠ PROMPTED", "The approval requests at first blocked access." [1]; the first BREACHED stage is now 3. Counted as a sourced fact by the validator (one more S1 quote warning).
+- Production deployed PR #1 (workflow #45 re-run manually); that to-do is gone.
+- Tests: the e2e places an `anyOrder` group in reverse and expects it valid; it checks neutral stages (label, note, marker, never BREACHED, and the next stage BREACHED when nothing blocks). Affected tests (Uber at 1280×720 and 390×844) passed; **one full run, all passing**.
+- Validator: 0 errors, 50 warnings (Uber 25, all S1). `sw.js` `v34`.
 
 ## Decisions made
 - **Act 1 scoring:** +50 for each correct placement, +30 per red herring dismissed, −20 per mistake, −10 per hint, +100 for patient zero. XP never goes below 0.
