@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate Breach Escape level files.
 
-Usage: tools/validate [levels/<id>.json ...]     (default: every levels/*.json)
+Usage: tools/validate [public/levels/<id>.json ...]     (default: every public/levels/*.json)
 
 Errors (exit code 1):
   - schema violations (tools/level.schema.json)
@@ -37,7 +37,7 @@ NOT_TEXT = {"todo", "note", "verify", "id", "source", "url", "type", "effect", "
 def level_status():
     """case id -> status, read from the LEVELS list in levels.js (one entry per line)."""
     out = {}
-    with open(os.path.join(ROOT, "levels.js"), encoding="utf-8") as f:
+    with open(os.path.join(ROOT, "public", "levels.js"), encoding="utf-8") as f:
         for line in f:
             m = re.search(r"case:\s*'levels/([a-z0-9-]+)\.json'", line)
             s = re.search(r"status:\s*'(\w+)'", line)
@@ -184,7 +184,7 @@ def sourced_facts(d):
 
 
 def main(argv):
-    files = argv[1:] or sorted(glob.glob(os.path.join(ROOT, "levels", "*.json")))
+    files = argv[1:] or sorted(glob.glob(os.path.join(ROOT, "public", "levels", "*.json")))
     schema = schema_check.load_schema()
     status = level_status()
     total_e = total_w = 0

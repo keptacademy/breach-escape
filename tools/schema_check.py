@@ -125,7 +125,7 @@ if __name__ == "__main__":
     import glob
     import sys
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    files = sys.argv[1:] or sorted(glob.glob(os.path.join(root, "levels", "*.json")))
+    files = sys.argv[1:] or sorted(glob.glob(os.path.join(root, "public", "levels", "*.json")))
     schema = load_schema()
     failed = 0
     for path in files:

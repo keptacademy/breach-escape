@@ -3,9 +3,9 @@
 
 Usage: tools/new_case <id> "<Title>"
 
-- Writes levels/<id>.json with placeholders only; every fact is pre-marked with a todo
+- Writes public/levels/<id>.json with placeholders only; every fact is pre-marked with a todo
   (or listed in "verify" where the game always shows the field, e.g. the hidden asset).
-- Adds the case to the Breach Map (levels.js) as SOON, so it isn't playable yet.
+- Adds the case to the Breach Map (public/levels.js) as SOON, so it isn't playable yet.
 - Refuses to overwrite an existing file or reuse an id that is already on the map.
 Then: fill it in from primary sources, run tools/validate, and set status 'ready' only when it passes.
 Standard library only.
@@ -168,11 +168,11 @@ def main(argv):
     if not title:
         print("error: title is empty", file=sys.stderr)
         return 2
-    out = os.path.join(ROOT, "levels", cid + ".json")
+    out = os.path.join(ROOT, "public", "levels", cid + ".json")
     if os.path.exists(out):
         print("error: %s already exists; refusing to overwrite" % os.path.relpath(out, ROOT), file=sys.stderr)
         return 1
-    lj = os.path.join(ROOT, "levels.js")
+    lj = os.path.join(ROOT, "public", "levels.js")
     with open(lj, encoding="utf-8") as f:
         src = f.read()
     if ("'levels/%s.json'" % cid) in src:
