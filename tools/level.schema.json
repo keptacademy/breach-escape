@@ -547,8 +547,7 @@
           },
           "required": [
             "stage",
-            "name",
-            "source"
+            "name"
           ],
           "additionalProperties": false
         },

@@ -94,7 +94,7 @@ def template(cid, title, level_id):
                 OD([("n", 1), ("zone", "out"), ("name", P + "stage 1"), ("unblockable", True)]),
                 OD([("n", 2), ("zone", "in"), ("name", P + "entry stage"), ("reach", P + "what the attacker reached"), ("severity", "contained")]),
             ]),
-            ("hidden", OD([("stage", 2), ("name", P + "hidden asset (from a cited source)"), ("source", "src1")])),
+            ("hidden", OD([("stage", 2), ("name", P + "hidden asset (add its source once verified)")])),
             ("note", "ATT&CK codes for each stage come from the timeline above, so Act 1 and Act 2 always match."),
         ])),
         ("budget", 8),

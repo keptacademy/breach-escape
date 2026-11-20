@@ -1,0 +1,207 @@
+#!/usr/bin/env python3
+"""Validate Breach Escape level files.
+
+Usage: tools/validate [levels/<id>.json ...]     (default: every levels/*.json)
+
+Errors (exit code 1):
+  - schema violations (tools/level.schema.json)
+  - player-facing text from a todo fact: a todo on something the game always shows
+    (controls, evidence, map stages, the hidden asset), or a fact that cites an unverified (todo) source
+    without carrying a todo itself
+  - bad MITRE ATT&CK IDs (T####, T####.###, TA####)
+  - a map stage with no real control (block, detect, recover or reveal); unblockable stages are exempt
+  - not exactly one hidden asset with a discovery (reveal) control
+  - a source without a URL
+  - missing opening line, theme or threat actor
+  - a playable case (status 'ready' in levels.js) with any todo fact or "TODO" placeholder
+Warnings (listed, never fixed automatically; quotes are never invented):
+  - a sourced fact without a short supporting quote ("quote", under 25 words)
+Standard library only.
+"""
+import glob
+import json
+import os
+import re
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
+import schema_check  # noqa: E402
+
+MITRE = re.compile(r"^(T\d{4}(\.\d{3})?|TA\d{4})$")
+REAL = {"block", "detect", "recover", "reveal"}
+NOT_TEXT = {"todo", "note", "verify", "id", "source", "url", "type", "effect", "needs", "zone", "theme", "tone", "severity"}
+
+
+def level_status():
+    """case id -> status, read from the LEVELS list in levels.js (one entry per line)."""
+    out = {}
+    with open(os.path.join(ROOT, "levels.js"), encoding="utf-8") as f:
+        for line in f:
+            m = re.search(r"case:\s*'levels/([a-z0-9-]+)\.json'", line)
+            s = re.search(r"status:\s*'(\w+)'", line)
+            if m:
+                out[m.group(1)] = s.group(1) if s else "?"
+    return out
+
+
+def walk(node, path="$"):
+    """Yield (path, key, value) for every key in every object."""
+    if isinstance(node, dict):
+        for k, v in node.items():
+            yield path, k, v
+            yield from walk(v, path + "." + k)
+    elif isinstance(node, list):
+        for i, v in enumerate(node):
+            yield from walk(v, "%s[%d]" % (path, i))
+
+
+def words(s):
+    return len(re.findall(r"\S+", s or ""))
+
+
+def check(path, schema, status):
+    errors, warnings = [], []
+    try:
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
+    except (OSError, ValueError) as e:
+        return ["cannot read: %s" % e], []
+
+    errors += ["schema: " + e for e in schema_check.validate(d, schema)]
+    try:
+        semantic(d, status, errors, warnings)
+    except (KeyError, TypeError, AttributeError, IndexError) as e:
+        # Shape problems are already reported by the schema check; report what couldn't be checked.
+        errors.append("could not run every check (shape problem near %r); fix the schema errors first" % (e,))
+    return errors, warnings
+
+
+def semantic(d, status, errors, warnings):
+    # opening line, theme, threat actor
+    b = d.get("briefing", {})
+    if not isinstance(b, dict):
+        b = {}
+    if not b.get("opening"):
+        errors.append("missing opening line (briefing.opening)")
+    if not d.get("theme"):
+        errors.append("missing theme")
+    if not (b.get("threatActor") or {}).get("v"):
+        errors.append("missing threat actor (briefing.threatActor)")
+
+    # sources
+    src = {s["id"]: s for s in d["sources"] if isinstance(s, dict) and "id" in s}
+    for s in d["sources"]:
+        if not s.get("url") or not str(s.get("url")).startswith("https://"):
+            errors.append("source '%s' has no https URL" % s.get("id", "?"))
+
+    # todo on things the game always shows
+    for i, c in enumerate(d["controls"]):
+        if "todo" in c:
+            errors.append("controls[%d] '%s': has a todo, but controls are always shown" % (i, c["id"]))
+    for i, e in enumerate(d["evidence"]):
+        if "todo" in e:
+            errors.append("evidence[%d] '%s': has a todo, but evidence is always shown" % (i, e["id"]))
+    for i, s in enumerate(d["map"]["stages"]):
+        if "todo" in s:
+            errors.append("map.stages[%d]: has a todo, but stages are always shown" % i)
+    if "todo" in d["map"].get("hidden", {}):
+        errors.append("map.hidden: has a todo, but the hidden asset's name is shown once discovered")
+
+    # facts citing an unverified source without their own todo (the engine would show them)
+    for p, k, v in walk(d):
+        if k == "source" and isinstance(v, str):
+            s = src.get(v)
+            if s is None:
+                errors.append("%s: cites unknown source '%s'" % (p, v))
+    for p, obj in sourced_facts(d):
+        s = src.get(obj["source"])
+        if s and "todo" in s and "todo" not in obj:
+            errors.append("%s: cites unverified source '%s' but is shown to players (add a todo or verify the source)" % (p, s["id"]))
+
+    # MITRE IDs
+    for i, t in enumerate(d["timeline"]):
+        for m in t.get("mitre", []):
+            if not MITRE.match(m):
+                errors.append("timeline[%d]: bad MITRE ID '%s'" % (i, m))
+
+    # every stage needs a real control (unblockable stages happen outside the defender's network)
+    for s in d["map"]["stages"]:
+        if s.get("unblockable"):
+            continue
+        real = [c["id"] for c in d["controls"] if c["stage"] == s["n"] and c["effect"] in REAL]
+        if not real:
+            errors.append("stage %d '%s': no real control (only decoys or nothing)" % (s["n"], s["name"]))
+
+    # exactly one hidden asset, with a discovery control
+    hid = d["map"].get("hidden")
+    reveals = [c["id"] for c in d["controls"] if c["effect"] == "reveal"]
+    if not hid:
+        errors.append("no hidden asset (map.hidden)")
+    else:
+        if hid["stage"] not in [s["n"] for s in d["map"]["stages"]]:
+            errors.append("map.hidden.stage %d is not a map stage" % hid["stage"])
+        if not reveals:
+            errors.append("hidden asset has no discovery control (effect 'reveal')")
+        if status.get(d["id"]) == "ready" and (not hid.get("source") or "todo" in src.get(hid.get("source"), {})):
+            errors.append("map.hidden: a playable case needs the hidden asset to cite a verified source")
+
+    # a playable case must have no todo facts or placeholders
+    if status.get(d["id"]) == "ready":
+        todos = [p + "." + k for p, k, v in walk(d) if k == "todo"]
+        todos += [p + "." + k for p, k, v in walk(d) if isinstance(v, str) and k not in NOT_TEXT and v.strip().startswith("TODO")]
+        todos += ["$.verify[%d]" % i for i, v in enumerate(d.get("verify", [])) if v.startswith("TODO")]
+        for t in todos:
+            errors.append("playable case has a todo: %s" % t)
+
+    # warnings: sourced facts without a short quote (listed only; quotes are never invented)
+    for p, obj in sourced_facts(d):
+        q = obj.get("quote")
+        if not q:
+            warnings.append("%s: sourced fact without a quote (source '%s')" % (p, obj["source"]))
+        elif words(q) >= 25:
+            warnings.append("%s: quote is %d words; keep it under 25" % (p, words(q)))
+
+
+def sourced_facts(d):
+    """(path, object) for every fact that names a source."""
+    out = []
+    b = d["briefing"]
+    if b.get("threatActor", {}).get("source"):
+        out.append(("$.briefing.threatActor", b["threatActor"]))
+    for pi, page in enumerate(b["pages"]):
+        for bi, blk in enumerate(page["blocks"]):
+            for ri, row in enumerate(blk.get("kv", []) or []):
+                if row.get("source"):
+                    out.append(("$.briefing.pages[%d].blocks[%d].kv[%d]" % (pi, bi, ri), row))
+    for i, t in enumerate(d["timeline"]):
+        if t.get("source"):
+            out.append(("$.timeline[%d]" % i, t))
+    if d["map"].get("hidden", {}).get("source"):
+        out.append(("$.map.hidden", d["map"]["hidden"]))
+    return out
+
+
+def main(argv):
+    files = argv[1:] or sorted(glob.glob(os.path.join(ROOT, "levels", "*.json")))
+    schema = schema_check.load_schema()
+    status = level_status()
+    total_e = total_w = 0
+    for path in files:
+        errors, warnings = check(path, schema, status)
+        name = os.path.relpath(path, ROOT)
+        cid = os.path.splitext(os.path.basename(path))[0]
+        print("%s  [%s]  %d error(s), %d warning(s)" % (name, status.get(cid, "not on the map"), len(errors), len(warnings)))
+        for e in errors:
+            print("  ERROR   " + e)
+        for w in warnings:
+            print("  warning " + w)
+        total_e += len(errors)
+        total_w += len(warnings)
+    print("\n%d file(s): %d error(s), %d warning(s)" % (len(files), total_e, total_w))
+    return 1 if total_e else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
