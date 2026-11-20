@@ -440,3 +440,10 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .case .c-maphead .c-helpbtn{min-height:36px;min-width:36px}
 .c-mapscreen .c-brand{white-space:nowrap;margin:0}
 .c-maphelp p{margin:0}
+
+/* ---------- Breach Map hero: the only highlighted element ---------- */
+.c-hero{border:1px solid var(--c-g);background:var(--c-panel);padding:18px;display:flex;flex-direction:column;gap:8px}
+.c-herolabel{color:var(--c-g)}
+.c-herotitle{font-size:22px;line-height:1.2;color:var(--c-title);margin:0;font-weight:600}
+.case p.c-heroteaser{font-size:13px;color:var(--c-txt)}
+.c-herobtn{margin-top:6px}

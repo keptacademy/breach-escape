@@ -143,7 +143,10 @@
     var ready = LEVELS.filter(function (L) { return L.status === 'ready' && L.case; });
     var cleared = ready.filter(function (L) { return bestStars(L) > 0; });
     var totalStars = ready.reduce(function (a, L) { return a + (bestStars(L) || 0); }, 0);
-    var next = ready.filter(function (L) { return !(bestStars(L) > 0); })[0] || ready[ready.length - 1];
+    // Hero: the next playable case not finished yet (first visit = case 01). If all are finished, the one with the fewest stars.
+    var unfinished = ready.filter(function (L) { return !(bestStars(L) > 0); });
+    var allDone = ready.length > 0 && !unfinished.length;
+    var next = unfinished[0] || ready.slice().sort(function (a, b) { return (bestStars(a) || 0) - (bestStars(b) || 0); })[0];
 
     // Header: one line only (no wrapping at 390px): KEPT ACADEMY on the left, help and stars on the right.
     var helpBox = h('div', { class: 'c-helpbox c-maphelp', id: 'c-maphelp', hidden: true }, [
@@ -163,12 +166,12 @@
     app.appendChild(helpBox);
 
     if (next) {
-      var played = bestStars(next) != null;
-      app.appendChild(h('div', { class: 'c-panel hl c-next' }, [
-        h('div', { class: 'c-eyebrow', text: played ? '> replay' : cleared.length ? '> up next' : '> start here' }),
-        h('p', { class: 'c-nextname', text: 'Level ' + next.id + ' · ' + next.name }),
-        h('p', { class: 'c-small', text: next.victim + ' · ' + next.year + ' · ' + next.teaser }),
-        h('button', { class: 'c-btn', text: played ? '> REOPEN CASE' : '> OPEN CASE FILE', onclick: function () { openLevel(next); } })
+      app.appendChild(h('section', { class: 'c-hero', 'aria-labelledby': 'c-herotitle' }, [
+        h('div', { class: 'c-eyebrow c-herolabel', text: allDone ? 'REPLAY A CASE' : 'NEXT CASE' }),
+        h('h2', { class: 'c-herotitle', id: 'c-herotitle', text: next.name }),
+        h('p', { class: 'c-small c-herosub', text: next.victim + ' \u00b7 ' + next.year }),
+        h('p', { class: 'c-heroteaser', text: next.teaser }),
+        h('button', { class: 'c-btn c-herobtn', text: allDone ? '> REOPEN CASE' : '> OPEN CASE FILE', onclick: function () { openLevel(next); } })
       ]));
     }
 
@@ -186,7 +189,7 @@
     var list = h('ol', { class: 'c-levels' });
     LEVELS.forEach(function (L) {
       var ok = L.status === 'ready' && !!L.case, stars = ok ? bestStars(L) : null, done = stars > 0;
-      var isNext = next && L.id === next.id && !done;
+      var isNext = false;   // the hero card is the only highlighted element
       var right = stars != null ? h('span', { class: 'c-lstars', text: starText(stars) })
         : h('span', { class: 'c-pill ' + (ok ? 'g' : 'o'), text: ok ? 'PLAY' : 'SOON' });
       list.appendChild(h('li', {}, [h('button', {
