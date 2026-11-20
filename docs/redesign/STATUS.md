@@ -101,6 +101,15 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - Test runs this round (per CLAUDE.md): full run 1 stopped at the About reset check. App bug: the splash swallowed the next click for 600 ms after "skip ›". Fixed (only the click from the skipping tap is swallowed); that test was rerun alone and passed. Full run 2: one failure at 1280×720 Midnight. Test bug: the dragged control card was below the fold of the deck panel. Fixed (scroll the card into view); rerun alone, passed. A new-screen screenshot then showed the KEPT logo visible during the typing (CSS `display:flex` overrode `hidden`); fixed (`.c-splash [hidden]`), the test now checks visibility, rerun alone (390×844 Midnight), passed. No third full run, per the two-run limit.
 
 
+## Round 7 (2026-11-20)
+- CLAUDE.md: push after every numbered item; one extra clean full run is required before a merge to main.
+- About "Last updated" is 2026-11-19 (the local date).
+- Sound: game events only (SEV 1 alert when a case opens, evidence placed / patient zero / control deployed, breach alarm, contained). No sound on Next/Back, skip, exit, help or toggles. Typing tick removed everywhere. Tones lowered and softened (alert 392/294 Hz, blip 330→440 Hz, alarm 220/165 Hz, contained 262-330-392 Hz).
+- Stars (wording and rules in each level's `stars`): ★ stopped at any stage · ★★ stopped at the entry stage (`act2.preventedMaxStage`, damage NONE), which needs the hidden asset discovered · ★★★ ★★ plus at least one detect and one recover control anywhere in the build. Results show what the next star needs; the "?" panel lists the rules; tips `notEntry` / `needLayers` replace `noDetect` / `noRecover`. Budgets unchanged: cheapest ★★★ is 9/9 (Midnight) and 8/8 (Colonial).
+- SOC LEAD results line follows the damage label: NONE → "Prevented. They never got in.", CONTAINED → "Contained. That's the job.", SEVERE/CRITICAL → the breached line. A new attack run may repeat the previous run's line.
+- Brand theme (Breach Map, About, splash): silver `#E8EDF2` titles/text, `#9AA4AD` secondary, `#3A424A` borders; ice blue `#8DB7FF` only on buttons (outlined, faint tint on hover), links, stars, selected/hovered card border, focus outline and the progress count. New `--c-title` token (defaults to the case accent, so green and amber cases are unchanged). Splash: silver, with K E P T of the tagline in ice blue.
+- Full e2e suite: **one clean run, all passing** (3 sizes, both cases, CSP headers). This is the pre-merge clean run of the gameplay code. `sw.js` `v23`.
+
 ## Decisions made
 - **Act 1 scoring:** +50 for each correct placement, +30 per red herring dismissed, −20 per mistake, −10 per hint, +100 for patient zero. XP never goes below 0.
 - **Act 2 scoring:** ID Protection is **detect** (no random chance). **3 stars** = blocked at stage ≤ 2 **and** no decoys; **2** = blocked later (or early with decoys); **1** = only detected or limited; **0** = breach succeeded.
