@@ -21,6 +21,7 @@ window.VOICE = {
   hint: 'No shame in asking. Real analysts check the docs too.',
   run: 'Let\u2019s see if it holds.',
   breached: 'They got in. Now you know where. Rebuild.',
+  prevented: 'Prevented. They never got in.',
   contained: 'Contained. That\u2019s the job.'
 };
 

@@ -977,7 +977,7 @@
       eyebrow('Case ' + d.caseNo + ' · Debrief'),
       h('h1', { class: 'c-display' + (good ? '' : ' t-red'), text: r.title }),
       para(r.sub),
-      voiceP(voiceLine(good ? 'contained' : 'breached')),
+      voiceP(voiceLine(r.damage === 'NONE' ? 'prevented' : r.damage === 'CONTAINED' ? 'contained' : 'breached')),   // matches the damage label
       starRow(r.stars),
       r.stars < 3 ? h('p', { class: 'c-small c-nextstar', text: (d.stars || {})[['nextOne', 'nextTwo', 'nextThree'][r.stars]] || '' }) : null,
       h('span', { class: 'c-pill ' + (good ? 'g' : 'r'), text: 'CLEARANCE · ' + r.rank }),

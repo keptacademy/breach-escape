@@ -830,6 +830,7 @@
     "hint": "No shame in asking. Real operators check the manual too.",
     "run": "Let's see if it holds.",
     "breached": "They got through. Now you know where. Rebuild.",
-    "contained": "Contained. The pipeline keeps flowing."
+    "prevented": "Prevented. They never got in.",
+    "contained": "Contained. That's the job."
   }
 }
