@@ -29,7 +29,7 @@ The Breach Map itself scrolls at 720 px high (it lists 7 levels); that's allowed
 ## File map
 | File | What it does |
 |---|---|
-| `index.html` | Shell: loads `theme.css`, `levels.js`, `app.js`, `case.js`. `<main class="app case">`. |
+| `public/index.html` | Shell: loads `theme.css`, `levels.js`, `app.js`, `case.js`. `<main class="app case">`. |
 | `theme.css` | The only stylesheet: terminal theme for every screen. Colour tokens on `:root` (`--c-*`), classes prefixed `c-`. One-screen desktop layouts (`.c-fit`, 900px+), pinned bars, phone layouts, Breach Map. `<code>` uses a neutral style; yellow is only for decoys, the test tenant and ATTEMPTED. |
 | `app.js` | App shell: Breach Map, progress in localStorage (`breach-escape-progress-v1`), glossary `termify`, shared helpers. Exposes `window.BreachEscape` (h, termify, shuffle, progress, onLeave, leave, renderMap, …). Boots on `DOMContentLoaded` so `case.js` is loaded first. |
 | `case.js` | Case engine: code rain + red edge flash (`BreachCase.backdrop()` is also used by the map), briefing renderer (block types: alert, note, panel, facts, timeline, diagram, glossary, mission), Act 1, Act 2 (`simulate()` then animate), results, shared drag-and-drop (Pointer Events, press-and-hold on touch). Text in backticks is rendered as `<code>`. |
@@ -119,6 +119,17 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
   - Midnight Blizzard (ready): 1 error: stage 3 "Use Legacy-Test-App" has only a decoy (antivirus upgrade), no real control. Gameplay change needed (not made in this toolchain round).
   - Warnings: every sourced fact lacks a short `quote` (15 Colonial, 11 Midnight). Listed only; no quotes were invented.
 
+## Round 8 (2026-11-20)
+- **Allow-list deploy.** Shipped files live in `public/` (index.html, app.js, case.js, levels.js, theme.css, levels/, icons/, manifest, sw.js, staticwebapp.config.json). Both Azure jobs (production and PR preview) use `app_location: "public"`; SWA reads `staticwebapp.config.json` from there. The 404 routes stay as a second layer. Everything else (CLAUDE.md, README, docs/, tools/, tests/, .github/) is never uploaded. All runtime paths were already relative, so `sw.js` paths are unchanged.
+- **Tests in the repo:** `tests/serve.js` serves `public/` with the production headers and its 404 routes; `tests/e2e.js` is the suite (Playwright from the dev environment, not a project dependency). New check: repo files and path tricks (`../`, `%2e%2e/`) all return 404 locally.
+- **Colonial facts verified** (by Nura, against AA21-131A of May 11, 2021 and the N.D. Cal. DOJ release): DarkSide RaaS row, MFA tip, segmentation + offline backups tip, "June 2021" DOJ seizure row (63.7 of ~75 bitcoin, over $2.3M), corrected source titles and URLs, each with a quote. `verify` list removed; the case has no todos.
+  - Outbound control: reworded to **"Block traffic to known-malicious IPs"** (stage 4, block, cost 2) citing AA21-131A; the teach line says it's a game assumption that the destination was on a known-bad list. EDR stays a game control with no citation. Cheapest ★★★: audit + disable + incident response plan + backups (8/8).
+- **Midnight Blizzard stage 3:** "Remove unneeded app mailbox permissions (`full_access_as_app`)", cost 2, block, citing the Jan 25, 2024 guidance ("If they are no longer required, they should be removed."). It takes the power away from the legacy app the attacker holds (the bridge at stage 3); "Scope app mailbox access" at stage 7 limits which mailboxes any app can reach. ★★★ path unchanged (9/9).
+- **Schema/validator:** quotes may be a list; sources and quotes allowed on briefing timeline items, controls and tips; `tips.always` may be one tip or a list (the engine shows each).
+- **new_case:** converts a SOON map entry with the same title instead of adding a duplicate card; refuses if that entry already has a case or isn't SOON.
+- **Validator report:** 0 errors on both levels; 25 warnings (sourced facts without a quote: 14 Colonial, 11 Midnight).
+- `sw.js` `v24`.
+
 ## Decisions made
 - **Act 1 scoring:** +50 for each correct placement, +30 per red herring dismissed, −20 per mistake, −10 per hint, +100 for patient zero. XP never goes below 0.
 - **Act 2 scoring:** ID Protection is **detect** (no random chance). **3 stars** = blocked at stage ≤ 2 **and** no decoys; **2** = blocked later (or early with decoys); **1** = only detected or limited; **0** = breach succeeded.
@@ -193,7 +204,7 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - **Not built:** share cards, a settings screen and a separate glossary screen don't exist (the spec mentions a shareable score card). Glossary definitions show in the in-case panel.
 
 ## What's next (in order)
-0. Make `tools/validate` pass: resolve the Colonial todos (verify, remove or set SOON) and add a real control on Midnight stage 3; add short quotes from the sources.
+0. Add short quotes from the sources for the remaining 25 validator warnings.
 1. Verify the Colonial `todo` facts against AA21-131A and the DOJ release, then remove the `todo` fields.
 2. Review the Colonial content and ATT&CK mapping (Nura).
 3. MITRE bonus chips in Act 1, Practice and Challenge modes, Go Deeper (KQL hunting queries), and a fix for the 8-K link.
