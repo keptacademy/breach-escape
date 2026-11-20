@@ -155,7 +155,7 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - Validator: 0 errors, 25 warnings. `sw.js` `v27`.
 
 ## Round 12 (2026-11-20): CI fix, brand icons, Uber 2022 case
-- **CI:** the merge of PR #1 started a push run (#45) and a PR-closed run (#46) in the same concurrency group (`Scan and deploy-refs/heads/main`); #46 cancelled #45, so production never deployed. Group is now `github.event.pull_request.number || github.ref`, and `cancel-in-progress` is true only for `pull_request` events (runs on main queue, never cancel). Production still needs a deploy of what PR #1 merged (re-run #45, or merge PR #2).
+- **CI:** the merge of PR #1 started a push run (#45) and a PR-closed run (#46) in the same concurrency group (`Scan and deploy-refs/heads/main`); #46 cancelled #45, so production never deployed. Group is now `github.event.pull_request.number || github.ref`, and `cancel-in-progress` is true only for `pull_request` events (runs on main queue, never cancel). Production has since deployed PR #1 (workflow #45 was re-run manually).
 - **Brand icons:** `>K_` app icon replaces the green `>_` everywhere (manifest incl. SVG, `<link rel="icon">` SVG + 32 PNG, apple-touch-icon). KE / PT brand mark in the About header (160px, 120px on phones). `tests/serve.js` serves `.svg`.
 - **Uber 2022 "MFA Fatigue"** (map #03, now playable). Sources: S1 Uber Newsroom "Security update" (Sept 15/16/19, 2022), S2 CISA "Implementing Number Matching in MFA Applications" (Oct 2022). Facts verified by Claude in chat on 2026-11-19 and used as given (nothing fetched). S2 facts carry quotes; S1 quote fields are empty (24 validator warnings, expected).
   - New `violet` case theme (`#B98CFF` accent, violet code rain; text 10:1+, accent 7.5:1+).
@@ -243,7 +243,7 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 
 ## What's next (in order)
 0. Add short quotes from the sources for the remaining validator warnings (25 Midnight/Colonial, 24 Uber S1).
-0b. Review the Uber 2022 ATT&CK mapping and case design (Nura); deploy production (re-run #45 or merge PR #2).
+0b. Review the Uber 2022 ATT&CK mapping and case design (Nura).
 1. Verify the Colonial `todo` facts against AA21-131A and the DOJ release, then remove the `todo` fields.
 2. Review the Colonial content and ATT&CK mapping (Nura).
 3. MITRE bonus chips in Act 1, Practice and Challenge modes, Go Deeper (KQL hunting queries), 
