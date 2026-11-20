@@ -45,6 +45,53 @@
   }
   function reduceMotion() { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
 
+  /* ---------- sound effects: synthesized with Web Audio (no audio files), off by default ----------
+     Saved as 'breach-escape-sound' ('on' to enable). Nothing plays before the first click, tap or key press,
+     and every sound goes with text already on screen, so it never carries information on its own. */
+  var SOUND_KEY = 'breach-escape-sound';
+  var audio = null, master = null, gestured = false;
+  ['pointerdown', 'keydown'].forEach(function (t) { document.addEventListener(t, function () { gestured = true; }, true); });
+  function soundOn() { try { return localStorage.getItem(SOUND_KEY) === 'on'; } catch (e) { return false; } }
+  function note(t, freq, dur, type, peak, freqEnd) {
+    var o = audio.createOscillator(), g = audio.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t);
+    if (freqEnd) o.frequency.exponentialRampToValueAtTime(freqEnd, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak || 0.5, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(master);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+  var SOUNDS = {
+    tick: function (t) { for (var i = 0; i < 3; i++) note(t + i * 0.045, 1900, 0.018, 'square', 0.18); },
+    alert: function (t) { [880, 660, 880, 660].forEach(function (f, i) { note(t + i * 0.14, f, 0.12, 'triangle', 0.5); }); },
+    blip: function (t) { note(t, 660, 0.08, 'sine', 0.45, 990); },
+    alarm: function (t) { [440, 330, 440, 330].forEach(function (f, i) { note(t + i * 0.16, f, 0.15, 'sawtooth', 0.22); }); },
+    contained: function (t) { [523, 659, 784].forEach(function (f, i) { note(t + i * 0.1, f, 0.16, 'sine', 0.45); }); }
+  };
+  function sound(name) {
+    if (!soundOn() || !gestured || !SOUNDS[name]) return;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      if (!audio) { audio = new AC(); master = audio.createGain(); master.gain.value = 0.12; master.connect(audio.destination); }
+      if (audio.state === 'suspended') audio.resume();
+      SOUNDS[name](audio.currentTime + 0.01);
+    } catch (e) { /* audio unavailable: text already shows the event */ }
+  }
+  function soundToggle() {
+    var b = h('button', { class: 'c-ghost c-voicebtn c-soundbtn' });
+    function paint() { b.textContent = 'sound: ' + (soundOn() ? 'on' : 'off'); b.setAttribute('aria-pressed', String(soundOn())); }
+    b.addEventListener('click', function () {
+      try { localStorage.setItem(SOUND_KEY, soundOn() ? 'off' : 'on'); } catch (e) { /* storage unavailable */ }
+      paint();
+      sound('blip');   // audible confirmation when switched on (the label already says so)
+    });
+    paint();
+    return b;
+  }
+
   /* ---------- glossary: tappable terms; the case screen shows the definition (termSink) ---------- */
   var GLOSSARY = window.GLOSSARY || {};
   var TERMS = Object.keys(GLOSSARY).sort(function (a, b) { return b.length - a.length; });
@@ -162,7 +209,8 @@
     app.appendChild(h('p', { class: 'c-small c-privacy' }, [lock, 'Progress is saved only on this device. No account, no tracking.']));
     app.appendChild(h('div', { class: 'c-foot' }, [
       h('button', { class: 'c-ghost', text: '> about', onclick: renderAbout }),
-      window.BreachCase ? window.BreachCase.voiceToggle() : null
+      window.BreachCase ? window.BreachCase.voiceToggle() : null,
+      soundToggle()
     ]));
     window.scrollTo(0, 0);
   }
@@ -267,7 +315,9 @@
     onLeave: function (fn) { leaveHooks.push(fn); },
     leave: leave,
     renderMap: renderMap,
-    renderAbout: renderAbout
+    renderAbout: renderAbout,
+    sound: sound,
+    soundToggle: soundToggle
   };
 
   /* ---------- boot (after case.js has loaded too) ---------- */

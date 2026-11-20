@@ -386,3 +386,4 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
   .c-splash,.c-splash *{animation:none}
   .c-spl-kept,.c-spl-tag{width:auto}
 }
+.c-toggles{display:flex;gap:8px;flex-wrap:wrap}

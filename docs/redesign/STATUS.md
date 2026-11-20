@@ -72,6 +72,16 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - `sw.js` `v20`.
 
 
+## Round 5 (2026-11-20): sound effects
+- Optional sound, **off by default**, synthesized with the Web Audio API in `app.js` (`BE.sound(name)`); no audio files, no CSP change (CSP doesn't cover `AudioContext`, and nothing loads media).
+- Sounds: `tick` (briefing pages 2–5), `alert` (SEV 1 alert page), `blip` (correct evidence, red herring dismissed, patient zero, control deployed, sound switched on), `alarm` (first breached stage in a replay), `contained` (blocked stage). With reduced motion the replay is skipped, so the outcome sound plays with the results.
+- Nothing plays and no `AudioContext` is created before the first click, tap or key press. Master volume 0.12. Every sound goes with text already on screen.
+- The splash typing tick never plays: the splash runs on page load before any gesture, and any gesture ends it.
+- "sound: on/off" toggle (saved as `breach-escape-sound`) next to the voice toggle in the map footer and in both "?" help panels, same style.
+- Test added: off by default, no `AudioContext` before a gesture, toggle saved over a reload, toggle in the help panel. Full suite: one run, all passing.
+- `sw.js` `v21`.
+
+
 ## Decisions made
 - **Act 1 scoring:** +50 for each correct placement, +30 per red herring dismissed, −20 per mistake, −10 per hint, +100 for patient zero. XP never goes below 0.
 - **Act 2 scoring:** ID Protection is **detect** (no random chance). **3 stars** = blocked at stage ≤ 2 **and** no decoys; **2** = blocked later (or early with decoys); **1** = only detected or limited; **0** = breach succeeded.

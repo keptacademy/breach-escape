@@ -195,6 +195,7 @@
     var pages = C.d.briefing.pages;
     frame('INTEL', { briefing: true });
     app.classList.add('c-briefscreen');
+    BE.sound(page ? 'tick' : 'alert');   // SEV 1 tone on the alert page, a typing tick on the others
     var dots = h('div', { class: 'c-dots', role: 'progressbar', 'aria-label': 'Briefing page', 'aria-valuemin': '1', 'aria-valuemax': String(pages.length), 'aria-valuenow': String(page + 1) });
     pages.forEach(function (_, i) { dots.appendChild(h('i', { class: i <= page ? 'on' : '' })); });
     app.appendChild(h('div', { class: 'c-hud' }, [dots, h('button', { class: 'c-ghost c-skip', text: 'skip intel ›', onclick: finishBrief })]));
@@ -326,7 +327,7 @@
     E.helpBox = h('div', { class: 'c-helpbox', id: 'c-help', hidden: true }, [
       para(a1.help),
       h('p', { class: 'c-small', text: 'Keys: A add to timeline \u00b7 X not related \u00b7 H hint. Tap a dotted word to see what it means.' }),
-      voiceToggle()
+      h('div', { class: 'c-toggles' }, [voiceToggle(), BE.soundToggle()])
     ]);
     E.helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How to play', 'aria-expanded': 'false', 'aria-controls': 'c-help', text: '?', onclick: function () {
       var open = E.helpBox.hidden; E.helpBox.hidden = !open; E.helpBtn.setAttribute('aria-expanded', String(open));
@@ -464,7 +465,7 @@
     var c = A.sel, s = C.d.act1.scoring, w = C.d.act1.wrongLines;
     if (c.e.order === A.next) {
       c.done = true; A.placed.push(c); A.next++; A.sel = null;
-      addXP(s.place); toast('+' + s.place + ' XP \u00b7 sequence valid', true);
+      addXP(s.place); BE.sound('blip'); toast('+' + s.place + ' XP \u00b7 sequence valid', true);
       afterMove();
     } else if (!c.e.order) wrong(w.decoy, c.el);
     else wrong(w.early, c.el);
@@ -474,7 +475,7 @@
     var c = A.sel, s = C.d.act1.scoring;
     if (!c.e.order) {
       c.done = true; A.sel = null;
-      addXP(s.dismiss); toast('+' + s.dismiss + ' XP \u00b7 red herring dismissed', true);
+      addXP(s.dismiss); BE.sound('blip'); toast('+' + s.dismiss + ' XP \u00b7 red herring dismissed', true);
       afterMove();
     } else wrong(C.d.act1.wrongLines.dismissReal, c.el);
   }
@@ -501,7 +502,7 @@
     var s = C.d.act1.scoring;
     if (c.e.id !== C.d.patientZero) { wrong(C.d.act1.wrongLines.pz); return; }
     c.pz = true; A.phase = 'done';
-    addXP(s.patientZero); toast('+' + s.patientZero + ' XP \u00b7 patient zero identified', true, 'patientZero');
+    addXP(s.patientZero); BE.sound('blip'); toast('+' + s.patientZero + ' XP \u00b7 patient zero identified', true, 'patientZero');
     E.title.textContent = C.d.act1.doneTitle;
     E.line.textContent = ''; rich(C.d.act1.doneHelp, E.line);
     app.classList.remove('c-fit');   // the debrief is a normal scrolling page
@@ -589,7 +590,7 @@
     BE.onLeave(stopRun);
 
     F.title = h('h2', { class: 'c-h2', text: a2.title });
-    var helpBox = h('div', { class: 'c-helpbox', id: 'c-help2', hidden: true }, [para(a2.help), voiceToggle()]);
+    var helpBox = h('div', { class: 'c-helpbox', id: 'c-help2', hidden: true }, [para(a2.help), h('div', { class: 'c-toggles' }, [voiceToggle(), BE.soundToggle()])]);
     var helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How to play', 'aria-expanded': 'false', 'aria-controls': 'c-help2', text: '?', onclick: function () {
       var open = helpBox.hidden; helpBox.hidden = !open; helpBtn.setAttribute('aria-expanded', String(open));
     } });
@@ -698,7 +699,7 @@
     var logs = C.d.act2.logs, i = B.on.indexOf(c.id);
     if (i >= 0) { B.on.splice(i, 1); say('k', fmt(logs.removed, { name: c.name })); }
     else if (c.cost > left()) { overBudget(c); return; }
-    else { B.on.push(c.id); say('k', fmt(logs.deployed, { name: c.name, n: c.stage })); }
+    else { B.on.push(c.id); BE.sound('blip'); say('k', fmt(logs.deployed, { name: c.name, n: c.stage })); }
     drawAct2();
   }
   function overBudget(c) {
@@ -767,7 +768,7 @@
   function runAttack() {
     if (B.running) return;
     var a2 = C.d.act2, res = simulate();
-    B.running = true; app.classList.add('c-running'); drawBudget();
+    B.running = true; B.alarmed = false; app.classList.add('c-running'); drawBudget();
     // Reduced motion: no animation. The results screen lists every stage instead.
     if (BE.reduceMotion()) { finishRun(res); return; }
     drawMap();
@@ -806,7 +807,7 @@
     if (st.detect) { logLine('k', fmt(L.detect, { n: n }), st.detect.why); pill(node, 'y', '! DETECTED'); }
     if (st.limit) { logLine('k', fmt(L.limit, { n: n }), st.limit.why); pill(node, 'y', '◐ LIMITED'); }
     if (st.block) {
-      node.classList.add('block'); pill(node, 'g', '✓ BLOCKED');
+      node.classList.add('block'); pill(node, 'g', '✓ BLOCKED'); BE.sound('contained');
       logLine('k', fmt(L.block, { n: n }), st.block.why);
       rain.red = false; threat(Math.round(n / total * 50));
       return;
@@ -819,6 +820,7 @@
       return;
     }
     node.classList.add('breach'); pill(node, 'r', '✕ BREACHED');
+    if (!B.alarmed) { B.alarmed = true; BE.sound('alarm'); }   // once per run
     logLine('red', fmt(L.breach, { n: n, stage: st.s.name }));
     flash(); restart(node, 'c-glitch'); rain.red = true;
     threat(Math.round(n / total * 100));
@@ -831,6 +833,8 @@
   function finishRun(res) {
     stopRun();
     var r = score(res), rec = caseRec(), prev = rec.act2 || {};
+    // Reduced motion skips the replay, so the outcome sound plays with the results instead.
+    if (BE.reduceMotion()) BE.sound(r.kind === 'prevented' || r.kind === 'contained' ? 'contained' : 'alarm');
     C.xp = C.xpAct1 + r.stars * C.d.act2.xpPerStar;
     rec.act2 = {
       bestStars: Math.max(r.stars, prev.bestStars || 0),
