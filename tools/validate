@@ -8,7 +8,7 @@ Errors (exit code 1):
   - player-facing text from a todo fact: a todo on something the game always shows
     (controls, evidence, map stages, the hidden asset), or a fact that cites an unverified (todo) source
     without carrying a todo itself
-  - bad MITRE ATT&CK IDs (T####, T####.###, TA####)
+  - bad MITRE ATT&CK IDs (T####, T####.###, TA####), or no code on a stage that isn't an impact stage
   - a map stage with no real control (block, detect, recover or reveal); unblockable stages are exempt
   - not exactly one hidden asset with a discovery (reveal) control
   - a source without a URL
@@ -125,6 +125,10 @@ def semantic(d, status, errors, warnings):
         for m in t.get("mitre", []):
             if not MITRE.match(m):
                 errors.append("timeline[%d]: bad MITRE ID '%s'" % (i, m))
+        if not t.get("mitre"):
+            st = [x for x in d["map"]["stages"] if x.get("n") == t.get("stage")]
+            if not (st and st[0].get("impact")):
+                errors.append("timeline[%d]: no ATT&CK code (only an impact stage may have none)" % i)
 
     # every stage needs a real control (unblockable stages happen outside the defender's network)
     for s in d["map"]["stages"]:

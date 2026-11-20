@@ -1,6 +1,6 @@
 /* Breach Escape service worker: caches the app so it works offline.
    Bump VERSION whenever you deploy changes so players get the new files. */
-const VERSION = 'v29';
+const VERSION = 'v30';
 const CACHE = 'breach-escape-' + VERSION;
 const FILES = [
   './', 'index.html', 'theme.css', 'levels.js', 'app.js', 'case.js', 'levels/midnight-blizzard.json', 'levels/colonial-pipeline.json', 'manifest.webmanifest',

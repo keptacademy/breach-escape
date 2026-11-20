@@ -3,34 +3,33 @@
   "levelId": 3,
   "caseNo": "03",
   "title": "MFA Fatigue",
-  "victim": "TODO: victim organization",
+  "victim": "Uber",
   "theme": "green",
   "status": {
     "act1": "soon",
     "act2": "soon"
   },
-  "note": "Scaffolded by tools/new_case. Every fact must come from a primary source listed below. Remove each todo only after checking it.",
+  "note": "Facts come from Uber's own security update (Uber Newsroom, updates of Sept 15, 16 and 19, 2022) and CISA's fact sheet on number matching (October 2022). Facts and sources checked by Claude against the primary sources on 2026-11-19. Evidence rows are recreated for training and are labelled so in the game. ATT&CK codes are a mapping for review, not a source fact. The game never shows the attacker's Slack message or the image. Uber hasn't said how the attacker got elevated permissions, so the game doesn't guess. Text in backticks is shown as code.",
   "verify": [
-    "TODO: verify the hidden asset (map.hidden.name) against a primary source; the game always shows its name once discovered.",
-    "TODO: verify every stage name, evidence card, control and outcome text before setting the case to ready."
+    "TODO: verify the hidden asset (map.hidden.name) against a primary source; the game always shows its name once discovered."
   ],
   "sources": [
     {
-      "id": "src1",
-      "title": "TODO: document title",
-      "publisher": "TODO: publisher",
-      "date": "TODO: date",
-      "url": "https://example.invalid/TODO",
-      "todo": "TODO: verify against a primary source"
+      "id": "uber",
+      "title": "Security update",
+      "publisher": "Uber Newsroom",
+      "date": "Sept 15, 2022 (updated Sept 16 and Sept 19, 2022)",
+      "url": "https://www.uber.com/newsroom/security-update/"
+    },
+    {
+      "id": "cisa",
+      "title": "Implementing Number Matching in MFA Applications",
+      "publisher": "CISA (fact sheet)",
+      "date": "October 2022",
+      "url": "https://www.cisa.gov/sites/default/files/publications/fact-sheet-implement-number-matching-in-mfa-applications-508c.pdf"
     }
   ],
   "briefing": {
-    "opening": "TODO: opening line",
-    "threatActor": {
-      "v": "TODO: threat actor name",
-      "source": "src1",
-      "todo": "TODO: verify against a primary source"
-    },
     "pages": [
       {
         "blocks": [
@@ -40,26 +39,35 @@
               "INCIDENT ALERT",
               "SEV 1"
             ],
-            "eyebrow": "Case 03 · TODO: date",
-            "text": "TODO: what the team has just found",
+            "eyebrow": "Case 03 · Sept 15, 2022",
+            "text": "An attacker has posted a message to a company-wide Slack channel, and some internal sites are showing employees a graphic image. Uber is responding to a cybersecurity incident.",
             "kv": [
               {
                 "k": "Victim",
-                "v": "TODO: victim",
-                "source": "src1",
-                "todo": "TODO: verify against a primary source"
+                "v": "Uber · corporate environment",
+                "source": "uber"
               },
               {
-                "k": "Discovered",
-                "v": "TODO: date",
-                "source": "src1",
-                "todo": "TODO: verify against a primary source"
+                "k": "Announced",
+                "v": "Sept 15, 2022 · in touch with law enforcement",
+                "source": "uber"
+              },
+              {
+                "k": "Public services",
+                "v": "Uber, Uber Eats, Uber Freight and the Driver app stayed operational",
+                "source": "uber"
+              },
+              {
+                "k": "Internal tools",
+                "v": "taken down as a precaution · back on Sept 16",
+                "tone": "red",
+                "source": "uber"
               }
             ]
           },
           {
             "type": "note",
-            "text": "TODO: which primary sources this case is built from; log entries are recreated for training"
+            "text": "Facts in this case come from Uber's own security update (Sept 15–19, 2022) and CISA's fact sheet on number matching (October 2022). Log entries in the game are recreated for training. The attacker's message and the image are never shown."
           }
         ]
       },
@@ -68,28 +76,120 @@
           {
             "type": "panel",
             "eyebrow": "Threat actor profile",
-            "title": "TODO: ACTOR",
+            "title": "LAPSUS$",
             "kv": [
               {
-                "k": "Type",
-                "v": "TODO: type",
-                "source": "src1",
-                "todo": "TODO: verify against a primary source"
+                "k": "Attribution",
+                "v": "Uber believes the attacker (or attackers) are affiliated with Lapsus$",
+                "source": "uber"
+              },
+              {
+                "k": "In this case",
+                "v": "Got into an EXT contractor's account, then other employee accounts and internal tools including G-Suite and Slack.",
+                "source": "uber"
               }
             ]
+          },
+          {
+            "type": "panel",
+            "eyebrow": "Why this matters to you",
+            "text": "The attacker already had the password. The only thing in the way was a two-factor approval request, and they could ask for it again and again. Your job is to find the account that still said yes."
           }
         ]
       },
       {
         "blocks": [
           {
+            "type": "facts",
+            "eyebrow": "What we know",
+            "items": [
+              [
+                {
+                  "t": "The account belonged to an Uber "
+                },
+                {
+                  "t": "EXT (external) contractor",
+                  "tone": "b"
+                },
+                {
+                  "t": "."
+                }
+              ],
+              [
+                {
+                  "t": "Malware on the contractor's "
+                },
+                {
+                  "t": "personal device",
+                  "tone": "red"
+                },
+                {
+                  "t": " likely exposed the password; Uber says the attacker likely bought it on the dark web."
+                }
+              ],
+              [
+                {
+                  "t": "Each login attempt sent a "
+                },
+                {
+                  "t": "two-factor approval request",
+                  "tone": "b"
+                },
+                {
+                  "t": ". At first, that blocked access."
+                }
+              ],
+              [
+                {
+                  "t": "Eventually the contractor "
+                },
+                {
+                  "t": "accepted one",
+                  "tone": "red"
+                },
+                {
+                  "t": ", and the attacker logged in."
+                }
+              ],
+              [
+                {
+                  "t": "Uber hasn't said "
+                },
+                {
+                  "t": "how the attacker got elevated permissions",
+                  "tone": "b"
+                },
+                {
+                  "t": "."
+                }
+              ]
+            ]
+          },
+          {
             "type": "timeline",
             "eyebrow": "Incident timeline",
             "items": [
               {
-                "d": "TODO: DATE",
-                "t": "TODO: event",
-                "todo": "TODO: verify against a primary source"
+                "d": "DATE NOT PUBLIC HERE",
+                "t": "Repeated login attempts; the contractor accepts one approval request.",
+                "tone": "red",
+                "source": "uber"
+              },
+              {
+                "d": "SEPT 15, 2022",
+                "t": "Uber says it is responding to a cybersecurity incident and is in touch with law enforcement.",
+                "tone": "red",
+                "source": "uber"
+              },
+              {
+                "d": "SEPT 16",
+                "t": "Internal tools taken down as a precaution come back. No evidence of access to sensitive user data like trip history.",
+                "source": "uber"
+              },
+              {
+                "d": "SEPT 19",
+                "t": "Uber publishes how the attack happened, its attribution to Lapsus$, and its response.",
+                "source": "uber"
               }
             ]
           }
@@ -100,19 +200,49 @@
           {
             "type": "diagram",
             "eyebrow": "The battlefield",
-            "text": "TODO: one line about the environment",
+            "text": "Uber's public apps run on production systems. Uber says it had not seen access to production (public-facing) systems, user accounts, or databases with sensitive user data.",
             "flow": [
               {
-                "box": "TODO: outside",
+                "box": "Contractor's personal device · malware",
                 "tone": "red"
               },
               {
-                "arrow": "TODO: how they got in"
+                "arrow": "▼ password likely bought on the dark web"
               },
               {
-                "zone": "TODO: ZONE",
+                "box": "Attacker with the password",
+                "tone": "red"
+              },
+              {
+                "arrow": "▼ login attempts → two-factor approval requests"
+              },
+              {
+                "zone": "UBER CORPORATE SIGN-IN",
                 "boxes": [
-                  "TODO: system"
+                  "EXT contractor account",
+                  "Employee accounts"
+                ]
+              },
+              {
+                "teaser": "? What happened next is in the evidence"
+              },
+              {
+                "zone": "INTERNAL TOOLS",
+                "boxes": [
+                  "G-Suite",
+                  "Slack",
+                  "Finance tool (invoices)",
+                  "HackerOne dashboard"
+                ]
+              },
+              {
+                "arrow": "▼ were customers touched?"
+              },
+              {
+                "zone": "PUBLIC SERVICES",
+                "tone": "g",
+                "boxes": [
+                  "Uber · Uber Eats · Uber Freight · Driver app"
                 ]
               }
             ]
@@ -125,7 +255,10 @@
             "type": "glossary",
             "eyebrow": "Field glossary",
             "terms": [
-              "patient zero"
+              "MFA fatigue",
+              "approval request",
+              "number matching",
+              "dark web"
             ]
           },
           {
@@ -138,13 +271,19 @@
               },
               {
                 "b": "Act 2 · Defend:",
-                "t": "Rewind to before the attacker got in. Deploy controls on a budget and replay the real attack."
+                "t": "Rewind to before the first approval request. Deploy controls on a budget and replay the real attack."
               }
-            ]
+            ],
+            "small": "Stars: stop it at the door, then add layers that notice and recover."
           }
         ]
       }
-    ]
+    ],
+    "opening": "Analyst, someone just posted to the whole company on Slack.",
+    "threatActor": {
+      "v": "Lapsus$ (Uber's attribution)",
+      "source": "uber"
+    }
   },
   "act1": {
     "title": "Rebuild the timeline",
@@ -153,8 +292,8 @@
     "pzTitle": "Find patient zero",
     "pzHelp": "Tap the timeline entry that shows the first successful access.",
     "doneTitle": "Timeline rebuilt",
-    "doneHelp": "TODO: one line summary",
-    "finding": "TODO: case finding",
+    "doneHelp": "Six pieces of evidence, from one accepted approval to a company-wide post.",
+    "finding": "Patient zero was the approval request the EXT contractor accepted. The attacker already had the password and kept trying to log in; each attempt sent a two-factor approval request, until one was accepted. From there they reached other employee accounts, got elevated permissions to G-Suite and Slack, took some internal data and posted to a company-wide Slack channel. Uber says public services stayed up and it had not seen access to production systems.",
     "scoring": {
       "place": 50,
       "dismiss": 30,
@@ -215,23 +354,70 @@
       "stage": 1,
       "date": null,
       "mitre": [
-        "T1078"
+        "T1597.002"
       ],
-      "source": "src1",
-      "text": "TODO: what happened at stage 1",
-      "why": "TODO: why it worked",
-      "todo": "TODO: verify against a primary source"
+      "source": "uber",
+      "text": "Malware on the contractor's personal device exposed their Uber corporate password. Uber says it is likely the attacker bought it on the dark web.",
+      "why": "It happened outside Uber's network, on a personal device. A password alone was not enough, though: the account also had two-factor approval."
     },
     {
       "stage": 2,
       "date": null,
       "mitre": [
+        "T1621"
+      ],
+      "source": "uber",
+      "text": "The attacker repeatedly tried to log in to the contractor's account. Each time, the contractor received a two-factor login approval request, which at first blocked access.",
+      "why": "The password was right. Only the approval stood in the way, and the attacker could ask for it again and again."
+    },
+    {
+      "stage": 3,
+      "date": null,
+      "mitre": [
         "T1078"
       ],
-      "source": "src1",
-      "text": "TODO: what happened at stage 2",
-      "why": "TODO: why it worked",
-      "todo": "TODO: verify against a primary source"
+      "source": "uber",
+      "text": "Eventually the contractor accepted one approval request, and the attacker logged in to the account.",
+      "why": "The request only asked yes or no. One yes was enough."
+    },
+    {
+      "stage": 4,
+      "date": null,
+      "mitre": [
+        "T1078",
+        "TA0004"
+      ],
+      "source": "uber",
+      "text": "The attacker accessed several other employee accounts and got elevated permissions to tools including G-Suite and Slack. Uber hasn't said how the permissions were obtained.",
+      "why": "Uber hasn't published how, so the game doesn't guess. What matters: from one contractor account, the attacker reached admin-level access."
+    },
+    {
+      "stage": 5,
+      "date": null,
+      "mitre": [
+        "T1213"
+      ],
+      "source": "uber",
+      "text": "The attacker appears to have downloaded some internal Slack messages, accessed or downloaded information from an internal finance tool used to manage some invoices, and accessed Uber's HackerOne dashboard. Bug reports the attacker could access had been remediated.",
+      "why": "With elevated permissions, internal tools hand over what they hold."
+    },
+    {
+      "stage": 6,
+      "date": null,
+      "mitre": [
+        "T1491.001"
+      ],
+      "source": "uber",
+      "text": "The attacker posted a message to a company-wide Slack channel and reconfigured Uber's OpenDNS to show a graphic image to employees on some internal sites.",
+      "why": "This is where the attack became visible. Uber's existing security monitoring let its teams quickly identify the issue."
+    },
+    {
+      "stage": 7,
+      "date": "Sept 15–16, 2022",
+      "mitre": [],
+      "source": "uber",
+      "text": "Uber took internal tools down as a precaution; they came back on Sept 16. Uber, Uber Eats, Uber Freight and the Driver app stayed operational.",
+      "why": "Not an attacker action: Uber's own precaution while it responded. Uber says it had not seen access to production (public-facing) systems."
     }
   ],
   "rewind": "TODO: rewind line",
