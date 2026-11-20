@@ -26,8 +26,19 @@ const CASES = [
       { kind: 'prevented', ids: ['audit', 'disable', 'irp', 'backup'], stars: 3, damage: 'NONE' },
       { kind: 'contained', ids: ['seg'], stars: 1, damage: 'SEVERE' },
       { kind: 'detected', ids: ['irp'], stars: 0, damage: 'CRITICAL' }
+    ] },
+  { id: 'uber-2022', level: 3,
+    locked: 'nmext',
+    runs: [
+      { kind: 'succeeded', ids: ['nmemp'], stars: 0, damage: 'SEVERE' },
+      { kind: 'prevented', ids: ['audit', 'nmext'], stars: 2, damage: 'NONE' },
+      { kind: 'prevented', ids: ['audit', 'nmext', 'train', 'rotate'], stars: 3, damage: 'NONE' },
+      { kind: 'prevented', ids: ['audit', 'managed', 'mfaalert'], stars: 2, damage: 'NONE', drag: true },
+      { kind: 'detected', ids: ['mfaalert'], stars: 0, damage: 'SEVERE' }
     ] }
 ];
+const THEMES = { 'colonial-pipeline': 'amber', 'uber-2022': 'violet' };
+const IMPACT_STAGE = { 'colonial-pipeline': 6, 'uber-2022': 7 };
 const TITLES = { prevented: 'Breach prevented', contained: 'Breach contained', detected: 'Breach detected', succeeded: 'Breach succeeded' };
 const VIEWS = [{ name: '1280x720', vp: { width: 1280, height: 720 } }, { name: '1920x1080', vp: { width: 1920, height: 1080 } }, { name: '390x844', phone: true }];
 const problems = [];
@@ -92,7 +103,7 @@ async function run(view, c, browser) {
   };
   const theme = async (where) => {
     const t = await page.evaluate(() => ({ a: document.documentElement.getAttribute('data-theme'), rain: (document.querySelector('.c-rain') || {}).hidden }));
-    const want = c.id === 'colonial-pipeline' ? 'amber' : null;
+    const want = THEMES[c.id] || null;
     if (t.a !== want) bad(tag + ' ' + where + ' theme ' + t.a);
     if (want === 'amber' && t.rain === false) bad(tag + ' amber shows code rain');
   };
@@ -110,7 +121,7 @@ async function run(view, c, browser) {
     if (c.level === 1) {
       await page.waitForSelector('.c-spl-out >> text=real breaches loaded', { timeout: 5000 });
       const out = await page.textContent('.c-spl-term');
-      if (!out.includes('[ok] 2 real breaches loaded')) bad(tag + ' splash load line: ' + out);
+      if (!out.includes('[ok] 3 real breaches loaded')) bad(tag + ' splash load line: ' + out);
       if (view.name === '1280x720') await contrast('splash');
       if (await page.locator('.c-spl-logo').isVisible()) bad(tag + ' KEPT logo visible while the commands type');
       await shot('0splash');
@@ -143,8 +154,8 @@ async function run(view, c, browser) {
   if (head.h > 44 || head.t > head.fs * 1.6 || head.sw > head.cw) bad(tag + ' map header wraps: ' + JSON.stringify(head));
   if ((await page.textContent('.c-herolabel')) !== 'NEXT CASE' || (await page.textContent('.c-herotitle')) !== 'The Forgotten Test Account') bad(tag + ' hero on first visit');
   if ((await page.textContent('.c-herobtn')) !== '> OPEN CASE FILE') bad(tag + ' hero button');
-  if ((await page.textContent('.c-caseshead .c-count')) !== '2 of 7 playable') bad(tag + ' playable count');
-  if ((await page.locator('div.c-case.soon').count()) !== 5 || (await page.locator('button.c-case').count()) !== 2) bad(tag + ' playable/soon rows');
+  if ((await page.textContent('.c-caseshead .c-count')) !== '3 of 7 playable') bad(tag + ' playable count');
+  if ((await page.locator('div.c-case.soon').count()) !== 4 || (await page.locator('button.c-case').count()) !== 3) bad(tag + ' playable/soon rows');
   if (await page.locator('.c-intro').count()) bad(tag + ' intro paragraph still on the map');
   await page.click('.c-maphead .c-helpbtn');
   const help = await page.textContent('.c-maphelp');
@@ -265,7 +276,7 @@ async function run(view, c, browser) {
     if (!(await page.locator('.c-ctl').count())) { await page.click('text=> TRY ANOTHER BUILD'); await page.waitForSelector('.c-ctl'); }
     if (await page.locator('.c-clear:not([disabled])').count()) await page.click('.c-clear');
     for (const id of ids) {
-      if (desktop && id === ids[0] && kind === 'contained') {
+      if (desktop && id === ids[0] && (kind === 'contained' || run.drag)) {
         // drag a control onto its stage
         const ctl = data.controls.find((x) => x.id === id);
         await ctlBtn(id).evaluate((el) => el.scrollIntoView({ block: 'center' })); await page.waitForTimeout(100);
@@ -302,11 +313,12 @@ async function run(view, c, browser) {
     const page2 = await page.textContent('#app');
     if (/TODO/.test(page2)) bad(tag + ' placeholder or todo text visible on results');
     if (kind === 'succeeded' && !page2.includes('Entered via an asset not in your inventory')) bad(tag + ' no hidden-asset line');
-    if (c.id === 'colonial-pipeline' && kind !== 'prevented') {
-      const s6 = await page.locator('.c-replay li').nth(5).textContent().catch(() => '');
-      if (kind !== 'contained' && !s6.includes('IMPACT')) bad(tag + ' stage 6 not IMPACT: ' + s6.slice(0, 60));
-      if (s6.includes('BREACHED')) bad(tag + ' stage 6 shown as BREACHED');
+    if (IMPACT_STAGE[c.id] && kind !== 'prevented') {
+      const n = IMPACT_STAGE[c.id], s6 = await page.locator('.c-replay li').nth(n - 1).textContent().catch(() => '');
+      if (kind !== 'contained' && !s6.includes('IMPACT')) bad(tag + ' stage ' + n + ' not IMPACT: ' + s6.slice(0, 60));
+      if (s6.includes('BREACHED')) bad(tag + ' stage ' + n + ' shown as BREACHED');
     }
+    if (c.id === 'uber-2022' && run.damage === 'CRITICAL') bad(tag + ' Uber damage must never be CRITICAL');
     if (!(await page.locator('.c-layers li').count())) bad(tag + ' no defense layers');
     const nxt = (await page.locator('.c-nextstar').count()) ? await page.textContent('.c-nextstar') : '';
     if (run.stars < 3 && !nxt.startsWith('\u2605'.repeat(run.stars + 1) + ':')) bad(tag + ' next-star line: ' + nxt);
@@ -390,7 +402,7 @@ async function run(view, c, browser) {
     await pg.goto(BASE);
     await pg.waitForSelector('.c-spl-out >> text=welcome back', { timeout: 6000 }).catch(() => {});
     const out = await pg.textContent('.c-spl-term').catch(() => '');
-    if (!out.includes('[ok] welcome back \u00b7 1/2 cases closed')) bad('returning splash line: ' + out);
+    if (!out.includes('[ok] welcome back \u00b7 1/3 cases closed')) bad('returning splash line: ' + out);
     await pg.click('.c-spl-skip');
     await pg.click('text=> about'); await pg.click('.c-resetbtn');
     if (await pg.locator('.c-confirm[hidden]').count()) bad('reset confirm not shown');
@@ -443,7 +455,7 @@ async function run(view, c, browser) {
   if (!process.env.CASE) {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
     await ctx.addInitScript(() => { sessionStorage.setItem('breach-escape-splash', '1');
-      localStorage.setItem('breach-escape-progress-v1', JSON.stringify({ cases: { 'midnight-blizzard': { act2: { bestStars: 3 } }, 'colonial-pipeline': { act2: { bestStars: 1 } } } })); });
+      localStorage.setItem('breach-escape-progress-v1', JSON.stringify({ cases: { 'midnight-blizzard': { act2: { bestStars: 3 } }, 'colonial-pipeline': { act2: { bestStars: 1 } }, 'uber-2022': { act2: { bestStars: 2 } } } })); });
     const pg = await ctx.newPage(); await pg.goto(BASE); await pg.waitForSelector('.c-hero');
     if ((await pg.textContent('.c-herolabel')) !== 'REPLAY A CASE' || (await pg.textContent('.c-herotitle')) !== 'The Legacy VPN' || (await pg.textContent('.c-herobtn')) !== '> REOPEN CASE') bad('all-finished hero');
     await ctx.close();
@@ -457,7 +469,7 @@ async function run(view, c, browser) {
     await pg.goto(BASE + hash); await pg.waitForSelector('.c-case');
     await pg.waitForTimeout(300);
     // The desktop hero may load a known case file for its threat-actor row; anything else is an extra request.
-    const extra = reqs.filter((u) => { const x = u.replace(BASE + hash, ''); return /evil|unknown/.test(x) || (/levels\//.test(x) && !/levels\/(midnight-blizzard|colonial-pipeline)\.json$/.test(x)); });
+    const extra = reqs.filter((u) => { const x = u.replace(BASE + hash, ''); return /evil|unknown/.test(x) || (/levels\//.test(x) && !/levels\/(midnight-blizzard|colonial-pipeline|uber-2022)\.json$/.test(x)); });
     if (extra.length) bad('bad link ' + hash + ' requested ' + extra);
     const txt = await pg.evaluate(() => document.body.textContent + location.href);
     if (/evil|unknown/.test(txt)) bad('bad link ' + hash + ' echoed on the page or kept in the URL');

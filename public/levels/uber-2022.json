@@ -6,8 +6,8 @@
   "victim": "Uber",
   "theme": "violet",
   "status": {
-    "act1": "soon",
-    "act2": "soon"
+    "act1": "ready",
+    "act2": "ready"
   },
   "note": "Facts come from Uber's own security update (Uber Newsroom, updates of Sept 15, 16 and 19, 2022) and CISA's fact sheet on number matching (October 2022). Facts and sources checked by Claude against the primary sources on 2026-11-19. Evidence rows are recreated for training and are labelled so in the game. ATT&CK codes are a mapping for review, not a source fact. The game never shows the attacker's Slack message or the image. Uber hasn't said how the attacker got elevated permissions, so the game doesn't guess. Text in backticks is shown as code.",
   "sources": [
