@@ -128,6 +128,7 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - **Schema/validator:** quotes may be a list; sources and quotes allowed on briefing timeline items, controls and tips; `tips.always` may be one tip or a list (the engine shows each).
 - **new_case:** converts a SOON map entry with the same title instead of adding a duplicate card; refuses if that entry already has a case or isn't SOON.
 - **Validator report:** 0 errors on both levels; 25 warnings (sourced facts without a quote: 14 Colonial, 11 Midnight).
+- **Full e2e suite:** one run, all passing (allow-list check, sound, splash/reset, bad links, both cases at 1280×720, 1920×1080 and 390×844 under the production CSP, including the new stage 3 build and the reworded Colonial ★★★ build).
 - `sw.js` `v24`.
 
 ## Decisions made
