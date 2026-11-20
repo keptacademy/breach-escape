@@ -1,0 +1,410 @@
+{
+  "id": "uber-2022",
+  "levelId": 3,
+  "caseNo": "03",
+  "title": "MFA Fatigue",
+  "victim": "TODO: victim organization",
+  "theme": "green",
+  "status": {
+    "act1": "soon",
+    "act2": "soon"
+  },
+  "note": "Scaffolded by tools/new_case. Every fact must come from a primary source listed below. Remove each todo only after checking it.",
+  "verify": [
+    "TODO: verify the hidden asset (map.hidden.name) against a primary source; the game always shows its name once discovered.",
+    "TODO: verify every stage name, evidence card, control and outcome text before setting the case to ready."
+  ],
+  "sources": [
+    {
+      "id": "src1",
+      "title": "TODO: document title",
+      "publisher": "TODO: publisher",
+      "date": "TODO: date",
+      "url": "https://example.invalid/TODO",
+      "todo": "TODO: verify against a primary source"
+    }
+  ],
+  "briefing": {
+    "opening": "TODO: opening line",
+    "threatActor": {
+      "v": "TODO: threat actor name",
+      "source": "src1",
+      "todo": "TODO: verify against a primary source"
+    },
+    "pages": [
+      {
+        "blocks": [
+          {
+            "type": "alert",
+            "bar": [
+              "INCIDENT ALERT",
+              "SEV 1"
+            ],
+            "eyebrow": "Case 03 · TODO: date",
+            "text": "TODO: what the team has just found",
+            "kv": [
+              {
+                "k": "Victim",
+                "v": "TODO: victim",
+                "source": "src1",
+                "todo": "TODO: verify against a primary source"
+              },
+              {
+                "k": "Discovered",
+                "v": "TODO: date",
+                "source": "src1",
+                "todo": "TODO: verify against a primary source"
+              }
+            ]
+          },
+          {
+            "type": "note",
+            "text": "TODO: which primary sources this case is built from; log entries are recreated for training"
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "panel",
+            "eyebrow": "Threat actor profile",
+            "title": "TODO: ACTOR",
+            "kv": [
+              {
+                "k": "Type",
+                "v": "TODO: type",
+                "source": "src1",
+                "todo": "TODO: verify against a primary source"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "timeline",
+            "eyebrow": "Incident timeline",
+            "items": [
+              {
+                "d": "TODO: DATE",
+                "t": "TODO: event",
+                "todo": "TODO: verify against a primary source"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "diagram",
+            "eyebrow": "The battlefield",
+            "text": "TODO: one line about the environment",
+            "flow": [
+              {
+                "box": "TODO: outside",
+                "tone": "red"
+              },
+              {
+                "arrow": "TODO: how they got in"
+              },
+              {
+                "zone": "TODO: ZONE",
+                "boxes": [
+                  "TODO: system"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "glossary",
+            "eyebrow": "Field glossary",
+            "terms": [
+              "patient zero"
+            ]
+          },
+          {
+            "type": "mission",
+            "eyebrow": "Your mission",
+            "items": [
+              {
+                "b": "Act 1 · Investigate:",
+                "t": "put the evidence in order and find patient zero."
+              },
+              {
+                "b": "Act 2 · Defend:",
+                "t": "Rewind to before the attacker got in. Deploy controls on a budget and replay the real attack."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "act1": {
+    "title": "Rebuild the timeline",
+    "short": "Put the evidence in the order it happened. Red herrings go to Not related.",
+    "help": "Drag an evidence card onto the timeline in the order it happened, or onto Not related. You can also tap a card, then use the buttons.",
+    "pzTitle": "Find patient zero",
+    "pzHelp": "Tap the timeline entry that shows the first successful access.",
+    "doneTitle": "Timeline rebuilt",
+    "doneHelp": "TODO: one line summary",
+    "finding": "TODO: case finding",
+    "scoring": {
+      "place": 50,
+      "dismiss": 30,
+      "wrong": -20,
+      "hint": -10,
+      "patientZero": 100,
+      "pzWrong": -20
+    },
+    "hints": {
+      "1": "TODO: hint for step 1",
+      "2": "TODO: hint for step 2"
+    },
+    "wrongLines": {
+      "early": "Not yet. Something else had to happen before this.",
+      "decoy": "Not part of this attack.",
+      "dismissReal": "This one matters. Look again.",
+      "pz": "That is not the first successful access."
+    }
+  },
+  "evidence": [
+    {
+      "id": "E1",
+      "type": "signin",
+      "src": "sign-in log",
+      "order": 1,
+      "illustrative": true,
+      "title": "TODO: evidence for stage 1",
+      "rows": [
+        "TODO: recreated log row"
+      ]
+    },
+    {
+      "id": "E2",
+      "type": "signin",
+      "src": "sign-in log",
+      "order": 2,
+      "illustrative": true,
+      "title": "TODO: first successful access",
+      "rows": [
+        "TODO: recreated log row"
+      ]
+    },
+    {
+      "id": "D1",
+      "type": "alert",
+      "src": "defender alert",
+      "order": null,
+      "illustrative": true,
+      "title": "TODO: red herring",
+      "rows": [
+        "TODO: recreated log row"
+      ]
+    }
+  ],
+  "patientZero": "E2",
+  "timeline": [
+    {
+      "stage": 1,
+      "date": null,
+      "mitre": [
+        "T1078"
+      ],
+      "source": "src1",
+      "text": "TODO: what happened at stage 1",
+      "why": "TODO: why it worked",
+      "todo": "TODO: verify against a primary source"
+    },
+    {
+      "stage": 2,
+      "date": null,
+      "mitre": [
+        "T1078"
+      ],
+      "source": "src1",
+      "text": "TODO: what happened at stage 2",
+      "why": "TODO: why it worked",
+      "todo": "TODO: verify against a primary source"
+    }
+  ],
+  "rewind": "TODO: rewind line",
+  "map": {
+    "zones": [
+      {
+        "id": "out",
+        "name": "OUTSIDE",
+        "short": "OUTSIDE"
+      },
+      {
+        "id": "in",
+        "name": "TODO: ZONE",
+        "short": "TODO: ZONE"
+      }
+    ],
+    "links": {
+      "out": "TODO: how they got in"
+    },
+    "stages": [
+      {
+        "n": 1,
+        "zone": "out",
+        "name": "TODO: stage 1",
+        "unblockable": true
+      },
+      {
+        "n": 2,
+        "zone": "in",
+        "name": "TODO: entry stage",
+        "reach": "TODO: what the attacker reached",
+        "severity": "contained"
+      }
+    ],
+    "hidden": {
+      "stage": 2,
+      "name": "TODO: hidden asset (add its source once verified)"
+    },
+    "note": "ATT&CK codes for each stage come from the timeline above, so Act 1 and Act 2 always match."
+  },
+  "budget": 8,
+  "controls": [
+    {
+      "id": "discover",
+      "name": "TODO: discovery control",
+      "cost": 2,
+      "stage": 2,
+      "effect": "reveal",
+      "friction": 0,
+      "why": "TODO: what it finds"
+    },
+    {
+      "id": "cover",
+      "name": "TODO: control that covers the found asset",
+      "cost": 2,
+      "stage": 2,
+      "effect": "block",
+      "needs": "reveal",
+      "friction": 0,
+      "why": "TODO: why it stops the attack"
+    },
+    {
+      "id": "detect",
+      "name": "TODO: detection control",
+      "cost": 2,
+      "stage": 2,
+      "effect": "detect",
+      "friction": 0,
+      "why": "TODO: what it notices"
+    },
+    {
+      "id": "recover",
+      "name": "TODO: recovery control",
+      "cost": 2,
+      "stage": 2,
+      "effect": "recover",
+      "friction": 0,
+      "why": "TODO: how it helps recovery"
+    },
+    {
+      "id": "decoy",
+      "name": "TODO: tempting decoy",
+      "cost": 1,
+      "stage": 2,
+      "effect": "decoy",
+      "friction": 0,
+      "why": "TODO: why it doesn't help here"
+    }
+  ],
+  "stars": {
+    "one": "attack stopped at any stage",
+    "two": "stopped at the entry stage (damage NONE). That needs every way in discovered first.",
+    "three": "★★ plus at least one detect and one recover control in the build",
+    "nextOne": "★: stop the attack at any stage.",
+    "nextTwo": "★★: stop it at the entry stage. Find every way in before you lock the door.",
+    "nextThree": "★★★: add a detect and a recover layer in case prevention fails."
+  },
+  "ranks": [
+    "INTERN",
+    "ANALYST",
+    "ENGINEER",
+    "ARCHITECT"
+  ],
+  "glossary": [
+    "patient zero"
+  ],
+  "act2": {
+    "title": "TODO: Act 2 title",
+    "short": "TODO: one line",
+    "help": "TODO: how to play Act 2, with the budget",
+    "rewindButton": "> REWIND",
+    "simName": "uber_2022",
+    "mapCmd": "> map ./network",
+    "attemptedNote": "TODO: why stage 1 can't be blocked from inside",
+    "stepMs": 700,
+    "xpPerStar": 150,
+    "preventedMaxStage": 2,
+    "friction": {
+      "low": 1,
+      "medium": 3
+    },
+    "outcomes": {
+      "prevented": {
+        "title": "Breach prevented",
+        "sub": "TODO: one line"
+      },
+      "contained": {
+        "title": "Breach contained",
+        "sub": "TODO: one line"
+      },
+      "detected": {
+        "title": "Breach detected",
+        "sub": "TODO: one line"
+      },
+      "succeeded": {
+        "title": "Breach succeeded",
+        "sub": "TODO: one line"
+      }
+    },
+    "tips": {
+      "notStopped": "The attack ran all the way. Check where it really got in, and whether that door was in your inventory.",
+      "unknownAsset": "The attacker entered via an asset not in your inventory. You can't protect what you haven't found.",
+      "notEntry": "Stopped, but only after they got in. For ★★, stop it at the entry stage.",
+      "needLayers": "Prevention held. For ★★★, add a detect and a recover layer in case it fails next time.",
+      "decoys": "{n} decoy(s) cost budget but did nothing against this attack.",
+      "friction": "High friction: users will push back. Find a lighter build.",
+      "always": {
+        "t": "TODO: what the primary source recommends",
+        "todo": "TODO: verify against a primary source"
+      }
+    },
+    "logs": {
+      "idle": "> deploy controls, then execute",
+      "start": "executing attack_sim :: {sim}",
+      "decoy": "[~] {name}: no effect.",
+      "detect": "[+] detected at stage {n}:",
+      "block": "[✓] blocked at stage {n}:",
+      "breach": "[!!] intrusion · stage {n} · {stage}",
+      "attempted": "[~] stage {n} · {stage}: happens outside your network. Can't be blocked here; defense starts at stage 2.",
+      "overBudget": "[!] over budget: {name} costs {cost}, you have {left} left. Remove a control first.",
+      "wrongZone": "[!] {name} protects the {zone}. Drop it on a stage there.",
+      "deployed": "[+] deployed: {name} → stage {n}",
+      "removed": "[-] removed: {name}",
+      "scoped": "[~] {name}: known assets only.",
+      "revealed": "[+] discovered: {asset}",
+      "deployedReveal": "[+] deployed: {name} (discovery)",
+      "locked": "[!] {name}: find the asset first. Deploy a discovery control.",
+      "removedDeps": "(it needs the discovery control)",
+      "viaUnknown": "[!!] entered via an asset not in your inventory",
+      "viaKnown": "[!!] entered via a known asset you didn't protect",
+      "impact": "[◆] impact · stage {n} · {stage}:",
+      "recover": "[+] recovery ready at stage {n}:"
+    }
+  },
+  "voice": {}
+}
