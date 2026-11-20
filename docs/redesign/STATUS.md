@@ -165,7 +165,7 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
   - Cheapest ★★★: audit (2) + number matching for contractors (2) + train staff (1) + rotate keys (2) = 7/7.
   - **Format change:** a timeline entry may have no ATT&CK code only if its map stage is `impact` (schema `minItems` removed; `tools/validate` checks it).
 - **Validator:** 0 errors; 49 warnings (sourced facts without a quote: 14 Colonial, 11 Midnight, 24 Uber, all S1).
-- **Tests:** Uber added to the suite (5 builds, violet theme, IMPACT on stage 7, never CRITICAL, desktop drag of the discovery control); map counts now 3 of 7 playable; returning splash `1/3 cases closed`. Full run 1: one failure, a test bug (the returning-splash test hard-coded `1/2`); fixed, rerun alone (ONLY=none), passed. Full run 2: see the PR.
+- **Tests:** Uber added to the suite (5 builds, violet theme, IMPACT on stage 7, never CRITICAL, desktop drag of the discovery control); map counts now 3 of 7 playable; returning splash `1/3 cases closed`. Full run 1: one failure, a test bug (the returning-splash test hard-coded `1/2`); fixed, rerun alone (ONLY=none), passed. Full run 2: **all passing** (sound, splash/reset, allow-list, symlinks, replay hero, bad links, all three cases at 1280×720, 1920×1080 and 390×844 under the production CSP).
 - `sw.js` `v32`.
 
 ## Decisions made
