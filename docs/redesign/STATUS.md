@@ -136,6 +136,13 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - **Source links (verified by Nura, not fetched):** MSRC blog now `msrc.microsoft.com/blog/2024/01/...` and the 8-K now links the filing itself (filed Jan 19, 2024; date of report Jan 17, 2024). Both carry `"verified"` (new optional schema field). Briefing text "Disclosed 19 Jan 2024 (SEC 8-K)" unchanged. Removed from the PR's "Review before merging" list; the MITRE stages 4–6 item stays.
 - Validator: 0 errors, 25 warnings (quotes). One-off e2e checks rerun (sound, splash/reset, allow-list, symlinks, bad links): all pass. No full run, since no game behaviour changed. `sw.js` `v25` (a level file changed).
 
+## Round 10 (2026-11-20): splash ending, ready for review
+- **Splash ending:** after `clear` the cursor blinks alone (0.5 s), then K, E, P, T appear one at a time 300 ms apart (`textContent`), the tagline fades in (0.4 s) with K E P T in ice blue, the full screen holds **3.5 s**, then a 0.3 s fade to the map. The whole splash is about 10 s. Reduced motion: the finished KEPT + tagline screen at once, held 3.5 s, then a cut (no fade, no per-letter typing). Tap, key or "skip ›" still skips at any moment; the screen-reader label is unchanged.
+- Tests: KEPT must appear letter by letter, the final screen must hold at least 3.4 s, and the reduced-motion screen must still be up at 3 s and gone by about 5.5 s.
+- **Full e2e suite: one run, all passing** (3 sizes, both cases, production CSP, allow-list, symlinks, sound, splash/reset, bad links). This is the clean pre-merge run of the final code.
+- Validator: 0 errors, 25 warnings (quotes). `sw.js` `v26`.
+- PR #1 marked ready for review; merge left to Nura.
+
 ## Decisions made
 - **Act 1 scoring:** +50 for each correct placement, +30 per red herring dismissed, −20 per mistake, −10 per hint, +100 for patient zero. XP never goes below 0.
 - **Act 2 scoring:** ID Protection is **detect** (no random chance). **3 stars** = blocked at stage ≤ 2 **and** no decoys; **2** = blocked later (or early with decoys); **1** = only detected or limited; **0** = breach succeeded.
