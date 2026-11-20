@@ -144,8 +144,7 @@
               "pattern": "^TODO: verify"
             },
             "quote": {
-              "type": "string",
-              "minLength": 1
+              "$ref": "#/$defs/quote"
             }
           },
           "required": [
@@ -411,8 +410,7 @@
             "pattern": "^TODO: verify"
           },
           "quote": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "#/$defs/quote"
           }
         },
         "required": [
@@ -541,8 +539,7 @@
               "pattern": "^TODO: verify"
             },
             "quote": {
-              "type": "string",
-              "minLength": 1
+              "$ref": "#/$defs/quote"
             }
           },
           "required": [
@@ -620,6 +617,13 @@
           "teach": {
             "type": "string",
             "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quote": {
+            "$ref": "#/$defs/quote"
           }
         },
         "required": [
@@ -864,22 +868,22 @@
                   "minLength": 1
                 },
                 {
-                  "type": "object",
-                  "properties": {
-                    "t": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "todo": {
-                      "type": "string",
-                      "pattern": "^TODO: verify"
-                    }
-                  },
-                  "required": [
-                    "t",
-                    "todo"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/$defs/tip"
+                },
+                {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      {
+                        "$ref": "#/$defs/tip"
+                      }
+                    ]
+                  }
                 }
               ]
             }
@@ -1089,8 +1093,7 @@
           "pattern": "^TODO: verify"
         },
         "quote": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/quote"
         }
       },
       "required": [
@@ -1272,6 +1275,13 @@
                   "todo": {
                     "type": "string",
                     "pattern": "^TODO: verify"
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "quote": {
+                    "$ref": "#/$defs/quote"
                   }
                 },
                 "required": [
@@ -1467,6 +1477,46 @@
           "additionalProperties": false
         }
       ]
+    },
+    "quote": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    "tip": {
+      "type": "object",
+      "properties": {
+        "t": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quote": {
+          "$ref": "#/$defs/quote"
+        },
+        "todo": {
+          "type": "string",
+          "pattern": "^TODO: verify"
+        }
+      },
+      "required": [
+        "t"
+      ],
+      "additionalProperties": false
     }
   }
 }

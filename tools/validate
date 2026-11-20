@@ -160,8 +160,9 @@ def semantic(d, status, errors, warnings):
         q = obj.get("quote")
         if not q:
             warnings.append("%s: sourced fact without a quote (source '%s')" % (p, obj["source"]))
-        elif words(q) >= 25:
-            warnings.append("%s: quote is %d words; keep it under 25" % (p, words(q)))
+        for one in (q if isinstance(q, list) else [q] if q else []):
+            if words(one) >= 25:
+                warnings.append("%s: quote is %d words; keep it under 25" % (p, words(one)))
 
 
 def sourced_facts(d):
@@ -175,9 +176,19 @@ def sourced_facts(d):
             for ri, row in enumerate(blk.get("kv", []) or []):
                 if row.get("source"):
                     out.append(("$.briefing.pages[%d].blocks[%d].kv[%d]" % (pi, bi, ri), row))
+            for ii, it in enumerate(blk.get("items", []) if blk.get("type") == "timeline" else []):
+                if it.get("source"):
+                    out.append(("$.briefing.pages[%d].blocks[%d].items[%d]" % (pi, bi, ii), it))
     for i, t in enumerate(d["timeline"]):
         if t.get("source"):
             out.append(("$.timeline[%d]" % i, t))
+    for i, c in enumerate(d["controls"]):
+        if c.get("source"):
+            out.append(("$.controls[%d]" % i, c))
+    tips = d["act2"]["tips"].get("always")
+    for i, t in enumerate(tips if isinstance(tips, list) else [tips]):
+        if isinstance(t, dict) and t.get("source"):
+            out.append(("$.act2.tips.always" + ("[%d]" % i if isinstance(tips, list) else ""), t))
     if d["map"].get("hidden", {}).get("source"):
         out.append(("$.map.hidden", d["map"]["hidden"]))
     return out

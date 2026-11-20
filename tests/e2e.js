@@ -22,7 +22,7 @@ const CASES = [
     runs: [
       { kind: 'succeeded', ids: ['mfa'], stars: 0, damage: 'CRITICAL' },
       { kind: 'prevented', ids: ['audit', 'disable'], stars: 2, damage: 'NONE' },
-      { kind: 'prevented', ids: ['audit', 'disable', 'egress', 'backup'], stars: 3, damage: 'NONE' },
+      { kind: 'prevented', ids: ['audit', 'disable', 'irp', 'backup'], stars: 3, damage: 'NONE' },
       { kind: 'contained', ids: ['seg'], stars: 1, damage: 'SEVERE' },
       { kind: 'detected', ids: ['irp'], stars: 0, damage: 'CRITICAL' }
     ] }
@@ -147,7 +147,7 @@ async function run(view, c, browser) {
       const kv = await page.textContent('.c-kv');
       if (!kv.includes('Threat actor' + data.briefing.threatActor.v)) bad(tag + ' threat actor row: ' + kv.slice(0, 120));
       if ((await page.textContent('.c-display')) !== data.briefing.opening) bad(tag + ' opening line');
-      if (/CISA|Justice/.test(await page.textContent('#app'))) bad(tag + ' unverified source named in the briefing');
+      if (/TODO/.test(await page.textContent('#app'))) bad(tag + ' placeholder or todo text visible in the briefing');
     }
     if (i === 0 || i === 3) await shot('1brief' + (i + 1));
     await page.click('.c-briefbar .c-btn');
@@ -260,7 +260,7 @@ async function run(view, c, browser) {
     const dmg = await page.textContent('.c-stat.c-span2 .c-v');
     if (dmg !== run.damage) bad(tag + ' ' + ids + ': damage ' + dmg + ', want ' + run.damage);
     const page2 = await page.textContent('#app');
-    if (/CISA|AA21-131A|Justice/.test(page2)) bad(tag + ' unverified (todo) text visible on results');
+    if (/TODO/.test(page2)) bad(tag + ' placeholder or todo text visible on results');
     if (kind === 'succeeded' && !page2.includes('Entered via an asset not in your inventory')) bad(tag + ' no hidden-asset line');
     if (c.id === 'colonial-pipeline' && kind !== 'prevented') {
       const s6 = await page.locator('.c-replay li').nth(5).textContent().catch(() => '');

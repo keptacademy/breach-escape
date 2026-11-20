@@ -9,16 +9,7 @@
     "act2": "ready"
   },
   "theme": "amber",
-  "note": "Facts come from the sources below. Verified against Joseph Blount's written Senate testimony and his answers in the Senate hearing record (June 8, 2021). Items with a 'todo' field could not be checked against their source and must be verified before publishing. Evidence rows are recreated for training and are labelled so in the game. ATT&CK codes are a mapping for review, not a source fact. Text in backticks is shown as code.",
-  "verify": [
-    "TODO: verify: DarkSide is ransomware-as-a-service run with affiliates (briefing page 2), against CISA/FBI AA21-131A.",
-    "TODO: verify: AA21-131A recommends MFA for remote access to IT and OT networks (Act 2 tip, MFA control), against CISA/FBI AA21-131A.",
-    "TODO: verify: AA21-131A recommends segmenting IT and OT networks and keeping regular, offline backups (Act 2 tip, controls), against CISA/FBI AA21-131A.",
-    "TODO: verify: DOJ announced on June 7, 2021 that it seized part of the ransom (briefing timeline). The amount (63.7 of about 75 bitcoin) is only stated by Senators in the hearing record, so the game does not show it.",
-    "TODO: verify: the AA21-131A and DOJ source titles, dates and URLs (both sites refused automated access during this pass).",
-    "Not used: the date of first access (widely reported as April 29, 2021) is not in Blount's testimony, so the game shows it as not public in this case.",
-    "Not shown in the game: AA21-131A wording on endpoint detection (EDR control) and on monitoring outbound traffic (egress control). The controls' text doesn't cite the advisory."
-  ],
+  "note": "Facts come from the sources below: Joseph Blount's written Senate testimony and his hearing answers (June 8, 2021), CISA/FBI advisory AA21-131A (May 11, 2021) and the DOJ (N.D. Cal.) seizure release (June 2021). Evidence rows are recreated for training and are labelled so in the game. ATT&CK codes are a mapping for review, not a source fact. The date of first access isn't in these sources, so the game doesn't give one. Text in backticks is shown as code.",
   "sources": [
     {
       "id": "blount",
@@ -32,15 +23,13 @@
     },
     {
       "id": "cisa",
-      "title": "CISA/FBI Joint Cybersecurity Advisory AA21-131A: DarkSide Ransomware (May 2021)",
-      "url": "https://www.cisa.gov/news-events/cybersecurity-advisories/aa21-131a",
-      "todo": "TODO: verify: title, date and URL; the site refused automated access during this pass."
+      "title": "CISA/FBI AA21-131A: DarkSide Ransomware: Best Practices for Preventing Business Disruption from Ransomware Attacks (May 11, 2021)",
+      "url": "https://www.cisa.gov/sites/default/files/publications/AA21-131A_Darkside_Ransomware.pdf"
     },
     {
       "id": "doj",
-      "title": "U.S. Department of Justice: seizure of cryptocurrency paid to DarkSide (June 7, 2021)",
-      "url": "https://www.justice.gov/archives/opa/pr/department-justice-seizes-23-million-cryptocurrency-paid-ransomware-extortionists-darkside",
-      "todo": "TODO: verify: title, date and URL; the site refused automated access during this pass."
+      "title": "U.S. Attorney's Office, N.D. Cal.: Department of Justice Seizes $2.3 Million in Cryptocurrency Paid to the Ransomware Extortionists Darkside (June 2021)",
+      "url": "https://www.justice.gov/usao-ndca/pr/department-justice-seizes-23-million-cryptocurrency-paid-ransomware-extortionists"
     }
   ],
   "briefing": {
@@ -81,7 +70,7 @@
           },
           {
             "type": "note",
-            "text": "Facts in this case come from CEO Joseph Blount's Senate testimony and his answers at the hearing (June 2021). Log entries in the game are recreated for training."
+            "text": "Facts in this case come from CEO Joseph Blount's Senate testimony and his answers at the hearing (June 2021), the CISA/FBI advisory on DarkSide (May 2021) and the U.S. Department of Justice (June 2021). Log entries in the game are recreated for training."
           }
         ]
       },
@@ -99,9 +88,9 @@
               },
               {
                 "k": "Model",
-                "v": "Ransomware-as-a-service: the developers' ransomware is used by affiliates who carry out the attacks",
+                "v": "Ransomware-as-a-service: the group builds the ransomware, other criminals use it, and the group takes a share",
                 "source": "cisa",
-                "todo": "TODO: verify against AA21-131A."
+                "quote": "Darkside is ransomware-as-a-service (RaaS)."
               },
               {
                 "k": "Goal",
@@ -220,9 +209,10 @@
                 "t": "Pipelines begin returning to service."
               },
               {
-                "d": "7 JUN",
-                "t": "The Justice Department announces it seized part of the ransom.",
-                "todo": "TODO: verify against the DOJ press release."
+                "d": "JUNE 2021",
+                "t": "DOJ announces it seized 63.7 bitcoins (over $2.3M) of the ~75-bitcoin ransom paid on May 8.",
+                "source": "doj",
+                "quote": "seized 63.7 bitcoins currently valued at over $2.3 million"
               }
             ]
           }
@@ -630,14 +620,16 @@
       "teach": "EDR watches behaviour, not just known malware."
     },
     {
-      "id": "egress",
-      "name": "Alert on large outbound transfers",
+      "id": "blockip",
+      "name": "Block traffic to known-malicious IPs",
       "cost": 2,
       "stage": 4,
-      "effect": "detect",
+      "effect": "block",
       "friction": 0,
-      "why": "A big copy from the share drive to an outside host raised an alert.",
-      "teach": "Stolen data has to leave through your network. Watch what leaves."
+      "why": "Outbound connections to known-malicious addresses were filtered, so the stolen data had nowhere to go.",
+      "teach": "Game assumption: the destination was on a known-bad list. The sources don’t say where the data went.",
+      "source": "cisa",
+      "quote": "Filter network traffic to prohibit ingress and egress communications with known malicious IP addresses."
     },
     {
       "id": "irp",
@@ -794,10 +786,21 @@
       "needLayers": "Prevention held. For ★★★, add a detect and a recover layer in case it fails next time.",
       "decoys": "{n} decoy(s) cost budget but did nothing against this attack.",
       "friction": "High friction: users will push back. Find a lighter build.",
-      "always": {
-        "t": "CISA and FBI's DarkSide advisory starts with MFA for remote access to IT and OT networks, and covers IT/OT segmentation and regular offline backups.",
-        "todo": "TODO: verify: the 'always' tip against AA21-131A."
-      }
+      "always": [
+        {
+          "t": "CISA and FBI's DarkSide advisory: require multi-factor authentication for remote access to OT and IT networks.",
+          "source": "cisa",
+          "quote": "Require multi-factor authentication for remote access to OT and IT networks."
+        },
+        {
+          "t": "The same advisory calls for robust network segmentation between IT and OT networks, and for backups kept offline.",
+          "source": "cisa",
+          "quote": [
+            "robust network segmentation between IT and OT networks",
+            "maintained offline"
+          ]
+        }
+      ]
     },
     "logs": {
       "idle": "> deploy controls, then execute",

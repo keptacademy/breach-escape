@@ -1011,7 +1011,7 @@
     if (r.stars === 2) tips.push(['k', tipText(T.needLayers)]);
     if (r.decoys) tips.push(['y', fmt(tipText(T.decoys), { n: r.decoys })]);
     if (r.frictionLabel === 'HIGH') tips.push(['y', tipText(T.friction)]);
-    tips.push(['k', tipText(T.always)]);
+    [].concat(T.always || []).forEach(function (x) { tips.push(['k', tipText(x)]); });   // one tip or a list
     var tipBox = h('div', { class: 'c-log c-tips' });
     tips.filter(function (t) { return t[1]; }).forEach(function (t) { tipBox.appendChild(h('div', {}, [h('span', { class: 't-' + t[0], text: '> ' }), rich(t[1], null, false)])); });
     app.appendChild(panel('', [eyebrow('Tips'), tipBox]));
