@@ -15,7 +15,8 @@ const CASES = [
       { kind: 'prevented', ids: ['inventory', 'testmfa'], stars: 2, damage: 'NONE' },
       { kind: 'prevented', ids: ['inventory', 'testmfa', 'ews', 'runbook'], stars: 3, damage: 'NONE' },
       { kind: 'contained', ids: ['consent', 'ews'], stars: 1, damage: 'CONTAINED' },
-      { kind: 'detected', ids: ['idp'], stars: 0, damage: 'SEVERE' }
+      { kind: 'detected', ids: ['idp'], stars: 0, damage: 'SEVERE' },
+      { kind: 'contained', ids: ['appperms'], stars: 1, damage: 'CONTAINED' }
     ] },
   { id: 'colonial-pipeline', level: 2,
     locked: 'disable',

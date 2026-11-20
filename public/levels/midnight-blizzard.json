@@ -634,6 +634,18 @@
       "teach": "Detection is not prevention."
     },
     {
+      "id": "appperms",
+      "name": "Remove unneeded app mailbox permissions (`full_access_as_app`)",
+      "cost": 2,
+      "stage": 3,
+      "effect": "block",
+      "friction": 0,
+      "why": "The legacy test app no longer held mailbox permissions it didn't need, so taking it over gave the attacker no bridge into the corporate tenant.",
+      "teach": "Review what each app is allowed to do. Microsoft's guidance: “If they are no longer required, they should be removed.” Unlike scoping mailbox access (stage 7), this takes the power away from the app the attacker already holds.",
+      "source": "blog",
+      "quote": "If they are no longer required, they should be removed."
+    },
+    {
       "id": "least",
       "name": "Least privilege for apps",
       "cost": 2,
@@ -681,7 +693,7 @@
       "effect": "block",
       "friction": 0,
       "why": "The app could reach only the mailboxes it was scoped to, and leadership mailboxes weren't in scope.",
-      "teach": "Scope app access."
+      "teach": "Scope app access: even an app with mailbox rights can only reach the mailboxes you allow. This is the last line, not a fix for the app itself."
     },
     {
       "id": "ews",
