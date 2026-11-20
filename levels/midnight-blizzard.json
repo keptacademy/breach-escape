@@ -25,6 +25,11 @@
       "id": "8k",
       "title": "Microsoft Form 8-K filings, U.S. SEC (Jan 19, 2024)",
       "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000789019&type=8-K"
+    },
+    {
+      "id": "insider",
+      "title": "Microsoft Security Insider: Midnight Blizzard threat actor profile",
+      "url": "https://www.microsoft.com/security/security-insider/midnight-blizzard"
     }
   ],
   "briefing": {
@@ -79,7 +84,8 @@
               },
               {
                 "k": "Also tracked as",
-                "v": "NOBELIUM · APT29 · UNC2452 · Cozy Bear"
+                "v": "NOBELIUM · APT29 · UNC2452 · Cozy Bear",
+                "source": "insider"
               },
               {
                 "k": "Goal",
@@ -278,8 +284,7 @@
     "opening": "Wake up, analyst.",
     "threatActor": {
       "v": "Midnight Blizzard (Microsoft's name; also tracked as APT29)",
-      "source": "blog",
-      "todo": "TODO: verify the APT29 alias against the Jan 25, 2024 Microsoft Security Blog (microsoft.com was not reachable from the build environment)."
+      "source": "insider"
     }
   },
   "act1": {

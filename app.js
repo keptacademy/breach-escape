@@ -235,9 +235,16 @@
   }
 
   /* ---------- direct case links: #case/<case-id> ---------- */
+  // The id is checked against the known case ids from the level data (exact match) before anything loads.
+  // Anything else, malformed or unknown, is ignored: no fetch, and the id is never written to the page.
   function caseFromHash() {
-    var m = /^#case\/([a-z0-9-]+)$/.exec(location.hash || '');
-    return m ? LEVELS.filter(function (L) { return L.status === 'ready' && caseIdOf(L) === m[1]; })[0] : null;
+    var h = location.hash || '';
+    if (h.indexOf('#case/') !== 0) return null;
+    var id = h.slice(6), known = {};
+    LEVELS.forEach(function (L) { if (L.status === 'ready' && L.case) known[caseIdOf(L)] = L; });
+    var L = Object.prototype.hasOwnProperty.call(known, id) ? known[id] : null;
+    if (!L) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ } }
+    return L;
   }
   function boot() {
     var L = caseFromHash();

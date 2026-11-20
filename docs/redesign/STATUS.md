@@ -64,6 +64,14 @@ Checks this round (same harness as before, all passing at 1280×720, 1920×1080,
 The installed-PWA splash uses `background_color` `#010603` and the green `>_` icon, which matches the in-app splash.
 
 
+## Round 4 (2026-11-20)
+- `CLAUDE.md` added in the repo root: testing rules (one full end-to-end run per round, max two, fix flaky tests instead of rerunning) and the project rules.
+- `#case/<id>` links: the id is compared exactly against the known case ids from `LEVELS` before anything loads. A malformed or unknown id is ignored: the Breach Map shows, no case file is fetched, the id is never written to the page, and the hash is removed from the address bar.
+- Midnight Blizzard: APT29 `todo` closed. Source added: Microsoft Security Insider, Midnight Blizzard profile (https://www.microsoft.com/security/security-insider/midnight-blizzard), verified by Nura. It also backs the "Also tracked as" row on briefing page 2.
+- New test: `#case/../../evil` and `#case/unknown` land on the map with no case fetch and nothing echoed. Full suite: one run, all passing.
+- `sw.js` `v20`.
+
+
 ## Decisions made
 - **Act 1 scoring:** +50 for each correct placement, +30 per red herring dismissed, −20 per mistake, −10 per hint, +100 for patient zero. XP never goes below 0.
 - **Act 2 scoring:** ID Protection is **detect** (no random chance). **3 stars** = blocked at stage ≤ 2 **and** no decoys; **2** = blocked later (or early with decoys); **1** = only detected or limited; **0** = breach succeeded.
@@ -135,7 +143,6 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - **Phones:** the page scrolls in Act 1 and Act 2 (accepted).
 - **Not reviewed:** CodeQL and preview results on PR #1 haven't been looked at.
 - **About contact email:** not set. Add it in `levels.js` (`window.SITE.contactEmail`); the row appears automatically.
-- **Midnight Blizzard APT29 alias:** has a `todo`; microsoft.com wasn't reachable from the build environment this round.
 - **Not built:** share cards, a settings screen and a separate glossary screen don't exist (the spec mentions a shareable score card). Glossary definitions show in the in-case panel.
 
 ## What's next (in order)
