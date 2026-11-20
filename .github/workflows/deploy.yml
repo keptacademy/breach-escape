@@ -19,9 +19,13 @@ on:
 permissions:
   contents: read
 
+# One group per PR (so a PR's 'closed' run never shares a group with the push to main
+# that a merge triggers), one per ref otherwise. Only PR runs cancel older runs in their
+# group; runs on main (push, schedule, dispatch) queue instead, so a production deploy is
+# never cancelled.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   codeql:
