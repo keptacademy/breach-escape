@@ -687,7 +687,10 @@
     var dl = h('dl', { class: 'c-kv c-scale' });
     DAMAGE_SCALE.forEach(function (d) { dl.appendChild(h('dt', { text: d[0] })); dl.appendChild(h('dd', { text: d[1] })); });
     return h('div', { class: 'c-stack' }, [
-      h('p', { class: 'c-small', text: 'Stars: ★ ' + (st.one || 'attack stopped') + ' · ★★ ' + (st.two || '+ detection at a later stage') + ' · ★★★ ' + (st.three || '+ a recovery control') + '.' }),
+      h('p', { class: 'c-small', text: 'Stars:' }),
+      h('ul', { class: 'c-starrules' }, [['\u2605', st.one], ['\u2605\u2605', st.two], ['\u2605\u2605\u2605', st.three]].map(function (x) {
+        return h('li', { class: 'c-small' }, [h('span', { class: 't-g', text: x[0] + ' ' }), x[1] || '']);
+      })),
       h('p', { class: 'c-small', text: 'Damage scale (what the attacker reached):' }),
       dl
     ]);
@@ -829,7 +832,8 @@
     });
     return out;
   }
-  // Stars for defense in depth: 1 = stopped, 2 = stopped + detection at a later stage, 3 = also a recovery control.
+  // Stars (rules and wording in the level JSON "stars"): 1 = stopped at any stage; 2 = stopped at the entry stage
+  // (act2.preventedMaxStage, damage NONE), which needs the hidden asset discovered; 3 = 2 plus a detect and a recover control.
   // Damage comes only from what the attacker actually reached (detection and recovery don't reduce it).
   function score(res) {
     var a2 = C.d.act2, on = deployed(), total = C.d.map.stages.length, o = a2.outcomes;
@@ -837,10 +841,11 @@
     var fr = on.reduce(function (a, c) { return a + (c.friction || 0); }, 0);
     var r = { decoys: decoys, friction: fr, spent: spent(), total: total };
     var stopper = res.blocked ? res.steps[res.steps.length - 1].block : null;
-    var det = on.filter(function (c) { return c.effect === 'detect' && (!res.blocked || c.stage > res.blocked); });
+    var det = on.filter(function (c) { return c.effect === 'detect'; });
     var rec = on.filter(function (c) { return c.effect === 'recover'; });
     r.layers = { prevent: stopper ? [stopper] : [], detect: det, recover: rec };
-    r.stars = !res.blocked ? 0 : 1 + (det.length ? 1 : 0) + (det.length && rec.length ? 1 : 0);
+    r.entry = !!res.blocked && res.blocked <= a2.preventedMaxStage;
+    r.stars = !res.blocked ? 0 : !r.entry ? 1 : det.length && rec.length ? 3 : 2;
     if (res.blocked) {
       var oc = res.blocked <= a2.preventedMaxStage ? o.prevented : o.contained;
       r.kind = oc === o.prevented ? 'prevented' : 'contained';
@@ -974,6 +979,7 @@
       para(r.sub),
       voiceP(voiceLine(good ? 'contained' : 'breached')),
       starRow(r.stars),
+      r.stars < 3 ? h('p', { class: 'c-small c-nextstar', text: (d.stars || {})[['nextOne', 'nextTwo', 'nextThree'][r.stars]] || '' }) : null,
       h('span', { class: 'c-pill ' + (good ? 'g' : 'r'), text: 'CLEARANCE · ' + r.rank }),
       h('p', { class: 'c-small', text: newBest ? 'New best for this case.' : 'Best so far: ' + caseRec().act2.bestStars + '/3 stars.' })
     ]));
@@ -988,7 +994,7 @@
 
     // Defense layers the build had: prevent / detect / recover.
     var layers = h('ul', { class: 'c-buildlist c-layers' });
-    [['prevent', 'stops the attack'], ['detect', 'at a later stage than where it stopped'], ['recover', 'a way back after an attack']].forEach(function (ly) {
+    [['prevent', 'stops the attack'], ['detect', 'notices the attack if prevention fails'], ['recover', 'a way back after an attack']].forEach(function (ly) {
       var list = r.layers[ly[0]], has = list.length > 0;
       layers.appendChild(h('li', { class: has ? 'on' : '' }, [
         h('div', { class: 'c-hud' }, [h('b', { text: ly[0].toUpperCase() }), h('span', { class: 'c-pill ' + (has ? 'g' : 'o'), text: has ? '✓ IN BUILD' : '— MISSING' })]),
@@ -1000,8 +1006,8 @@
     var tips = [];
     if (!res.blocked) tips.push(['k', tipText(T.notStopped)]);
     if (res.unknown) tips.push(['k', tipText(T.unknownAsset)]);
-    if (res.blocked && !r.layers.detect.length) tips.push(['k', tipText(T.noDetect)]);
-    if (res.blocked && r.layers.detect.length && !r.layers.recover.length) tips.push(['k', tipText(T.noRecover)]);
+    if (res.blocked && !r.entry) tips.push(['k', tipText(T.notEntry)]);
+    if (r.stars === 2) tips.push(['k', tipText(T.needLayers)]);
     if (r.decoys) tips.push(['y', fmt(tipText(T.decoys), { n: r.decoys })]);
     if (r.frictionLabel === 'HIGH') tips.push(['y', tipText(T.friction)]);
     tips.push(['k', tipText(T.always)]);

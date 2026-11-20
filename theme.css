@@ -410,3 +410,5 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .case .c-confirm .c-btn{width:auto;font-size:13px;padding:10px 14px}
 .case .c-resetbtn{align-self:flex-start;min-height:36px;padding:6px 10px}
 .c-splash [hidden]{display:none!important}
+.c-starrules{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.case p.c-nextstar{color:var(--c-txt)}

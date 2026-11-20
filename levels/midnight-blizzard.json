@@ -750,9 +750,12 @@
     }
   ],
   "stars": {
-    "one": "attack stopped",
-    "two": "+ detection at a later stage",
-    "three": "+ a recovery control"
+    "one": "attack stopped at any stage",
+    "two": "stopped at the entry stage (damage NONE). That needs every way in discovered first.",
+    "three": "★★ plus at least one detect and one recover control in the build",
+    "nextOne": "★: stop the attack at any stage.",
+    "nextTwo": "★★: stop it at the entry stage. Find every way in before you lock the door.",
+    "nextThree": "★★★: add a detect and a recover layer in case prevention fails."
   },
   "ranks": [
     "INTERN",
@@ -806,8 +809,8 @@
     "tips": {
       "notStopped": "The attack ran all the way. Check where it really got in, and whether that account was in your inventory.",
       "unknownAsset": "The attacker entered via an asset not in your inventory. You can't protect what you haven't found.",
-      "noDetect": "Stopped, but nothing would notice if that layer failed. Add detection at a later stage for the second star.",
-      "noRecover": "Prevent and detect are in place. Add a way back after an attack for the third star.",
+      "notEntry": "Stopped, but only after they got in. For ★★, stop it at the entry stage.",
+      "needLayers": "Prevention held. For ★★★, add a detect and a recover layer in case it fails next time.",
       "decoys": "{n} decoy(s) cost budget but did nothing against this attack.",
       "friction": "High friction: users will push back. Find a lighter build.",
       "always": "Microsoft's Jan 25 guidance covers two areas: protecting against password spray, and defending against malicious OAuth apps by auditing privileged apps, consent and mailbox access."
