@@ -530,3 +530,14 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-gridwrap,.c-a2map,.c-board,.c-log{scrollbar-width:thin;scrollbar-color:var(--c-g3) transparent}
 .c-morecue{flex:none;align-self:center;font-size:max(0.6875rem,var(--fs-l));letter-spacing:.08em;color:var(--c-g2);border:1px solid var(--c-g3);
   background:var(--c-panel);padding:1px 10px;cursor:pointer}
+
+/* ---------- stat tiles: every row full at every width ----------
+   Act 1 debrief (4 tiles): 2×2 on phones, 4 across from 600px. Results (damage + 3): damage on its own row with the
+   other three across under it; 900px+ one row, damage twice as wide. */
+@media (min-width: 600px){ .c-a1stats{grid-template-columns:repeat(4,minmax(0,1fr))} }
+.c-resstats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.c-resstats .c-stat.c-span2{grid-column:1 / -1}
+@media (min-width: 900px){
+  .c-resstats{grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr))}
+  .c-resstats .c-stat.c-span2{grid-column:auto}
+}

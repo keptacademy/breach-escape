@@ -658,7 +658,7 @@
     box.textContent = ''; box.hidden = false;
     box.appendChild(panel('danger', [eyebrow('Case finding', 't-red'), para(d.act1.finding)]));
     var mm = Math.floor(A.secs / 60), ss = A.secs % 60;
-    box.appendChild(h('div', { class: 'c-stats' }, [
+    box.appendChild(h('div', { class: 'c-stats c-a1stats' }, [
       stat('XP earned', String(A.gained)),
       stat('mistakes', pad(A.mistakes, 2), A.mistakes ? 'y' : ''),
       stat('hints used', pad(A.hints, 2), A.hints ? 'y' : ''),
@@ -1102,7 +1102,7 @@
       h('p', { class: 'c-small', text: newBest ? 'New best for this case.' : 'Best so far: ' + caseRec().act2.bestStars + '/3 stars.' })
     ]));
     var dmgTone = r.damage === 'NONE' ? '' : r.damage === 'CONTAINED' ? 'b' : 'red';
-    app.appendChild(h('div', { class: 'c-stats' }, [
+    app.appendChild(h('div', { class: 'c-stats c-resstats' }, [
       h('div', { class: 'c-stat c-span2' }, [h('span', { class: 'c-small', text: 'damage' }), tone(h('span', { class: 'c-v', text: r.damage }), dmgTone),
         h('span', { class: 'c-small c-reach', text: r.reach })]),
       stat('budget used', pad(r.spent, 2) + '/' + d.budget),
