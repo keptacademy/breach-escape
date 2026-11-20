@@ -109,6 +109,15 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - SOC LEAD results line follows the damage label: NONE → "Prevented. They never got in.", CONTAINED → "Contained. That's the job.", SEVERE/CRITICAL → the breached line. A new attack run may repeat the previous run's line.
 - Brand theme (Breach Map, About, splash): silver `#E8EDF2` titles/text, `#9AA4AD` secondary, `#3A424A` borders; ice blue `#8DB7FF` only on buttons (outlined, faint tint on hover), links, stars, selected/hovered card border, focus outline and the progress count. New `--c-title` token (defaults to the case accent, so green and amber cases are unchanged). Splash: silver, with K E P T of the tagline in ice blue.
 - Full e2e suite: **one clean run, all passing** (3 sizes, both cases, CSP headers). This is the pre-merge clean run of the gameplay code. `sw.js` `v23`.
+- **Deploy check:** `.github/workflows/deploy.yml` deploys the repo root (`app_location: "/"`, `skip_app_build: true`), so every folder is served unless a route blocks it. Added 404 routes for `/tools/*`, `/tests/*` and `/.git/*` (`/docs/*`, `/.github/*`, `/*.md` and `/.gitignore` were already blocked). `sw.js` never caches `tools/`.
+- **Toolchain** (Python, standard library only; run from the repo root):
+  - `tools/level.schema.json`: JSON Schema (draft 2020-12) for `levels/<id>.json` as both levels use it, plus optional `quote` on sourced facts. `python3 tools/schema_check.py` checks it with no dependencies (both levels pass; also checked with the `jsonschema` package).
+  - `tools/new_case <id> "<Title>"`: writes `levels/<id>.json` from a template (placeholders only, every fact marked `todo`; the hidden asset's open question goes in `verify`, since the game always shows its name) and adds the case to `levels.js` as SOON. Refuses to overwrite a file or reuse a case id.
+  - `tools/validate [files]`: errors and warnings as listed in its header; exit 1 on errors.
+- **Validator report (2026-11-20): 11 errors, 26 warnings.**
+  - Colonial Pipeline (ready): 10 errors, all "playable case has a todo": the CISA and DOJ sources, the DarkSide "Model" row, the DOJ timeline row, the CISA tip, and the 5 `verify` entries. The game hides all of them, but the rule says a playable case has none. Options: verify them, delete them, or set the case to SOON.
+  - Midnight Blizzard (ready): 1 error: stage 3 "Use Legacy-Test-App" has only a decoy (antivirus upgrade), no real control. Gameplay change needed (not made in this toolchain round).
+  - Warnings: every sourced fact lacks a short `quote` (15 Colonial, 11 Midnight). Listed only; no quotes were invented.
 
 ## Decisions made
 - **Act 1 scoring:** +50 for each correct placement, +30 per red herring dismissed, −20 per mistake, −10 per hint, +100 for patient zero. XP never goes below 0.
@@ -184,6 +193,7 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - **Not built:** share cards, a settings screen and a separate glossary screen don't exist (the spec mentions a shareable score card). Glossary definitions show in the in-case panel.
 
 ## What's next (in order)
+0. Make `tools/validate` pass: resolve the Colonial todos (verify, remove or set SOON) and add a real control on Midnight stage 3; add short quotes from the sources.
 1. Verify the Colonial `todo` facts against AA21-131A and the DOJ release, then remove the `todo` fields.
 2. Review the Colonial content and ATT&CK mapping (Nura).
 3. MITRE bonus chips in Act 1, Practice and Challenge modes, Go Deeper (KQL hunting queries), and a fix for the 8-K link.
