@@ -175,38 +175,27 @@
       ]));
     }
 
-    var total = LEVELS.length;
-    var fill = h('div', { class: 'c-meterfill' });
-    app.appendChild(h('div', { class: 'c-hud' }, [
-      h('span', { text: '> ls ./season-1   real breaches, replayed' }),
-      h('span', { class: 'c-season' }, [
-        h('span', { class: 'c-meter', role: 'progressbar', 'aria-label': 'Season progress', 'aria-valuemin': '0', 'aria-valuemax': String(total), 'aria-valuenow': String(cleared.length) }, [fill]),
-        h('span', { class: 'c-count', text: cleared.length + '/' + total })
-      ])
-    ]));
-    fill.style.width = Math.round(cleared.length / total * 100) + '%';
-
-    var list = h('ol', { class: 'c-levels' });
+    // ALL CASES: compact rows. Playable rows are whole-row buttons; SOON rows are plain, dimmer and not tappable.
+    var pad2 = function (n) { return String(n).length < 2 ? '0' + n : String(n); };
+    var list = h('ol', { class: 'c-cases', 'aria-labelledby': 'c-casesh' });
     LEVELS.forEach(function (L) {
-      var ok = L.status === 'ready' && !!L.case, stars = ok ? bestStars(L) : null, done = stars > 0;
-      var isNext = false;   // the hero card is the only highlighted element
-      var right = stars != null ? h('span', { class: 'c-lstars', text: starText(stars) })
-        : h('span', { class: 'c-pill ' + (ok ? 'g' : 'o'), text: ok ? 'PLAY' : 'SOON' });
-      list.appendChild(h('li', {}, [h('button', {
-        class: 'c-level' + (isNext ? ' next' : ''), disabled: !ok,
-        'aria-label': 'Level ' + L.id + ': ' + L.name + ', ' + L.victim + ' ' + L.year + (ok ? '' : ', coming soon') + (stars != null ? ', ' + stars + ' of 3 stars' : '') + (isNext ? ', up next' : ''),
-        onclick: ok ? function () { openLevel(L); } : null
-      }, [
-        h('span', { class: 'c-lnum' + (done ? ' done' : ''), text: done ? '✓' : String(L.id).length < 2 ? '0' + L.id : String(L.id) }),
-        h('span', { class: 'c-lmeta' }, [
-          h('span', { class: 'c-lname', text: L.name }),
-          h('span', { class: 'c-lsub', text: L.victim + ' · ' + L.year }),
-          h('span', { class: 'c-lteaser', text: L.teaser })
-        ]),
-        right
-      ])]));
+      var ok = L.status === 'ready' && !!L.case, stars = ok ? bestStars(L) : null;
+      var kids = [h('span', { class: 'c-cnum', text: pad2(L.id) }), h('span', { class: 'c-ctitle', text: L.name })];
+      if (ok) {
+        kids.push(h('span', { class: 'c-cright', 'aria-hidden': 'true' }, [stars > 0 ? h('span', { class: 'c-cstars', text: starText(stars) }) : null, h('span', { class: 'c-cgo', text: '\u203a' })]));
+        list.appendChild(h('li', {}, [h('button', { class: 'c-case',
+          'aria-label': 'Case ' + pad2(L.id) + ': ' + L.name + ', ' + L.victim + ' ' + L.year + (stars != null ? ', ' + stars + ' of 3 stars' : ''),
+          onclick: function () { openLevel(L); } }, kids)]));
+      } else {
+        kids.push(h('span', { class: 'c-csoon', text: 'soon' }));
+        list.appendChild(h('li', {}, [h('div', { class: 'c-case soon', 'aria-label': 'Case ' + pad2(L.id) + ': ' + L.name + ', coming soon' }, kids)]));
+      }
     });
-    app.appendChild(list);
+    app.appendChild(h('section', { class: 'c-allcases', 'aria-labelledby': 'c-casesh' }, [
+      h('div', { class: 'c-caseshead' }, [h('h2', { class: 'c-casesh', id: 'c-casesh', text: 'ALL CASES' }),
+        h('span', { class: 'c-small c-count', text: ready.length + ' of ' + LEVELS.length + ' playable' })]),
+      list
+    ]));
 
     var lock = svgEl('svg', { viewBox: '0 0 16 16', width: '14', height: '14', 'aria-hidden': 'true' }, [
       svgEl('rect', { x: '3', y: '7', width: '10', height: '7', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5' }),

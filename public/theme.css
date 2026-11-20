@@ -335,27 +335,7 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 
 /* ---------- Breach Map ---------- */
 .app.case.c-mapscreen{max-width:760px}
-.c-brandrow{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .c-brand{font-size:28px;line-height:1.1;color:var(--c-title);margin:2px 0 0;font-weight:600;letter-spacing:-.01em}
-.c-next{gap:10px}
-.c-nextname{font-size:18px;color:var(--c-title);font-weight:600;margin:0}
-.c-season{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--c-mute)}
-.c-season .c-meter{max-width:240px}
-.c-levels{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.case .c-level{width:100%;display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:12px;text-align:left;
-  border:1px solid var(--c-g4);background:var(--c-panel);color:var(--c-txt);padding:10px 12px;min-height:64px}
-.case .c-level.next{border-color:var(--c-g)}
-.case .c-level:hover:not(:disabled){border-color:var(--c-g)}
-.case .c-level:disabled{cursor:default;background:var(--c-panel-soft)}
-.c-lnum{width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--c-g3);color:var(--c-g);font-weight:600}
-.c-lnum.done{background:var(--c-g);color:var(--c-bg);border-color:var(--c-g)}
-.c-lmeta{display:flex;flex-direction:column;gap:1px;min-width:0}
-.c-lname{font-size:15px;color:var(--c-title);font-weight:600}
-.c-level:disabled .c-lname{color:var(--c-mute)}
-.c-lsub{font-size:11px;color:var(--c-mute);letter-spacing:.04em}
-.c-lteaser{font-size:12px;color:var(--c-txt)}
-.c-level:disabled .c-lteaser{color:var(--c-mute)}
-.c-lstars{color:var(--c-g);letter-spacing:2px;white-space:nowrap}
 .c-privacy{display:flex;gap:8px;align-items:center}
 .c-privacy svg{flex:none}
 .c-node.attempt{border:1px dashed var(--c-y)}
@@ -367,7 +347,6 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .case .c-voicebtn{align-self:flex-start;min-height:36px;padding:6px 10px}
 
 /* ---------- Breach Map intro, footer, About ---------- */
-.case p.c-intro{font-size:13px;color:var(--c-txt);max-width:62ch}
 .case p.c-steps{font-size:12px;color:var(--c-mute);letter-spacing:.04em}
 .c-foot{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .case .c-foot .c-ghost{min-height:36px;padding:6px 10px}
@@ -424,9 +403,6 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 :root[data-theme="brand"] .case .c-btn.red{background:var(--c-red);color:var(--c-bg);border-color:var(--c-red)}
 :root[data-theme="brand"] .c-xp{background:transparent;color:var(--c-g);border:1px solid var(--c-g)}
 :root[data-theme="brand"] .c-pill.g{background:transparent;color:var(--c-g);border:1px solid var(--c-g)}
-:root[data-theme="brand"] .c-lnum{color:var(--c-title)}
-:root[data-theme="brand"] .c-lnum.done{background:transparent;color:var(--c-g);border-color:var(--c-g)}
-:root[data-theme="brand"] .case .c-level:hover:not(:disabled){background:rgba(141,183,255,.06)}
 :root[data-theme="brand"] .c-panel.hl{border-color:var(--c-mute)}
 :root[data-theme="brand"] .c-panel::before,:root[data-theme="brand"] .c-panel::after{border-color:var(--c-mute)}
 :root[data-theme="brand"] .t-g{color:var(--c-title)}
@@ -447,3 +423,20 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-herotitle{font-size:22px;line-height:1.2;color:var(--c-title);margin:0;font-weight:600}
 .case p.c-heroteaser{font-size:13px;color:var(--c-txt)}
 .c-herobtn{margin-top:6px}
+
+/* ---------- Breach Map: ALL CASES list ---------- */
+.c-allcases{display:flex;flex-direction:column;gap:8px}
+.c-caseshead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.c-casesh{margin:0;font-size:12px;letter-spacing:.14em;color:var(--c-title);font-weight:600}
+.c-cases{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.case .c-case{width:100%;display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:44px;padding:8px 12px;
+  border:1px solid var(--c-g3);background:var(--c-panel);color:var(--c-txt);text-align:left;font-size:14px;line-height:1.3}
+.case button.c-case:hover{border-color:var(--c-g);background:rgba(141,183,255,.06)}
+.case .c-case.soon{background:transparent;border-color:var(--c-g4);color:var(--c-mute)}
+.c-cnum{color:var(--c-mute);font-size:12px}
+.c-ctitle{color:var(--c-title);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-case.soon .c-ctitle{color:var(--c-mute)}
+.c-cright{display:flex;gap:8px;align-items:center;color:var(--c-g)}
+.c-cstars{letter-spacing:1px;white-space:nowrap}
+.c-cgo{font-size:16px}
+.c-csoon{font-size:11px;letter-spacing:.08em;color:var(--c-mute)}
