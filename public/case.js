@@ -194,6 +194,17 @@
   function panel(cls, kids) { return h('div', { class: 'c-panel' + (cls ? ' ' + cls : '') }, kids); }
   function eyebrow(t, cls) { return h('div', { class: 'c-eyebrow' + (cls ? ' ' + cls : ''), text: t }); }
   function para(t, cls) { return rich(t, h('p', { class: cls || '' })); }
+  // Pinned bottom bar: the screen's bottom padding always equals the bar's real height (plus a gap), so the bar never
+  // covers content, whatever the bar's height (phone two-row bar, open sources list, safe area). Hidden bar: CSS default.
+  function pinBar(bar) {
+    function upd() { app.style.paddingBottom = bar.hidden || !bar.isConnected ? '' : (bar.offsetHeight + 12) + 'px'; }
+    if (window.ResizeObserver) {
+      var ro = new ResizeObserver(upd); ro.observe(bar);
+      BE.onLeave(function () { ro.disconnect(); app.style.paddingBottom = ''; });
+    }
+    setTimeout(upd, 0);
+    return bar;
+  }
   // A "more ↓" line under a panel that scrolls inside itself; shown only while there is more below. Click scrolls it.
   function scrollCue(box, label) {
     var cue = h('div', { class: 'c-morecue', 'aria-hidden': 'true', hidden: true, text: label + ' \u2193', onclick: function () {
@@ -283,10 +294,13 @@
     var body = h('div', { class: 'c-stack' });
     pages[page].blocks.forEach(function (b) { body.appendChild(block(b)); });
     app.appendChild(body);
+    var last = page === pages.length - 1;
+    var next = h('button', { class: 'c-btn c-briefnext', text: last ? '> OPEN THE EVIDENCE' : 'NEXT \u203a', onclick: function () { if (last) finishBrief(); else renderBrief(page + 1); } });
+    // Last page: the button follows the mission in the page, so it never sits on top of the mission text.
+    if (last) body.appendChild(next);
     app.appendChild(defBox);
 
-    // Pinned footer: back, a small sources toggle, NEXT.
-    var last = page === pages.length - 1;
+    // Pinned footer: back, a small sources toggle, NEXT (on the last page, back and sources only).
     var back = h('button', { class: 'c-ghost', text: '‹ back', onclick: function () { renderBrief(page - 1); } });
     if (!page) { back.disabled = true; back.classList.add('c-invisible'); }
     var srcBox = h('div', { class: 'c-srcbox', id: 'c-sources', hidden: true }, [sourcesPanel()]);
@@ -295,10 +309,9 @@
     } });
     openSourcesHook = function () { srcBox.hidden = false; srcBtn.setAttribute('aria-expanded', 'true'); };
     BE.onLeave(function () { openSourcesHook = null; });
-    app.appendChild(h('div', { class: 'c-bar c-briefbar' }, [h('div', { class: 'c-bar-in' }, [
-      srcBox, back, srcBtn,
-      h('button', { class: 'c-btn', text: last ? '> OPEN THE EVIDENCE' : 'NEXT ›', onclick: function () { if (last) finishBrief(); else renderBrief(page + 1); } })
-    ])]));
+    app.appendChild(pinBar(h('div', { class: 'c-bar c-briefbar' }, [h('div', { class: 'c-bar-in' }, [
+      srcBox, back, srcBtn, last ? null : next
+    ])])));
   }
   function finishBrief() {
     caseRec().briefed = true; BE.saveProgress();
@@ -454,7 +467,7 @@
     app.appendChild(head);
     app.appendChild(E.main);
     app.appendChild(E.done);
-    app.appendChild(E.bar);
+    app.appendChild(pinBar(E.bar));
     drawAct1();
   }
 
@@ -754,7 +767,7 @@
       B.on = []; say('k', fmt('[-] build cleared')); drawAct2();
     } });
     F.run = h('button', { class: 'c-btn red c-run', text: '> EXECUTE ATTACK_SIM', onclick: runAttack });
-    app.appendChild(h('div', { class: 'c-bar c-a2bar', role: 'toolbar', 'aria-label': 'Build actions' }, [h('div', { class: 'c-bar-in' }, [F.status, F.clear, F.run])]));
+    app.appendChild(pinBar(h('div', { class: 'c-bar c-a2bar', role: 'toolbar', 'aria-label': 'Build actions' }, [h('div', { class: 'c-bar-in' }, [F.status, F.clear, F.run])])));
 
     F.log.appendChild(h('div', {}, [a2.logs.idle, h('span', { class: 'c-blink', text: '_' })]));
     threat(0);
