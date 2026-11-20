@@ -1,10 +1,11 @@
 /* Breach Escape service worker: caches the app so it works offline.
    Bump VERSION whenever you deploy changes so players get the new files. */
-const VERSION = 'v27';
+const VERSION = 'v34';
 const CACHE = 'breach-escape-' + VERSION;
 const FILES = [
-  './', 'index.html', 'theme.css', 'levels.js', 'app.js', 'case.js', 'levels/midnight-blizzard.json', 'levels/colonial-pipeline.json', 'manifest.webmanifest',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png'
+  './', 'index.html', 'theme.css', 'levels.js', 'app.js', 'case.js', 'levels/midnight-blizzard.json', 'levels/colonial-pipeline.json', 'levels/uber-2022.json', 'manifest.webmanifest',
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png',
+  'icons/icon.svg', 'icons/favicon.svg', 'icons/favicon-32.png', 'brand/kept-mark.svg'
 ];
 
 self.addEventListener('install', (e) => {

@@ -71,6 +71,7 @@
     (d.timeline || []).filter(shown).forEach(function (t) { use(t.source); });
     [].concat((d.act2 && d.act2.tips && d.act2.tips.always) || []).forEach(function (x) { if (x && typeof x === 'object' && shown(x)) use(x.source); });
     (d.controls || []).forEach(function (c) { use(c.source); });
+    ((d.map && d.map.stages) || []).forEach(function (s) { if (s.neutral) use(s.neutral.source); });
     (d.sources || []).filter(shown).forEach(function (x) { use(x.id); });
     var n = {}; order.forEach(function (id, i) { n[id] = i + 1; });
     return { order: order, n: n };
@@ -373,6 +374,13 @@
     renderAct1();
   }
   function total() { return C.d.evidence.filter(function (e) { return e.order; }).length; }
+  // Unordered group ("anyOrder" on evidence): cards that share a group may fill each other's slots, in either order,
+  // because the sources don't say which came first. Members have consecutive orders (tools/validate checks).
+  function fitsNext(e) {
+    if (e.order === A.next) return true;
+    var want = C.d.evidence.filter(function (x) { return x.order === A.next; })[0];
+    return !!(e.order && e.anyOrder && want && want.anyOrder === e.anyOrder);
+  }
 
   function renderAct1() {
     var a1 = C.d.act1, rec = caseRec();
@@ -545,7 +553,7 @@
   function place() {
     if (A.phase !== 'order' || needSel()) return;
     var c = A.sel, s = C.d.act1.scoring, w = C.d.act1.wrongLines;
-    if (c.e.order === A.next) {
+    if (fitsNext(c.e)) {
       c.done = true; A.placed.push(c); A.next++; A.sel = null;
       addXP(s.place); BE.sound('blip'); toast('+' + s.place + ' XP \u00b7 sequence valid', true);
       afterMove();
@@ -814,6 +822,7 @@
     if (rest) { line.appendChild(document.createTextNode(' ')); rich(rest, line, false); }
     F.log.appendChild(line);
     F.log.scrollTop = F.log.scrollHeight;
+    return line;
   }
   function toggle(c) {
     if (B.running) return;
@@ -981,6 +990,14 @@
       threat(Math.round(n / total * 100));
       return;
     }
+    // A stage that ran but didn't let the attacker in yet (map stage "neutral", e.g. Uber's approval requests, which at
+    // first blocked access): neutral pill with the stage's own label and sourced note, never BREACHED.
+    if (st.s.neutral) {
+      node.classList.add('impact', 'neutral'); pill(node, 'o', '\u26a0 ' + st.s.neutral.label);
+      withFn(logLine('b', '[~] stage ' + n + ' \u00b7 ' + st.s.name + ':', st.s.neutral.note), st.s.neutral.source);
+      threat(Math.round(n / total * 100));
+      return;
+    }
     if (st.viaHidden) logLine('red', st.unknown ? L.viaUnknown : L.viaKnown);
     node.classList.add('breach'); pill(node, 'r', '✕ BREACHED');
     if (!B.alarmed) { B.alarmed = true; BE.sound('alarm'); }   // once per run
@@ -1072,11 +1089,13 @@
     // Stage by stage: the same results the replay animated (and the only view with reduced motion).
     var list = h('ol', { class: 'c-replay' });
     res.steps.forEach(function (st) {
-      var n = st.s.n, kind = st.block ? 'block' : st.s.unblockable ? 'attempt' : st.s.impact ? 'impact' : 'breach';
-      var li = h('li', { class: kind }, [
+      var n = st.s.n, kind = st.block ? 'block' : st.s.unblockable ? 'attempt' : st.s.impact ? 'impact' : st.s.neutral ? 'neutral' : 'breach';
+      var li = h('li', { class: kind === 'neutral' ? 'impact neutral' : kind }, [
         h('div', { class: 'c-hud' }, [h('b', {}, [n + ' · ', rich(st.s.name, null, false)]),
-          h('span', { class: 'c-pill ' + { block: 'g', attempt: 'y', impact: 'o', breach: 'r' }[kind], text: { block: '✓ BLOCKED', attempt: '⚠ ATTEMPTED', impact: '◆ IMPACT', breach: '✕ BREACHED' }[kind] })])
+          h('span', { class: 'c-pill ' + { block: 'g', attempt: 'y', impact: 'o', neutral: 'o', breach: 'r' }[kind],
+            text: { block: '✓ BLOCKED', attempt: '⚠ ATTEMPTED', impact: '◆ IMPACT', neutral: '\u26a0 ' + (st.s.neutral && st.s.neutral.label), breach: '✕ BREACHED' }[kind] })])
       ]);
+      if (kind === 'neutral') li.appendChild(withFn(h('p', { class: 'c-why', text: st.s.neutral.note }), st.s.neutral.source));
       if (kind === 'attempt' && a2.attemptedNote) li.appendChild(h('p', { class: 'c-why', text: a2.attemptedNote }));
       if (kind === 'impact' && st.s.impactNote) li.appendChild(h('p', { class: 'c-why', text: st.s.impactNote }));
       st.decoys.forEach(function (c) { li.appendChild(h('p', { class: 'c-why' }, [h('span', { class: 't-y', text: '[~] ' }), rich(c.name, null, false), ': no effect. ', rich(c.why, null, false)])); });

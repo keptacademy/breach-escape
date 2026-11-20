@@ -1,0 +1,854 @@
+{
+  "id": "uber-2022",
+  "levelId": 3,
+  "caseNo": "03",
+  "title": "MFA Fatigue",
+  "victim": "Uber",
+  "theme": "violet",
+  "status": {
+    "act1": "ready",
+    "act2": "ready"
+  },
+  "note": "Facts come from Uber's own security update (Uber Newsroom, updates of Sept 15, 16 and 19, 2022) and CISA's fact sheet on number matching (October 2022). Facts and sources checked by Claude against the primary sources on 2026-11-19. Evidence rows are recreated for training and are labelled so in the game. ATT&CK codes are a mapping for review, not a source fact. The game never shows the attacker's Slack message or the image. Uber hasn't said how the attacker got elevated permissions, so the game doesn't guess. Text in backticks is shown as code.",
+  "sources": [
+    {
+      "id": "uber",
+      "title": "Security update",
+      "publisher": "Uber Newsroom",
+      "date": "Sept 15, 2022 (updated Sept 16 and Sept 19, 2022)",
+      "url": "https://www.uber.com/newsroom/security-update/"
+    },
+    {
+      "id": "cisa",
+      "title": "Implementing Number Matching in MFA Applications",
+      "publisher": "CISA (fact sheet)",
+      "date": "October 2022",
+      "url": "https://www.cisa.gov/sites/default/files/publications/fact-sheet-implement-number-matching-in-mfa-applications-508c.pdf"
+    }
+  ],
+  "briefing": {
+    "pages": [
+      {
+        "blocks": [
+          {
+            "type": "alert",
+            "bar": [
+              "INCIDENT ALERT",
+              "SEV 1"
+            ],
+            "eyebrow": "Case 03 · Sept 15, 2022",
+            "text": "An attacker has posted a message to a company-wide Slack channel, and some internal sites are showing employees a graphic image. Uber is responding to a cybersecurity incident.",
+            "kv": [
+              {
+                "k": "Victim",
+                "v": "Uber · corporate environment",
+                "source": "uber"
+              },
+              {
+                "k": "Announced",
+                "v": "Sept 15, 2022 · in touch with law enforcement",
+                "source": "uber"
+              },
+              {
+                "k": "Public services",
+                "v": "Uber, Uber Eats, Uber Freight and the Driver app stayed operational",
+                "source": "uber"
+              },
+              {
+                "k": "Internal tools",
+                "v": "taken down as a precaution · back on Sept 16",
+                "tone": "red",
+                "source": "uber"
+              }
+            ]
+          },
+          {
+            "type": "note",
+            "text": "Facts in this case come from Uber's own security update (Sept 15–19, 2022) and CISA's fact sheet on number matching (October 2022). Log entries in the game are recreated for training. The attacker's message and the image are never shown."
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "panel",
+            "eyebrow": "Threat actor profile",
+            "title": "LAPSUS$",
+            "kv": [
+              {
+                "k": "Attribution",
+                "v": "Uber believes the attacker (or attackers) are affiliated with Lapsus$",
+                "source": "uber"
+              },
+              {
+                "k": "In this case",
+                "v": "Got into an EXT contractor's account, then other employee accounts and internal tools including G-Suite and Slack.",
+                "source": "uber"
+              }
+            ]
+          },
+          {
+            "type": "panel",
+            "eyebrow": "Why this matters to you",
+            "text": "The attacker already had the password. The only thing in the way was a two-factor approval request, and they could ask for it again and again. Your job is to find the account that still said yes."
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "facts",
+            "eyebrow": "What we know",
+            "items": [
+              [
+                {
+                  "t": "The account belonged to an Uber "
+                },
+                {
+                  "t": "EXT (external) contractor",
+                  "tone": "b"
+                },
+                {
+                  "t": "."
+                }
+              ],
+              [
+                {
+                  "t": "Malware on the contractor's "
+                },
+                {
+                  "t": "personal device",
+                  "tone": "red"
+                },
+                {
+                  "t": " likely exposed the password; Uber says the attacker likely bought it on the dark web."
+                }
+              ],
+              [
+                {
+                  "t": "Each login attempt sent a "
+                },
+                {
+                  "t": "two-factor approval request",
+                  "tone": "b"
+                },
+                {
+                  "t": ". At first, that blocked access."
+                }
+              ],
+              [
+                {
+                  "t": "Eventually the contractor "
+                },
+                {
+                  "t": "accepted one",
+                  "tone": "red"
+                },
+                {
+                  "t": ", and the attacker logged in."
+                }
+              ],
+              [
+                {
+                  "t": "Uber hasn't said "
+                },
+                {
+                  "t": "how the attacker got elevated permissions",
+                  "tone": "b"
+                },
+                {
+                  "t": "."
+                }
+              ]
+            ]
+          },
+          {
+            "type": "timeline",
+            "eyebrow": "Incident timeline",
+            "items": [
+              {
+                "d": "DATE NOT PUBLIC HERE",
+                "t": "Repeated login attempts; the contractor accepts one approval request.",
+                "tone": "red",
+                "source": "uber"
+              },
+              {
+                "d": "SEPT 15, 2022",
+                "t": "Uber says it is responding to a cybersecurity incident and is in touch with law enforcement.",
+                "tone": "red",
+                "source": "uber"
+              },
+              {
+                "d": "SEPT 16",
+                "t": "Internal tools taken down as a precaution come back. No evidence of access to sensitive user data like trip history.",
+                "source": "uber"
+              },
+              {
+                "d": "SEPT 19",
+                "t": "Uber publishes how the attack happened, its attribution to Lapsus$, and its response.",
+                "source": "uber"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "diagram",
+            "eyebrow": "The battlefield",
+            "text": "Uber's public apps run on production systems. Uber says it had not seen access to production (public-facing) systems, user accounts, or databases with sensitive user data.",
+            "flow": [
+              {
+                "box": "Contractor's personal device · malware",
+                "tone": "red"
+              },
+              {
+                "arrow": "▼ password likely bought on the dark web"
+              },
+              {
+                "box": "Attacker with the password",
+                "tone": "red"
+              },
+              {
+                "arrow": "▼ login attempts → two-factor approval requests"
+              },
+              {
+                "zone": "UBER CORPORATE SIGN-IN",
+                "boxes": [
+                  "EXT contractor account",
+                  "Employee accounts"
+                ]
+              },
+              {
+                "teaser": "? What happened next is in the evidence"
+              },
+              {
+                "zone": "INTERNAL TOOLS",
+                "boxes": [
+                  "G-Suite",
+                  "Slack",
+                  "Finance tool (invoices)",
+                  "HackerOne dashboard"
+                ]
+              },
+              {
+                "arrow": "▼ were customers touched?"
+              },
+              {
+                "zone": "PUBLIC SERVICES",
+                "tone": "g",
+                "boxes": [
+                  "Uber · Uber Eats · Uber Freight · Driver app"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "blocks": [
+          {
+            "type": "glossary",
+            "eyebrow": "Field glossary",
+            "terms": [
+              "MFA fatigue",
+              "approval request",
+              "number matching",
+              "dark web"
+            ]
+          },
+          {
+            "type": "mission",
+            "eyebrow": "Your mission",
+            "items": [
+              {
+                "b": "Act 1 · Investigate:",
+                "t": "put the evidence in order and find patient zero."
+              },
+              {
+                "b": "Act 2 · Defend:",
+                "t": "Rewind to before the first approval request. Deploy controls on a budget and replay the real attack."
+              }
+            ],
+            "small": "Stars: stop it at the door, then add layers that notice and recover."
+          }
+        ]
+      }
+    ],
+    "opening": "Analyst, someone just posted to the whole company on Slack.",
+    "threatActor": {
+      "v": "Lapsus$ (Uber's attribution)",
+      "source": "uber"
+    }
+  },
+  "act1": {
+    "title": "Rebuild the timeline",
+    "short": "Put the evidence in the order it happened. Red herrings go to Not related.",
+    "help": "Drag an evidence card onto the timeline in the order it happened, or onto Not related. You can also tap a card, then use the buttons.",
+    "pzTitle": "Find patient zero",
+    "pzHelp": "Tap the timeline entry that shows the first successful access.",
+    "doneTitle": "Timeline rebuilt",
+    "doneHelp": "Six pieces of evidence, from one accepted approval to a company-wide post.",
+    "finding": "Patient zero was the approval request the EXT contractor accepted. The attacker already had the password and kept trying to log in; each attempt sent a two-factor approval request, until one was accepted. From there they reached other employee accounts, got elevated permissions to G-Suite and Slack, took some internal data and posted to a company-wide Slack channel. Uber says public services stayed up and it had not seen access to production systems.",
+    "scoring": {
+      "place": 50,
+      "dismiss": 30,
+      "wrong": -20,
+      "hint": -10,
+      "patientZero": 100,
+      "pzWrong": -20
+    },
+    "hints": {
+      "1": "The password was already known. What stood between the attacker and the account?",
+      "2": "Which log shows the first time they actually got in?",
+      "3": "One account is never enough. Whose accounts came next, and what rights?",
+      "4": "With admin rights, what did they take?",
+      "5": "The moment the whole company noticed: two things employees saw, in either order.",
+      "6": "The other half of that moment. Either order counts."
+    },
+    "wrongLines": {
+      "early": "Not yet. Something else had to happen before this.",
+      "decoy": "Not part of this attack.",
+      "dismissReal": "This one matters. Look again.",
+      "pz": "That is not the first successful access."
+    }
+  },
+  "evidence": [
+    {
+      "id": "E1",
+      "type": "signin",
+      "src": "mfa log",
+      "order": 1,
+      "illustrative": true,
+      "title": "Many two-factor approval requests to one EXT contractor account, then one approved",
+      "rows": [
+        "request  user=<EXT contractor>  result=not approved",
+        "request  user=<EXT contractor>  result=not approved",
+        "…        repeated login attempts, one request each",
+        "request  user=<EXT contractor>  result=APPROVED"
+      ],
+      "note": "Uber hasn't published how many requests were sent; the rows don't give a number."
+    },
+    {
+      "id": "E2",
+      "type": "signin",
+      "src": "sign-in log",
+      "order": 2,
+      "illustrative": true,
+      "title": "Sign-in success to the contractor account right after the approval",
+      "rows": [
+        "SUCCESS  user=<EXT contractor>  factors=password + approval",
+        "session  opened  apps=<internal tools>"
+      ]
+    },
+    {
+      "id": "E3",
+      "type": "audit",
+      "src": "admin console",
+      "order": 3,
+      "illustrative": true,
+      "title": "Several employee accounts accessed in one session; admin grants in G-Suite and Slack",
+      "rows": [
+        "session=<s1>  account=<employee-a>",
+        "session=<s1>  account=<employee-b>",
+        "grant  app=G-Suite  role=<elevated>",
+        "grant  app=Slack  role=<elevated>"
+      ],
+      "note": "Uber hasn't said how the permissions were obtained; the rows don't show how."
+    },
+    {
+      "id": "E4",
+      "type": "audit",
+      "src": "data access",
+      "order": 4,
+      "illustrative": true,
+      "title": "Downloads: internal Slack messages, finance invoice tool, HackerOne dashboard",
+      "rows": [
+        "export  app=Slack  items=<some internal messages>",
+        "read    app=<finance tool>  data=<some invoices>",
+        "view    app=HackerOne dashboard  reports=<remediated>"
+      ]
+    },
+    {
+      "id": "E5",
+      "type": "alert",
+      "src": "slack",
+      "order": 5,
+      "illustrative": true,
+      "anyOrder": "stage-6",
+      "title": "Company-wide Slack post from a compromised account",
+      "rows": [
+        "post  channel=<company-wide>  by=<compromised account>",
+        "text  [not shown]"
+      ]
+    },
+    {
+      "id": "E6",
+      "type": "audit",
+      "src": "dns config",
+      "order": 6,
+      "illustrative": true,
+      "anyOrder": "stage-6",
+      "title": "OpenDNS config change on some internal sites",
+      "rows": [
+        "change  service=OpenDNS  by=<compromised account>",
+        "effect  graphic image shown to employees on some internal sites  [not shown]"
+      ],
+      "note": "Uber doesn't say whether this came before or after the Slack post, so either order counts."
+    },
+    {
+      "id": "D1",
+      "type": "alert",
+      "src": "app monitoring",
+      "order": null,
+      "illustrative": true,
+      "title": "Driver app crash reports spike after a scheduled app update",
+      "rows": [
+        "crashes  app=<Driver>  version=<new>  trend=up",
+        "cause    scheduled release  rollback=<queued>"
+      ]
+    },
+    {
+      "id": "D2",
+      "type": "alert",
+      "src": "cert monitor",
+      "order": null,
+      "illustrative": true,
+      "title": "Certificate renewal alert for a public API endpoint",
+      "rows": [
+        "cert  host=<public api>  expires=<in 30 days>",
+        "action  renew  owner=<platform team>"
+      ]
+    }
+  ],
+  "patientZero": "E1",
+  "timeline": [
+    {
+      "stage": 1,
+      "date": null,
+      "mitre": [
+        "T1597.002"
+      ],
+      "source": "uber",
+      "text": "Malware on the contractor's personal device exposed their Uber corporate password. Uber says it is likely the attacker bought it on the dark web.",
+      "why": "It happened outside Uber's network, on a personal device. A password alone was not enough, though: the account also had two-factor approval."
+    },
+    {
+      "stage": 2,
+      "date": null,
+      "mitre": [
+        "T1621"
+      ],
+      "source": "uber",
+      "text": "The attacker repeatedly tried to log in to the contractor's account. Each time, the contractor received a two-factor login approval request, which at first blocked access.",
+      "why": "The password was right. Only the approval stood in the way, and the attacker could ask for it again and again."
+    },
+    {
+      "stage": 3,
+      "date": null,
+      "mitre": [
+        "T1078"
+      ],
+      "source": "uber",
+      "text": "Eventually the contractor accepted one approval request, and the attacker logged in to the account.",
+      "why": "The request only asked yes or no. One yes was enough."
+    },
+    {
+      "stage": 4,
+      "date": null,
+      "mitre": [
+        "T1078",
+        "TA0004"
+      ],
+      "source": "uber",
+      "text": "The attacker accessed several other employee accounts and got elevated permissions to tools including G-Suite and Slack. Uber hasn't said how the permissions were obtained.",
+      "why": "Uber hasn't published how, so the game doesn't guess. What matters: from one contractor account, the attacker reached admin-level access."
+    },
+    {
+      "stage": 5,
+      "date": null,
+      "mitre": [
+        "T1213"
+      ],
+      "source": "uber",
+      "text": "The attacker appears to have downloaded some internal Slack messages, accessed or downloaded information from an internal finance tool used to manage some invoices, and accessed Uber's HackerOne dashboard. Bug reports the attacker could access had been remediated.",
+      "why": "With elevated permissions, internal tools hand over what they hold."
+    },
+    {
+      "stage": 6,
+      "date": null,
+      "mitre": [
+        "T1491.001"
+      ],
+      "source": "uber",
+      "text": "The attacker posted a message to a company-wide Slack channel and reconfigured Uber's OpenDNS to show a graphic image to employees on some internal sites.",
+      "why": "This is where the attack became visible. Uber's existing security monitoring let its teams quickly identify the issue."
+    },
+    {
+      "stage": 7,
+      "date": "Sept 15–16, 2022",
+      "mitre": [],
+      "source": "uber",
+      "text": "Uber took internal tools down as a precaution; they came back on Sept 16. Uber, Uber Eats, Uber Freight and the Driver app stayed operational.",
+      "why": "Not an attacker action: Uber's own precaution while it responded. Uber says it had not seen access to production (public-facing) systems."
+    }
+  ],
+  "rewind": "Now rewind. You're Uber's security team, before the first approval request. Stop it.",
+  "map": {
+    "zones": [
+      {
+        "id": "out",
+        "name": "OUTSIDE",
+        "short": "OUTSIDE"
+      },
+      {
+        "id": "signin",
+        "name": "SIGN-IN · EXT CONTRACTOR ACCOUNT",
+        "short": "SIGN-IN"
+      },
+      {
+        "id": "tools",
+        "name": "INTERNAL TOOLS · G-SUITE · SLACK",
+        "short": "INTERNAL TOOLS"
+      },
+      {
+        "id": "staff",
+        "name": "EVERY EMPLOYEE · SLACK & INTERNAL SITES",
+        "short": "EMPLOYEES"
+      },
+      {
+        "id": "resp",
+        "name": "UBER RESPONSE",
+        "short": "RESPONSE",
+        "tone": "g"
+      }
+    ],
+    "links": {
+      "out": "▼ bought password, login attempts",
+      "signin": "▼ one approval accepted",
+      "tools": "▼ elevated permissions",
+      "staff": "▼ the company notices"
+    },
+    "stages": [
+      {
+        "n": 1,
+        "zone": "out",
+        "name": "Attacker gets the contractor's password",
+        "unblockable": true
+      },
+      {
+        "n": 2,
+        "zone": "signin",
+        "name": "Repeated logins send approval requests",
+        "neutral": {
+          "label": "PROMPTED",
+          "note": "The approval requests at first blocked access.",
+          "source": "uber"
+        }
+      },
+      {
+        "n": 3,
+        "zone": "signin",
+        "name": "Contractor accepts one; attacker logs in",
+        "reach": "inside a contractor account",
+        "severity": "contained"
+      },
+      {
+        "n": 4,
+        "zone": "tools",
+        "name": "Other employee accounts; elevated G-Suite and Slack permissions",
+        "reach": "admin-level access",
+        "severity": "contained"
+      },
+      {
+        "n": 5,
+        "zone": "tools",
+        "name": "Take Slack messages, invoice data, HackerOne dashboard",
+        "reach": "internal data taken",
+        "severity": "severe"
+      },
+      {
+        "n": 6,
+        "zone": "staff",
+        "name": "Company-wide Slack post; OpenDNS change on internal sites",
+        "reach": "every employee sees it",
+        "severity": "severe"
+      },
+      {
+        "n": 7,
+        "zone": "resp",
+        "name": "Uber takes internal tools down as a precaution",
+        "impact": true,
+        "impactNote": "Not an attacker action: Uber took internal tools down as a precaution while it responded. Public services stayed operational."
+      }
+    ],
+    "note": "ATT&CK codes for each stage come from the timeline above, so Act 1 and Act 2 always match.",
+    "hidden": {
+      "stage": 3,
+      "name": "EXT contractor account signing in from an unmanaged personal device",
+      "source": "uber"
+    }
+  },
+  "budget": 7,
+  "controls": [
+    {
+      "id": "nmemp",
+      "name": "Number matching for employee accounts",
+      "cost": 2,
+      "stage": 3,
+      "effect": "block",
+      "friction": 0,
+      "why": "Employees now type the number shown on the sign-in screen, so a blind approval does nothing.",
+      "whyScoped": "Covered employee accounts only. The EXT contractor account wasn't in that policy, so a plain approval request still worked.",
+      "teach": "A policy only protects the accounts it is switched on for."
+    },
+    {
+      "id": "audit",
+      "name": "Audit contractor (EXT) accounts: devices and MFA methods",
+      "cost": 2,
+      "stage": 3,
+      "effect": "reveal",
+      "friction": 0,
+      "why": "Found it: an EXT contractor account signing in from an unmanaged personal device, outside the employee policy.",
+      "teach": "Uber says malware on the contractor's personal device exposed the password.",
+      "source": "uber"
+    },
+    {
+      "id": "nmext",
+      "name": "Extend number matching to contractor accounts",
+      "cost": 2,
+      "stage": 3,
+      "effect": "block",
+      "needs": "reveal",
+      "friction": 0,
+      "why": "The contractor account now asks for the number on the sign-in screen. Requests the contractor never started can’t be approved with one tap.",
+      "teach": "CISA recommends enabling “number matching” on MFA configurations to prevent MFA fatigue.",
+      "source": "cisa",
+      "quote": "CISA recommends enabling “number matching” on MFA configurations to prevent MFA fatigue."
+    },
+    {
+      "id": "managed",
+      "name": "Require managed devices for contractor sign-in",
+      "cost": 2,
+      "stage": 3,
+      "effect": "block",
+      "needs": "reveal",
+      "friction": 1,
+      "why": "Contractor accounts can only sign in from devices Uber manages. The attacker's device isn't one, so the accepted approval opened nothing.",
+      "teach": "Game design: Uber's update doesn't name this control."
+    },
+    {
+      "id": "mfaalert",
+      "name": "Alert on denied and bulk MFA requests",
+      "cost": 2,
+      "stage": 2,
+      "effect": "detect",
+      "friction": 0,
+      "why": "A burst of approval requests on one account that weren’t approved raised an alert while it was happening.",
+      "teach": "CISA recommends that organizations investigate denied push notification request occurrences.",
+      "source": "cisa",
+      "quote": "CISA recommends that organizations investigate denied push notification request occurrences."
+    },
+    {
+      "id": "train",
+      "name": "Train staff to report unexpected MFA requests",
+      "cost": 1,
+      "stage": 2,
+      "effect": "detect",
+      "friction": 0,
+      "why": "The contractor reported the approval requests they hadn’t started.",
+      "teach": "CISA recommends training users to report unknown or bulk confirmation requests.",
+      "source": "cisa",
+      "quote": "CISA recommends training users to report unknown or bulk confirmation requests."
+    },
+    {
+      "id": "adminalert",
+      "name": "Alert on new admin permissions in G-Suite and Slack",
+      "cost": 2,
+      "stage": 4,
+      "effect": "detect",
+      "friction": 0,
+      "why": "New elevated permissions in G-Suite and Slack raised an alert.",
+      "teach": "Game design: Uber hasn't said how the permissions were obtained, so this alert watches the result."
+    },
+    {
+      "id": "rotate",
+      "name": "Rotate keys to internal services",
+      "cost": 2,
+      "stage": 5,
+      "effect": "recover",
+      "friction": 0,
+      "why": "Keys to internal services are replaced, so access the attacker may hold stops working.",
+      "teach": "Uber rotated keys to many internal services.",
+      "source": "uber"
+    },
+    {
+      "id": "lock",
+      "name": "Lock the codebase during response",
+      "cost": 2,
+      "stage": 6,
+      "effect": "recover",
+      "friction": 0,
+      "why": "No new code changes while the response runs, so nothing new slips into the codebase.",
+      "teach": "Uber locked down its codebase, preventing any new code changes.",
+      "source": "uber"
+    },
+    {
+      "id": "reauth",
+      "name": "Re-authenticate everyone when restoring tools",
+      "cost": 2,
+      "stage": 7,
+      "effect": "recover",
+      "friction": 1,
+      "why": "Everyone signs in again when internal tools come back, so old sessions don’t carry over.",
+      "teach": "Uber required employees to re-authenticate when restoring access to internal tools.",
+      "source": "uber"
+    },
+    {
+      "id": "complex",
+      "name": "Stronger password complexity rules",
+      "cost": 1,
+      "stage": 3,
+      "effect": "decoy",
+      "friction": 1,
+      "why": "The password was bought, not guessed. A complex password works just as well once someone else has it."
+    },
+    {
+      "id": "expiry",
+      "name": "Force password expiry every 30 days",
+      "cost": 1,
+      "stage": 3,
+      "effect": "decoy",
+      "friction": 1,
+      "why": "Uber's update doesn't say how long the password was out there. A new password is just as easy for malware to steal again."
+    },
+    {
+      "id": "geo",
+      "name": "Geo-block foreign sign-ins",
+      "cost": 1,
+      "stage": 3,
+      "effect": "decoy",
+      "friction": 0,
+      "why": "Uber's update doesn't say where the attacker signed in from. A rule built on a guess stops nothing here."
+    },
+    {
+      "id": "waf",
+      "name": "Web application firewall on public apps",
+      "cost": 2,
+      "stage": 5,
+      "effect": "decoy",
+      "friction": 0,
+      "why": "Uber says it had not seen access to production (public-facing) systems. The attack went through internal tools."
+    }
+  ],
+  "stars": {
+    "one": "attack stopped at any stage",
+    "two": "stopped at the entry stage (damage NONE). That needs every account type discovered first.",
+    "three": "★★ plus at least one detect and one recover control in the build",
+    "nextOne": "★: stop the attack at any stage.",
+    "nextTwo": "★★: stop it at the entry stage. Find every kind of account before you set the policy.",
+    "nextThree": "★★★: add a detect and a recover layer in case prevention fails."
+  },
+  "ranks": [
+    "INTERN",
+    "ANALYST",
+    "ENGINEER",
+    "ARCHITECT"
+  ],
+  "glossary": [
+    "MFA",
+    "MFA fatigue",
+    "approval request",
+    "approval requests",
+    "number matching",
+    "dark web",
+    "malware",
+    "managed device",
+    "EXT contractor",
+    "OpenDNS",
+    "HackerOne",
+    "key rotation",
+    "patient zero"
+  ],
+  "act2": {
+    "title": "Harden sign-in",
+    "short": "Before the first approval request. Deploy controls on a budget, then run the real attack against your build.",
+    "help": "Tap a control to deploy or remove it, or drag it onto a stage in the zone it protects. Each control costs energy and the budget is 7, so you can't buy everything. Not every account is covered by your policies yet: discovery controls find what's missing. Then execute the attack: it replays stage by stage against your build, and the log explains every result.",
+    "rewindButton": "> REWIND TO BEFORE THE FIRST REQUEST",
+    "simName": "mfa_fatigue",
+    "mapCmd": "> map ./corp",
+    "attemptedNote": "Malware on a personal device and a sale on the dark web happen outside Uber's network, so you can't block them there. Defense starts at stage 2, when the password meets sign-in.",
+    "stepMs": 700,
+    "xpPerStar": 150,
+    "preventedMaxStage": 3,
+    "friction": {
+      "low": 1,
+      "medium": 3
+    },
+    "outcomes": {
+      "prevented": {
+        "title": "Breach prevented",
+        "sub": "Attack chain broken at stage {n} of {total}. The approval opened nothing."
+      },
+      "contained": {
+        "title": "Breach contained",
+        "sub": "They got in, but you stopped them at stage {n} of {total}, before the company-wide post."
+      },
+      "detected": {
+        "title": "Breach detected",
+        "sub": "The attack ran its course, but your detection caught it in progress."
+      },
+      "succeeded": {
+        "title": "Breach succeeded",
+        "sub": "Like the real incident: elevated access, internal data taken and a post to the whole company."
+      }
+    },
+    "tips": {
+      "notStopped": "The attack ran all the way. Check which accounts your sign-in policies actually cover.",
+      "unknownAsset": "The attacker came in through an account outside your employee policy. Find every kind of account before you set the rules.",
+      "notEntry": "Stopped, but only after they got in. For ★★, stop it at the entry stage.",
+      "needLayers": "Prevention held. For ★★★, add a layer that notices the attack and one that cleans up after it: prevent, detect, recover.",
+      "decoys": "{n} decoy(s) cost budget but did nothing against this attack.",
+      "friction": "High friction: users will push back. Find a lighter build.",
+      "always": [
+        {
+          "t": "Uber's real response was mostly recovery: password resets for compromised accounts, rotated keys, a locked codebase and re-authentication when tools came back.",
+          "source": "uber"
+        }
+      ]
+    },
+    "logs": {
+      "idle": "> deploy controls, then execute",
+      "start": "executing attack_sim :: {sim}",
+      "decoy": "[~] {name}: no effect.",
+      "detect": "[+] detected at stage {n}:",
+      "limit": "[+] limited at stage {n}:",
+      "block": "[✓] blocked at stage {n}:",
+      "breach": "[!!] intrusion · stage {n} · {stage}",
+      "attempted": "[~] stage {n} · {stage}: happens outside Uber's network. Can't be blocked here; defense starts at stage 2.",
+      "overBudget": "[!] over budget: {name} costs {cost}, you have {left} left. Remove a control first.",
+      "wrongZone": "[!] {name} protects the {zone}. Drop it on a stage there.",
+      "deployed": "[+] deployed: {name} → stage {n}",
+      "removed": "[-] removed: {name}",
+      "scoped": "[~] {name}: employee accounts only.",
+      "revealed": "[+] discovered: {asset}",
+      "deployedReveal": "[+] deployed: {name} (discovery)",
+      "locked": "[!] {name}: find the account first. Deploy a discovery control.",
+      "removedDeps": "(it needs the discovery control)",
+      "viaUnknown": "[!!] entered via an asset not in your inventory",
+      "viaKnown": "[!!] entered via a known asset you didn't protect",
+      "impact": "[◆] impact · stage {n} · {stage}:",
+      "recover": "[+] recovery ready at stage {n}:"
+    }
+  },
+  "voice": {
+    "patientZero": "That’s the one. One yes, and the door was open.",
+    "wrong": "Not that one. Follow the approvals.",
+    "hint": "Ask. Every request deserves a second look, and so does every clue.",
+    "run": "Send the requests. Let’s see who says yes.",
+    "breached": "Someone said yes again. Close that door and rebuild.",
+    "prevented": "Prevented. The yes opened nothing.",
+    "contained": "Contained. That’s the job."
+  }
+}

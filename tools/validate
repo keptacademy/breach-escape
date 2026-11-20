@@ -8,7 +8,8 @@ Errors (exit code 1):
   - player-facing text from a todo fact: a todo on something the game always shows
     (controls, evidence, map stages, the hidden asset), or a fact that cites an unverified (todo) source
     without carrying a todo itself
-  - bad MITRE ATT&CK IDs (T####, T####.###, TA####)
+  - an anyOrder (unordered evidence) group that isn't two or more real cards with consecutive orders
+  - bad MITRE ATT&CK IDs (T####, T####.###, TA####), or no code on a stage that isn't an impact stage
   - a map stage with no real control (block, detect, recover or reveal); unblockable stages are exempt
   - not exactly one hidden asset with a discovery (reveal) control
   - a source without a URL
@@ -120,11 +121,28 @@ def semantic(d, status, errors, warnings):
         if s and "todo" in s and "todo" not in obj:
             errors.append("%s: cites unverified source '%s' but is shown to players (add a todo or verify the source)" % (p, s["id"]))
 
+    # unordered evidence groups: real cards only, at least two, consecutive orders
+    groups = {}
+    for e in d["evidence"]:
+        if e.get("anyOrder"):
+            if not e.get("order"):
+                errors.append("evidence %s: anyOrder on a red herring (order null)" % e["id"])
+            else:
+                groups.setdefault(e["anyOrder"], []).append(e["order"])
+    for g, orders in groups.items():
+        orders.sort()
+        if len(orders) < 2 or orders != list(range(orders[0], orders[0] + len(orders))):
+            errors.append("anyOrder group '%s': needs two or more cards with consecutive orders (has %s)" % (g, orders))
+
     # MITRE IDs
     for i, t in enumerate(d["timeline"]):
         for m in t.get("mitre", []):
             if not MITRE.match(m):
                 errors.append("timeline[%d]: bad MITRE ID '%s'" % (i, m))
+        if not t.get("mitre"):
+            st = [x for x in d["map"]["stages"] if x.get("n") == t.get("stage")]
+            if not (st and st[0].get("impact")):
+                errors.append("timeline[%d]: no ATT&CK code (only an impact stage may have none)" % i)
 
     # every stage needs a real control (unblockable stages happen outside the defender's network)
     for s in d["map"]["stages"]:
@@ -191,6 +209,9 @@ def sourced_facts(d):
             out.append(("$.act2.tips.always" + ("[%d]" % i if isinstance(tips, list) else ""), t))
     if d["map"].get("hidden", {}).get("source"):
         out.append(("$.map.hidden", d["map"]["hidden"]))
+    for i, s in enumerate(d["map"]["stages"]):
+        if (s.get("neutral") or {}).get("source"):
+            out.append(("$.map.stages[%d].neutral" % i, s["neutral"]))
     return out
 
 

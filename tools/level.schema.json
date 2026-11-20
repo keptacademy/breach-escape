@@ -54,7 +54,8 @@
     "theme": {
       "enum": [
         "green",
-        "amber"
+        "amber",
+        "violet"
       ]
     },
     "status": {
@@ -349,6 +350,11 @@
           "illustrative": {
             "type": "boolean"
           },
+          "anyOrder": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Unordered group: real evidence cards with the same value have consecutive orders and may be placed in either order (the source gives none)."
+          },
           "title": {
             "type": "string",
             "minLength": 1
@@ -399,7 +405,7 @@
           },
           "mitre": {
             "type": "array",
-            "minItems": 1,
+            "description": "ATT&CK codes. May be empty only on an impact stage (the victim's own decision, not an attacker technique); tools/validate checks that.",
             "items": {
               "type": "string",
               "pattern": "^(T[0-9]{4}(\\.[0-9]{3})?|TA[0-9]{4})$"
@@ -521,6 +527,31 @@
                   "severe",
                   "critical"
                 ]
+              },
+              "neutral": {
+                "type": "object",
+                "description": "Stage that ran but didn't let the attacker in yet: shown as a neutral '⚠ <label>' pill with a sourced note, never BREACHED. Always shown, so no todo.",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "quote": {
+                    "$ref": "#/$defs/quote"
+                  }
+                },
+                "required": [
+                  "label",
+                  "note"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [

@@ -1,6 +1,6 @@
 # Breach Escape v2 redesign: status and handoff
 
-Last updated: 2026-11-20. Branch `claude/keen-pasteur-o2a3hp`, draft PR https://github.com/keptacademy/breach-escape/pull/1 (into `main`).
+Last updated: 2026-11-20. Branch `claude/uber-2022`, PR https://github.com/keptacademy/breach-escape/pull/2 (into `main`). PR #1 (`claude/keen-pasteur-o2a3hp`) is merged.
 Live v1 quiz is saved as tag `v1-quiz` (`e0df885`, main's commit before this work).
 
 ## Goal
@@ -35,8 +35,9 @@ The Breach Map itself scrolls at 720 px high (it lists 7 levels); that's allowed
 | `case.js` | Case engine: code rain + red edge flash (`BreachCase.backdrop()` is also used by the map), briefing renderer (block types: alert, note, panel, facts, timeline, diagram, glossary, mission), Act 1, Act 2 (`simulate()` then animate), results, shared drag-and-drop (Pointer Events, press-and-hold on touch). Text in backticks is rendered as `<code>`. |
 | `levels.js` | `window.LEVELS` (map list; playable levels have `case: 'levels/<id>.json'`) and `window.GLOSSARY` (shared by all cases). |
 | `levels/*.json` | All case content and rules. Act 2 stage codes are read from `timeline[].mitre` (single source). Act 2 keys added this pass: `preventedMaxStage`, `lossLabel`, `attemptedNote`, `mapCmd`, `outcomes.{prevented,contained,detected,succeeded}`, `logs.attempted`, `map.stages[].unblockable`. |
-| `icons/` | Terminal-style icons (`>_` in corner brackets), generated offline. |
-| `sw.js` | Offline cache, network-first. Currently `v18`; bump on every deploy. Caches both case files. |
+| `icons/` | App icon `>K_` in corner brackets (silver brackets and K, ice-blue `>` and `_`): `icon.svg`, `favicon.svg`, PNGs 192/512/maskable 512/Apple 180/favicon 32. Made by `tools/make_icons.js` (shapes only, no fonts). |
+| `brand/` | KEPT brand mark (KE / PT, silver, ice-blue brackets): SVG + 1024 PNG. About header only; the map header stays one-line "KEPT ACADEMY". |
+| `sw.js` | Offline cache, network-first. Currently `v34`; bump on every deploy. Caches all three case files and the icons. |
 | `staticwebapp.config.json` | Strict CSP and security headers; 404 for `/docs/*`, `/*.md`, `/.github/*`. Unchanged. |
 | `.github/workflows/deploy.yml` | CodeQL → production deploy (push to main only, `production` environment). PRs: `preview` job deploys an Azure preview environment, and `close_preview` removes it when the PR closes. Fork PRs are skipped. |
 | `.github/dependabot.yml` | Weekly updates for the pinned Actions. |
@@ -153,6 +154,27 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - **Full e2e suite: one run, all passing** (sound, splash/reset, allow-list, symlinks, replay hero, bad links, both cases at 1280×720, 1920×1080 and 390×844 under the production CSP).
 - Validator: 0 errors, 25 warnings. `sw.js` `v27`.
 
+## Round 12 (2026-11-20): CI fix, brand icons, Uber 2022 case
+- **CI:** the merge of PR #1 started a push run (#45) and a PR-closed run (#46) in the same concurrency group (`Scan and deploy-refs/heads/main`); #46 cancelled #45, so production never deployed. Group is now `github.event.pull_request.number || github.ref`, and `cancel-in-progress` is true only for `pull_request` events (runs on main queue, never cancel). Production has since deployed PR #1 (workflow #45 was re-run manually).
+- **Brand icons:** `>K_` app icon replaces the green `>_` everywhere (manifest incl. SVG, `<link rel="icon">` SVG + 32 PNG, apple-touch-icon). KE / PT brand mark in the About header (160px, 120px on phones). `tests/serve.js` serves `.svg`.
+- **Uber 2022 "MFA Fatigue"** (map #03, now playable). Sources: S1 Uber Newsroom "Security update" (Sept 15/16/19, 2022), S2 CISA "Implementing Number Matching in MFA Applications" (Oct 2022). Facts verified by Claude in chat on 2026-11-19 and used as given (nothing fetched). S2 facts carry quotes; S1 quote fields are empty (24 validator warnings, expected).
+  - New `violet` case theme (`#B98CFF` accent, violet code rain; text 10:1+, accent 7.5:1+).
+  - Act 1: 6 evidence cards + 2 red herrings, patient zero = the MFA log (requests, then one approved). Slack post before the OpenDNS change is the game's order; S1 doesn't give it (noted on the card).
+  - Act 2: budget 7; 7 stages (1 unblockable, 3 = entry, `preventedMaxStage` 3, 7 = IMPACT "Uber takes internal tools down as a precaution"). Hidden asset at stage 3. Damage SEVERE at stages 5–6, never CRITICAL. No block control after stage 3, so "contained" can't happen in this case.
+  - Recover controls: rotate keys (stage 5), lock codebase (stage 6), re-authenticate (stage 7), so every stage has a real control (validator rule).
+  - Cheapest ★★★: audit (2) + number matching for contractors (2) + train staff (1) + rotate keys (2) = 7/7.
+  - **Format change:** a timeline entry may have no ATT&CK code only if its map stage is `impact` (schema `minItems` removed; `tools/validate` checks it).
+- **Validator:** 0 errors; 49 warnings (sourced facts without a quote: 14 Colonial, 11 Midnight, 24 Uber, all S1).
+- **Tests:** Uber added to the suite (5 builds, violet theme, IMPACT on stage 7, never CRITICAL, desktop drag of the discovery control); map counts now 3 of 7 playable; returning splash `1/3 cases closed`. Full run 1: one failure, a test bug (the returning-splash test hard-coded `1/2`); fixed, rerun alone (ONLY=none), passed. Full run 2: **all passing** (sound, splash/reset, allow-list, symlinks, replay hero, bad links, all three cases at 1280×720, 1920×1080 and 390×844 under the production CSP).
+- `sw.js` `v32`.
+
+## Round 13 (2026-11-20): small fixes on PR #2
+- **Unordered evidence (`anyOrder`):** real evidence cards that share an `anyOrder` value (consecutive orders) may fill each other's slots in either order, and both orders score as correct (`fitsNext()` in `case.js`). Uber E5 (Slack post) and E6 (OpenDNS change) share `stage-6`, since S1 gives no order. Schema field; `tools/validate` checks each group is 2+ real cards with consecutive orders.
+- **Neutral stage (`neutral: {label, note, source}`):** a stage the attack passes without getting in yet. Shown as "⚠ LABEL" in the neutral (impact) style in the replay, log and results, with the note and a [n] source marker. Never BREACHED, no alarm or red flash. Uber stage 2: "⚠ PROMPTED", "The approval requests at first blocked access." [1]; the first BREACHED stage is now 3. Counted as a sourced fact by the validator (one more S1 quote warning).
+- Production deployed PR #1 (workflow #45 re-run manually); that to-do is gone.
+- Tests: the e2e places an `anyOrder` group in reverse and expects it valid; it checks neutral stages (label, note, marker, never BREACHED, and the next stage BREACHED when nothing blocks). Affected tests (Uber at 1280×720 and 390×844) passed; **one full run, all passing**.
+- Validator: 0 errors, 50 warnings (Uber 25, all S1). `sw.js` `v34`.
+
 ## Decisions made
 - **Act 1 scoring:** +50 for each correct placement, +30 per red herring dismissed, −20 per mistake, −10 per hint, +100 for patient zero. XP never goes below 0.
 - **Act 2 scoring:** ID Protection is **detect** (no random chance). **3 stars** = blocked at stage ≤ 2 **and** no decoys; **2** = blocked later (or early with decoys); **1** = only detected or limited; **0** = breach succeeded.
@@ -196,6 +218,7 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
   - Decoys: password complexity (Blount: it was already complicated), lockout, geo-block, login banner, disk encryption, cyber insurance.
   - Checked against Blount's written testimony and his answers in the Senate hearing record. Old quiz facts from Mandiant / the House hearing were dropped (not an allowed source), and so were the April 29 entry date, the 75 / 63.7 bitcoin figures and "no failed attempts".
   - The Colonial ATT&CK codes (T1589.001, T1133, T1078, TA0008, T1039, T1486, TA0040) are a mapping to review, like Level 1's.
+- **Uber 2022 ATT&CK codes (user's mapping, for review):** 1 T1597.002 · 2 T1621 · 3 T1078 · 4 T1078, TA0004 · 5 T1213 · 6 T1491.001 · 7 none (impact: Uber's precaution).
 - **Sources** (primary only; checked 2026-11-19):
   - MSRC Blog, Jan 19 2024: https://msrc.microsoft.com/blog/2024/01/microsoft-actions-following-attack-by-nation-state-actor-midnight-blizzard/ (verified by Nura, 2026-11-20)
   - Microsoft Security Blog, Jan 25 2024: https://www.microsoft.com/en-us/security/blog/2024/01/25/midnight-blizzard-guidance-for-responders-on-nation-state-attack/
@@ -204,7 +227,7 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 ## Rules that always apply
 - Strict CSP, unchanged: no inline `<script>` and no `style=""` attributes (setting styles from JS, e.g. `el.style.width`, is fine). No `innerHTML`; build DOM with `h()` or `createElementNS`, text via `textContent`.
 - No outside requests: system monospace fonts, no CDNs or analytics. No new packages without asking.
-- Never push to `main`. Work on `claude/keen-pasteur-o2a3hp`; PR #1 is the review vehicle.
+- Never push to `main`. Work on `claude/uber-2022`; PR #2 is the review vehicle.
 - Every fact comes from a primary source; recreated log rows stay labelled "recreated for training".
 - Bump `sw.js` `VERSION` on every change that ships.
 - Tip for edits: the Write tool stores `‹`-style escapes as the literal characters. Both work in JS, but patterns you search for must match what's actually in the file.
@@ -226,7 +249,8 @@ The installed-PWA splash uses `background_color` `#010603` and the green `>_` ic
 - **Not built:** share cards, a settings screen and a separate glossary screen don't exist (the spec mentions a shareable score card). Glossary definitions show in the in-case panel.
 
 ## What's next (in order)
-0. Add short quotes from the sources for the remaining 25 validator warnings.
+0. Add short quotes from the sources for the remaining validator warnings (25 Midnight/Colonial, 24 Uber S1).
+0b. Review the Uber 2022 ATT&CK mapping and case design (Nura).
 1. Verify the Colonial `todo` facts against AA21-131A and the DOJ release, then remove the `todo` fields.
 2. Review the Colonial content and ATT&CK mapping (Nura).
 3. MITRE bonus chips in Act 1, Practice and Challenge modes, Go Deeper (KQL hunting queries), 

@@ -36,6 +36,15 @@
   --c-wash:rgba(255,166,48,.14); --c-cardsrc:#D9B27A;
   --c-rain:none; --c-scan:1;
 }
+/* Violet: identity and access (Uber 2022). Same dark base and layout; danger red and decoy yellow unchanged.
+   Violet code rain. Accent #B98CFF is 7.5:1 or better on every violet panel; text and secondary text 10:1 or better. */
+:root[data-theme="violet"]{
+  --c-panel:#0A0613; --c-panel2:#130B22; --c-panel-a:rgba(10,6,19,.9); --c-panel-soft:rgba(10,6,19,.6);
+  --c-g:#B98CFF; --c-g2:#D7BEFF; --c-g3:#6B4FA3; --c-g4:#2C1F47;
+  --c-txt:#F1E8FF; --c-mute:#CDB8F0;
+  --c-wash:rgba(185,140,255,.13); --c-cardsrc:#BFA6E6;
+  --c-rain:#B98CFF; --c-scan:0;
+}
 body::after{content:"";position:fixed;inset:0;z-index:4;pointer-events:none;opacity:0;
   background:repeating-linear-gradient(to bottom,rgba(255,166,48,.045) 0 1px,transparent 1px 4px)}
 :root[data-theme="amber"] body::after{opacity:var(--c-scan);animation:c-scan 9s linear infinite}
@@ -348,6 +357,8 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-foot{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .case .c-foot .c-ghost{min-height:36px;padding:6px 10px}
 .app.case.c-aboutscreen{max-width:640px}
+.c-abouthead .c-brandmark{display:block;width:160px;height:160px;margin:4px auto 12px}
+@media (max-width:599px){.c-abouthead .c-brandmark{width:120px;height:120px}}
 
 /* ---------- opening splash: terminal "login" (timed by app.js; CSS only animates the cursor and the fade) ---------- */
 .c-splash{position:fixed;inset:0;z-index:40;background:var(--c-bg);display:flex;align-items:center;justify-content:center;font-family:var(--c-mono);padding:16px}
