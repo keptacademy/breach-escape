@@ -373,6 +373,13 @@
     renderAct1();
   }
   function total() { return C.d.evidence.filter(function (e) { return e.order; }).length; }
+  // Unordered group ("anyOrder" on evidence): cards that share a group may fill each other's slots, in either order,
+  // because the sources don't say which came first. Members have consecutive orders (tools/validate checks).
+  function fitsNext(e) {
+    if (e.order === A.next) return true;
+    var want = C.d.evidence.filter(function (x) { return x.order === A.next; })[0];
+    return !!(e.order && e.anyOrder && want && want.anyOrder === e.anyOrder);
+  }
 
   function renderAct1() {
     var a1 = C.d.act1, rec = caseRec();
@@ -545,7 +552,7 @@
   function place() {
     if (A.phase !== 'order' || needSel()) return;
     var c = A.sel, s = C.d.act1.scoring, w = C.d.act1.wrongLines;
-    if (c.e.order === A.next) {
+    if (fitsNext(c.e)) {
       c.done = true; A.placed.push(c); A.next++; A.sel = null;
       addXP(s.place); BE.sound('blip'); toast('+' + s.place + ' XP \u00b7 sequence valid', true);
       afterMove();

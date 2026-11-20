@@ -350,6 +350,11 @@
           "illustrative": {
             "type": "boolean"
           },
+          "anyOrder": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Unordered group: real evidence cards with the same value have consecutive orders and may be placed in either order (the source gives none)."
+          },
           "title": {
             "type": "string",
             "minLength": 1

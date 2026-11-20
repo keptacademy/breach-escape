@@ -206,6 +206,9 @@ async function run(view, c, browser) {
   await checkFit('act1'); await contrast('act1');
   await shot('2act1');
   const ordered = data.evidence.filter((e) => e.order).sort((a, b) => a.order - b.order);
+  // Unordered groups (anyOrder): place them in reverse, which must still count as correct.
+  const grouped = ordered.filter((e) => e.anyOrder);
+  if (grouped.length > 1) { const i = ordered.indexOf(grouped[0]); ordered.splice(i, grouped.length, ...grouped.slice().reverse()); }
   const herrings = data.evidence.filter((e) => !e.order);
   const cardFor = (e) => page.locator('.c-card', { hasText: e.title.replace(/`/g, '').slice(0, 30) });
   // drag the first card onto the timeline (mouse on desktop, press-and-hold touch on the phone)
@@ -245,7 +248,10 @@ async function run(view, c, browser) {
     if ((await page.locator('.c-slot.filled').count()) !== before + 2) bad(tag + ' Enter did not add the card');
     rest = rest.slice(2);
   }
-  for (const e of rest) { await cardFor(e).click(); await page.click('.c-add'); }
+  for (const e of rest) {
+    await cardFor(e).click(); await page.click('.c-add');
+    if (e.anyOrder && !(await page.textContent('.c-toast')).includes('sequence valid')) bad(tag + ' unordered card ' + e.id + ' rejected out of order');
+  }
   const callout = await page.textContent('.c-toast');
   if (!callout.includes('Timeline complete. ' + herrings.length + ' cards left: mark them Not related to close the case.')) bad(tag + ' no timeline-complete message: ' + callout);
   if (!(await page.locator('.c-nr.c-call').count())) bad(tag + ' Not related not highlighted');

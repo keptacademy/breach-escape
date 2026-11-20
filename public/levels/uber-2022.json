@@ -304,8 +304,8 @@
       "2": "Which log shows the first time they actually got in?",
       "3": "One account is never enough. Whose accounts came next, and what rights?",
       "4": "With admin rights, what did they take?",
-      "5": "The moment the whole company noticed.",
-      "6": "Same moment, a second channel: what employees saw on some internal sites."
+      "5": "The moment the whole company noticed: two things employees saw, in either order.",
+      "6": "The other half of that moment. Either order counts."
     },
     "wrongLines": {
       "early": "Not yet. Something else had to happen before this.",
@@ -376,6 +376,7 @@
       "src": "slack",
       "order": 5,
       "illustrative": true,
+      "anyOrder": "stage-6",
       "title": "Company-wide Slack post from a compromised account",
       "rows": [
         "post  channel=<company-wide>  by=<compromised account>",
@@ -388,12 +389,13 @@
       "src": "dns config",
       "order": 6,
       "illustrative": true,
+      "anyOrder": "stage-6",
       "title": "OpenDNS config change on some internal sites",
       "rows": [
         "change  service=OpenDNS  by=<compromised account>",
         "effect  graphic image shown to employees on some internal sites  [not shown]"
       ],
-      "note": "Uber doesn't say whether this came before or after the Slack post; the game puts it second."
+      "note": "Uber doesn't say whether this came before or after the Slack post, so either order counts."
     },
     {
       "id": "D1",
