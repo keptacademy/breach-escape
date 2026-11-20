@@ -115,6 +115,14 @@
           "verified": {
             "type": "string",
             "minLength": 1
+          },
+          "publisher": {
+            "type": "string",
+            "minLength": 1
+          },
+          "date": {
+            "type": "string",
+            "minLength": 1
           }
         },
         "required": [

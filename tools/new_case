@@ -39,7 +39,7 @@ def template(cid, title, level_id):
             "TODO: verify the hidden asset (map.hidden.name) against a primary source; the game always shows its name once discovered.",
             "TODO: verify every stage name, evidence card, control and outcome text before setting the case to ready.",
         ]),
-        ("sources", [fact(id="src1", title=P + "primary source title and date", url="https://example.invalid/TODO")]),
+        ("sources", [fact(id="src1", title=P + "document title", publisher=P + "publisher", date=P + "date", url="https://example.invalid/TODO")]),
         ("briefing", OD([
             ("opening", P + "opening line"),
             ("threatActor", fact(v=P + "threat actor name", source="src1")),

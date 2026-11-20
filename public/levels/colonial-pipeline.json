@@ -13,22 +13,30 @@
   "sources": [
     {
       "id": "blount",
-      "title": "Testimony of Joseph Blount, CEO, Colonial Pipeline, U.S. Senate HSGAC (June 8, 2021)",
+      "title": "Testimony of Joseph Blount, President and CEO, Colonial Pipeline Company",
+      "publisher": "U.S. Senate Committee on Homeland Security and Governmental Affairs",
+      "date": "June 8, 2021",
       "url": "https://www.hsgac.senate.gov/imo/media/doc/Testimony-Blount-2021-06-08.pdf"
     },
     {
       "id": "hearing",
-      "title": "Senate hearing record: Threats to Critical Infrastructure: Examining the Colonial Pipeline Cyberattack (June 8, 2021), Blount's answers",
+      "title": "Threats to Critical Infrastructure: Examining the Colonial Pipeline Cyberattack (S. Hrg. 117-429, Blount's answers)",
+      "publisher": "U.S. Senate HSGAC, via GovInfo",
+      "date": "June 8, 2021",
       "url": "https://www.govinfo.gov/content/pkg/CHRG-117shrg46569/html/CHRG-117shrg46569.htm"
     },
     {
       "id": "cisa",
-      "title": "CISA/FBI AA21-131A: DarkSide Ransomware: Best Practices for Preventing Business Disruption from Ransomware Attacks (May 11, 2021)",
+      "title": "Darkside Ransomware: Best Practices for Preventing Business Disruption from Ransomware Attacks (AA21-131A)",
+      "publisher": "CISA and FBI",
+      "date": "May 11, 2021",
       "url": "https://www.cisa.gov/sites/default/files/publications/AA21-131A_Darkside_Ransomware.pdf"
     },
     {
       "id": "doj",
-      "title": "U.S. Attorney's Office, N.D. Cal.: Department of Justice Seizes $2.3 Million in Cryptocurrency Paid to the Ransomware Extortionists Darkside (June 2021)",
+      "title": "Department of Justice Seizes $2.3 Million in Cryptocurrency Paid to the Ransomware Extortionists Darkside",
+      "publisher": "U.S. Attorney's Office, Northern District of California",
+      "date": "June 2021",
       "url": "https://www.justice.gov/usao-ndca/pr/department-justice-seizes-23-million-cryptocurrency-paid-ransomware-extortionists"
     }
   ],

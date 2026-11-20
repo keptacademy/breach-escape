@@ -13,24 +13,31 @@
   "sources": [
     {
       "id": "msrc",
-      "title": "MSRC Blog: Microsoft Actions Following Attack by Nation State Actor Midnight Blizzard (Jan 19, 2024)",
+      "title": "Microsoft Actions Following Attack by Nation State Actor Midnight Blizzard",
+      "publisher": "Microsoft Security Response Center (MSRC Blog)",
+      "date": "January 19, 2024",
       "url": "https://msrc.microsoft.com/blog/2024/01/microsoft-actions-following-attack-by-nation-state-actor-midnight-blizzard/",
       "verified": "2026-11-20, link checked by Nura"
     },
     {
       "id": "blog",
-      "title": "Microsoft Security Blog: Midnight Blizzard guidance for responders (Jan 25, 2024)",
+      "title": "Midnight Blizzard: Guidance for responders on nation-state attack",
+      "publisher": "Microsoft Security Blog",
+      "date": "January 25, 2024",
       "url": "https://www.microsoft.com/en-us/security/blog/2024/01/25/midnight-blizzard-guidance-for-responders-on-nation-state-attack/"
     },
     {
       "id": "8k",
-      "title": "Microsoft Form 8-K, U.S. SEC (filed Jan 19, 2024; date of report Jan 17, 2024)",
+      "title": "Form 8-K (date of report January 17, 2024)",
+      "publisher": "Microsoft Corporation, filed with the U.S. SEC",
+      "date": "January 19, 2024",
       "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312524011295/d708866d8k.htm",
       "verified": "2026-11-20, link checked by Nura"
     },
     {
       "id": "insider",
-      "title": "Microsoft Security Insider: Midnight Blizzard threat actor profile",
+      "title": "Midnight Blizzard threat actor profile",
+      "publisher": "Microsoft Security Insider",
       "url": "https://www.microsoft.com/security/security-insider/midnight-blizzard"
     }
   ],

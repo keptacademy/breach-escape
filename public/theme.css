@@ -132,7 +132,6 @@ button{font:inherit;color:inherit;cursor:pointer}
 .case .c-wide{width:100%}
 .c-row2{display:grid;grid-template-columns:1fr 2fr;gap:8px}
 .c-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.c-src a{word-break:break-word}
 
 /* act 1: timeline slots */
 .c-slots{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
@@ -239,7 +238,6 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 /* code: identifiers such as full_access_as_app */
 .case code{font-family:var(--c-mono);font-size:.95em;color:var(--c-txt);background:var(--c-panel2);border:1px solid var(--c-g3);padding:0 3px;overflow-wrap:anywhere}
 .case code .term{border-bottom-color:var(--c-g)}
-.c-cite{display:block;margin-top:2px}
 .c-teaser{align-self:center;border:1px dashed var(--c-g3);color:var(--c-g2);font-size:11px;padding:4px 10px;text-align:center}
 
 /* briefing: pinned footer with back, sources toggle, NEXT */
@@ -249,7 +247,6 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .case .c-briefbar .c-srcbtn{padding:6px 12px}
 .case .c-briefbar .c-srcbtn[aria-expanded="true"]{background:var(--c-g);color:var(--c-bg)}
 .c-srcbox{grid-column:1 / -1;max-height:40vh;overflow-y:auto;border:1px solid var(--c-g3);background:var(--c-panel);padding:10px}
-.c-srcbox .c-src{margin:0}
 
 /* ---------- Act 2: Defend ----------
    Phone: map, log, deck stacked; pinned bar with budget + EXECUTE.
@@ -451,3 +448,17 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
   .app.case.c-mapscreen{max-width:1100px}
   .c-mapgrid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:20px;align-items:start}
 }
+
+/* ---------- source footnotes [n] and the numbered sources panel ---------- */
+.case button.c-fn{display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;margin:-6px 0;padding:0 2px;
+  border:none;background:none;color:var(--c-mute);font-family:var(--c-mono);font-size:10px;line-height:1;vertical-align:baseline;cursor:pointer}
+.case button.c-fn:hover{color:var(--c-g)}
+.c-sources{display:flex;flex-direction:column;gap:6px}
+.c-srclist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.c-srclist li{display:grid;grid-template-columns:32px minmax(0,1fr);gap:6px;padding:4px;border:1px solid transparent}
+.c-srclist li:focus{outline:2px solid var(--c-g);outline-offset:1px}
+.c-srclist li.c-hit{border-color:var(--c-g)}
+.c-srcn{color:var(--c-mute);font-size:11px}
+.c-srcbody{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:12px}
+.c-srct{color:var(--c-txt);overflow-wrap:anywhere}
+.c-srcbody a{word-break:break-word}

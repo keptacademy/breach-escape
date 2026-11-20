@@ -53,6 +53,63 @@
   function tipText(x) { return !x || !shown(x) ? null : typeof x === 'object' ? x.t : x; }
   function srcById(id) { return (C.d.sources || []).filter(function (s) { return s.id === id && shown(s); })[0]; }
 
+  /* ---------- sources: numbered footnote markers [n] + one numbered sources panel ----------
+     Numbers are per case, in order of first use on the player-facing screens (briefing, debrief timeline, tips,
+     controls); the same source keeps its number. Sources nobody cites yet are listed after them. */
+  function numberSources(d) {
+    var order = [], seen = {};
+    function use(id) { if (id && !seen[id] && srcByIdIn(d, id)) { seen[id] = true; order.push(id); } }
+    var ta = d.briefing && d.briefing.threatActor;
+    (d.briefing.pages || []).forEach(function (pg) {
+      pg.blocks.forEach(function (b) {
+        var kv = (b.kv || []).filter(shown).slice();
+        if (b.type === 'alert' && ta && shown(ta)) kv.splice(Math.min(1, kv.length), 0, ta);
+        kv.forEach(function (r) { use(r.source); });
+        if (b.type === 'timeline') b.items.filter(shown).forEach(function (it) { use(it.source); });
+      });
+    });
+    (d.timeline || []).filter(shown).forEach(function (t) { use(t.source); });
+    [].concat((d.act2 && d.act2.tips && d.act2.tips.always) || []).forEach(function (x) { if (x && typeof x === 'object' && shown(x)) use(x.source); });
+    (d.controls || []).forEach(function (c) { use(c.source); });
+    (d.sources || []).filter(shown).forEach(function (x) { use(x.id); });
+    var n = {}; order.forEach(function (id, i) { n[id] = i + 1; });
+    return { order: order, n: n };
+  }
+  function srcByIdIn(d, id) { return (d.sources || []).filter(function (x) { return x.id === id && shown(x); })[0]; }
+  // A small dim [n] button after a sourced fact. Opens the sources panel at that source.
+  function fn(id) {
+    var src = id && srcById(id), n = src && C.fn && C.fn.n[id];
+    if (!n) return null;
+    return h('button', { class: 'c-fn', type: 'button', 'aria-label': 'Source ' + n + ': ' + src.title, text: '[' + n + ']',
+      onclick: function (e) { e.preventDefault(); e.stopPropagation(); openSource(n); } });
+  }
+  function withFn(el, id) { var m = fn(id); if (m) { el.appendChild(document.createTextNode(' ')); el.appendChild(m); } return el; }
+  // The numbered list: title, publisher, date, link. Each item can be scrolled to and focused.
+  function sourcesPanel() {
+    var ol = h('ol', { class: 'c-srclist' });
+    (C.fn ? C.fn.order : []).forEach(function (id, i) {
+      var s = srcById(id), n = i + 1;
+      ol.appendChild(h('li', { id: 'c-src-' + n, tabindex: '-1' }, [
+        h('span', { class: 'c-srcn', text: '[' + n + ']' }),
+        h('span', { class: 'c-srcbody' }, [
+          h('span', { class: 'c-srct', text: s.title }),
+          (s.publisher || s.date) ? h('span', { class: 'c-small', text: [s.publisher, s.date].filter(Boolean).join(' \u00b7 ') }) : null,
+          h('a', { class: 'c-small', href: s.url, target: '_blank', rel: 'noopener noreferrer', text: 'open source \u2197' })
+        ])
+      ]));
+    });
+    return h('div', { class: 'c-sources' }, [h('div', { class: 'c-eyebrow', text: 'Sources' }), ol]);
+  }
+  var openSourcesHook = null;   // the briefing's footer panel registers how to open itself
+  function openSource(n) {
+    if (openSourcesHook) openSourcesHook();
+    var li = document.getElementById('c-src-' + n);
+    if (!li) return;
+    li.scrollIntoView({ block: 'nearest', behavior: BE.reduceMotion() ? 'auto' : 'smooth' });
+    li.focus({ preventScroll: true });
+    restart(li, 'c-hit');
+  }
+
   /* ---------- terminal backdrop: code rain + red edge flash ---------- */
   var rain = { cv: null, ctx: null, cols: [], timer: null, red: false };
   var edge = null;
@@ -178,7 +235,7 @@
     var p = loadCase(url);
     p.then(function (d) {
       if (!C || C.L !== L) return;
-      dataCache[url] = d; C.d = d;
+      dataCache[url] = d; C.d = d; C.fn = numberSources(d);
       renderBrief(0, true);
     }).catch(function () {
       if (!C || C.L !== L) return;
@@ -216,10 +273,12 @@
     var last = page === pages.length - 1;
     var back = h('button', { class: 'c-ghost', text: '‹ back', onclick: function () { renderBrief(page - 1); } });
     if (!page) { back.disabled = true; back.classList.add('c-invisible'); }
-    var srcBox = h('div', { class: 'c-srcbox', id: 'c-sources', hidden: true }, [sourcesLine()]);
+    var srcBox = h('div', { class: 'c-srcbox', id: 'c-sources', hidden: true }, [sourcesPanel()]);
     var srcBtn = h('button', { class: 'c-ghost c-srcbtn', 'aria-expanded': 'false', 'aria-controls': 'c-sources', text: 'sources', onclick: function () {
       var open = srcBox.hidden; srcBox.hidden = !open; srcBtn.setAttribute('aria-expanded', String(open));
     } });
+    openSourcesHook = function () { srcBox.hidden = false; srcBtn.setAttribute('aria-expanded', 'true'); };
+    BE.onLeave(function () { openSourcesHook = null; });
     app.appendChild(h('div', { class: 'c-bar c-briefbar' }, [h('div', { class: 'c-bar-in' }, [
       srcBox, back, srcBtn,
       h('button', { class: 'c-btn', text: last ? '> OPEN THE EVIDENCE' : 'NEXT ›', onclick: function () { if (last) finishBrief(); else renderBrief(page + 1); } })
@@ -235,8 +294,7 @@
     kv.forEach(function (r) {
       if (!shown(r)) return;
       dl.appendChild(h('dt', { text: r.k }));
-      var dd = tone(rich(r.v, h('dd', {})), r.tone), src = r.source && srcById(r.source);
-      if (src) dd.appendChild(h('a', { class: 'c-small c-cite', href: src.url, target: '_blank', rel: 'noopener noreferrer', text: 'source: ' + src.title }));
+      var dd = withFn(tone(rich(r.v, h('dd', {})), r.tone), r.source);
       dl.appendChild(dd);
     });
     return dl;
@@ -273,7 +331,7 @@
       case 'timeline':
         kids.push(eyebrow(b.eyebrow));
         var tl = h('div', { class: 'c-tl' });
-        b.items.filter(shown).forEach(function (it) { tl.appendChild(tone(h('div', {}, [h('b', { text: it.d }), it.t]), it.tone)); });
+        b.items.filter(shown).forEach(function (it) { tl.appendChild(tone(withFn(h('div', {}, [h('b', { text: it.d }), it.t]), it.source), it.tone)); });
         kids.push(tl);
         return panel('', kids);
       case 'diagram':
@@ -305,14 +363,6 @@
         return panel('hl', kids);
     }
     return h('div', {});
-  }
-  function sourcesLine() {
-    var p = h('p', { class: 'c-small c-src' }, ['Sources: ']);
-    (C.d.sources || []).filter(shown).forEach(function (s, n) {
-      if (n) p.appendChild(document.createTextNode(' \u00b7 '));
-      p.appendChild(h('a', { href: s.url, target: '_blank', rel: 'noopener noreferrer', text: s.title }));
-    });
-    return p;
   }
 
   /* ---------- Act 1: Investigate ---------- */
@@ -574,14 +624,12 @@
     ]));
     var tl = h('ol', { class: 'c-reveal' });
     d.timeline.filter(shown).forEach(function (t) {
-      var src = srcById(t.source);
       var li = h('li', {}, [
         h('div', { class: 'c-hud' }, [h('b', { text: 'STAGE ' + t.stage + (t.date ? ' \u00b7 ' + t.date.toUpperCase() : '') }),
           h('span', { class: 'c-chips' }, (t.mitre || []).map(function (m) { return h('span', { class: 'c-chip', text: m }); }))]),
-        para(t.text),
+        withFn(para(t.text), t.source),
         h('p', { class: 'c-why' }, [h('span', { class: 't-g', text: 'why it worked: ' }), rich(t.why)])
       ]);
-      if (src) li.appendChild(h('a', { class: 'c-small', href: src.url, target: '_blank', rel: 'noopener noreferrer', text: 'source: ' + src.title }));
       tl.appendChild(li);
     });
     box.appendChild(panel('', [eyebrow('The real timeline'), tl]));
@@ -589,7 +637,7 @@
     box.appendChild(panel('hl', [eyebrow('Next \u00b7 Act 2'), para(d.rewind)]));
     box.appendChild(h('button', { class: 'c-btn', text: d.act2.rewindButton, onclick: startAct2 }));
     box.appendChild(h('button', { class: 'c-ghost c-wide', text: './replay --act 1', onclick: function () { C.xp = 0; startAct1(); } }));
-    box.appendChild(sourcesLine());
+    box.appendChild(sourcesPanel());
     box.scrollIntoView({ behavior: BE.reduceMotion() ? 'auto' : 'smooth', block: 'start' });
   }
   function stat(label, v, t) { return h('div', { class: 'c-stat' }, [h('span', { class: 'c-small', text: label }), tone(h('span', { class: 'c-v', text: v }), t)]); }
@@ -1016,9 +1064,9 @@
     if (r.stars === 2) tips.push(['k', tipText(T.needLayers)]);
     if (r.decoys) tips.push(['y', fmt(tipText(T.decoys), { n: r.decoys })]);
     if (r.frictionLabel === 'HIGH') tips.push(['y', tipText(T.friction)]);
-    [].concat(T.always || []).forEach(function (x) { tips.push(['k', tipText(x)]); });   // one tip or a list
+    [].concat(T.always || []).forEach(function (x) { tips.push(['k', tipText(x), x && x.source]); });   // one tip or a list
     var tipBox = h('div', { class: 'c-log c-tips' });
-    tips.filter(function (t) { return t[1]; }).forEach(function (t) { tipBox.appendChild(h('div', {}, [h('span', { class: 't-' + t[0], text: '> ' }), rich(t[1], null, false)])); });
+    tips.filter(function (t) { return t[1]; }).forEach(function (t) { tipBox.appendChild(withFn(h('div', {}, [h('span', { class: 't-' + t[0], text: '> ' }), rich(t[1], null, false)]), t[2])); });
     app.appendChild(panel('', [eyebrow('Tips'), tipBox]));
 
     // Stage by stage: the same results the replay animated (and the only view with reduced motion).
@@ -1048,7 +1096,7 @@
     deployed().forEach(function (c) {
       build.appendChild(h('li', {}, [
         h('div', { class: 'c-hud' }, [rich(c.name, h('b', {}), false), h('span', { class: 'c-pill ' + (c.effect === 'decoy' ? 'y' : 'o'), text: layerOf(c).toUpperCase() })]),
-        h('p', { class: 'c-why' }, [rich(c.why, null, false), c.teach ? ' ' + c.teach : ''])
+        withFn(h('p', { class: 'c-why' }, [rich(c.why, null, false), c.teach ? ' ' + c.teach : '']), c.source)
       ]));
     });
     if (!B.on.length) build.appendChild(h('li', {}, [h('p', { class: 'c-why', text: 'No controls deployed.' })]));
@@ -1056,7 +1104,7 @@
 
     app.appendChild(h('button', { class: 'c-btn', text: '> TRY ANOTHER BUILD', onclick: startAct2 }));
     app.appendChild(h('button', { class: 'c-ghost c-wide', text: './restart --case ' + d.caseNo, onclick: restartCase }));
-    app.appendChild(sourcesLine());
+    app.appendChild(sourcesPanel());
   }
   function voiceP(v) { return v ? h('p', { class: 'c-voice', role: 'status', text: v }) : null; }
   function restartCase() {
