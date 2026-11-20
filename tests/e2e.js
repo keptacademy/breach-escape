@@ -325,6 +325,13 @@ async function run(view, c, browser) {
       if (s6.includes('BREACHED')) bad(tag + ' stage ' + n + ' shown as BREACHED');
     }
     if (c.id === 'uber-2022' && run.damage === 'CRITICAL') bad(tag + ' Uber damage must never be CRITICAL');
+    // stages marked "neutral" ran but didn't let the attacker in: their own label, a sourced note, never BREACHED
+    for (const s of data.map.stages.filter((x) => x.neutral)) {
+      const li = page.locator('.c-replay li').nth(s.n - 1), txt = await li.textContent();
+      if (!txt.includes('\u26a0 ' + s.neutral.label) || txt.includes('BREACHED') || !txt.includes(s.neutral.note)) bad(tag + ' stage ' + s.n + ' not ' + s.neutral.label + ': ' + txt.slice(0, 80));
+      if (s.neutral.source && !(await li.locator('.c-fn').count())) bad(tag + ' stage ' + s.n + ' note has no source marker');
+      if (!run.stars) { const nx = await page.locator('.c-replay li').nth(s.n).textContent(); if (!nx.includes('BREACHED')) bad(tag + ' stage ' + (s.n + 1) + ' should be BREACHED: ' + nx.slice(0, 80)); }
+    }
     if (!(await page.locator('.c-layers li').count())) bad(tag + ' no defense layers');
     const nxt = (await page.locator('.c-nextstar').count()) ? await page.textContent('.c-nextstar') : '';
     if (run.stars < 3 && !nxt.startsWith('\u2605'.repeat(run.stars + 1) + ':')) bad(tag + ' next-star line: ' + nxt);

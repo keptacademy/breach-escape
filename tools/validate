@@ -209,6 +209,9 @@ def sourced_facts(d):
             out.append(("$.act2.tips.always" + ("[%d]" % i if isinstance(tips, list) else ""), t))
     if d["map"].get("hidden", {}).get("source"):
         out.append(("$.map.hidden", d["map"]["hidden"]))
+    for i, s in enumerate(d["map"]["stages"]):
+        if (s.get("neutral") or {}).get("source"):
+            out.append(("$.map.stages[%d].neutral" % i, s["neutral"]))
     return out
 
 

@@ -527,6 +527,31 @@
                   "severe",
                   "critical"
                 ]
+              },
+              "neutral": {
+                "type": "object",
+                "description": "Stage that ran but didn't let the attacker in yet: shown as a neutral '⚠ <label>' pill with a sourced note, never BREACHED. Always shown, so no todo.",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "quote": {
+                    "$ref": "#/$defs/quote"
+                  }
+                },
+                "required": [
+                  "label",
+                  "note"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [

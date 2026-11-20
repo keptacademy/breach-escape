@@ -540,7 +540,12 @@
       {
         "n": 2,
         "zone": "signin",
-        "name": "Repeated logins send approval requests"
+        "name": "Repeated logins send approval requests",
+        "neutral": {
+          "label": "PROMPTED",
+          "note": "The approval requests at first blocked access.",
+          "source": "uber"
+        }
       },
       {
         "n": 3,
