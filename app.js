@@ -174,7 +174,7 @@
       h('span', { text: '> ls ./season-1   real breaches, replayed' }),
       h('span', { class: 'c-season' }, [
         h('span', { class: 'c-meter', role: 'progressbar', 'aria-label': 'Season progress', 'aria-valuemin': '0', 'aria-valuemax': String(total), 'aria-valuenow': String(cleared.length) }, [fill]),
-        h('span', { text: cleared.length + '/' + total })
+        h('span', { class: 'c-count', text: cleared.length + '/' + total })
       ])
     ]));
     fill.style.width = Math.round(cleared.length / total * 100) + '%';
