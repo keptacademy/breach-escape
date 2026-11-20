@@ -439,9 +439,10 @@
     E.fold = h('button', { class: 'c-ghost c-fold', 'aria-controls': 'c-slots', onclick: function () { A.collapsed = !A.collapsed; drawAct1(); } });
     E.slots = h('ol', { class: 'c-slots', id: 'c-slots', 'data-drop': 'timeline', 'aria-label': 'Attack timeline' });
     E.toast = h('div', { class: 'c-toast', role: 'status', 'aria-live': 'polite' });
+    E.inspectSlot = h('div', { class: 'c-inspectslot' });
     var board = h('div', { class: 'c-board' }, [
       h('div', { class: 'c-hud' }, [h('span', {}, ['> timeline ', E.count]), E.fold]),
-      E.slots, E.toast, defBox
+      E.slots, E.toast, E.inspectSlot, defBox
     ]);
 
     // Right: the evidence grid scrolls inside its own panel.
@@ -468,6 +469,12 @@
     app.appendChild(E.main);
     app.appendChild(E.done);
     app.appendChild(pinBar(E.bar));
+    // The log preview: under the evidence on phones; on desktop in the timeline column, so opening it never resizes the
+    // evidence grid under the pointer (a double-click then lands on the same card twice).
+    var wideMq = window.matchMedia('(min-width: 900px)');
+    function placeInspect() { (wideMq.matches ? E.inspectSlot : E.deck).appendChild(E.inspect); }
+    placeInspect();
+    if (wideMq.addEventListener) { wideMq.addEventListener('change', placeInspect); BE.onLeave(function () { wideMq.removeEventListener('change', placeInspect); }); }
     drawAct1();
   }
 
@@ -558,6 +565,7 @@
     var pre = h('div', { class: 'c-rows' });
     (c.e.rows || []).forEach(function (r) { pre.appendChild(h('div', { text: r })); });
     E.inspect.appendChild(pre);
+    if (E.inspect.parentNode === E.inspectSlot) E.inspect.scrollIntoView({ block: 'nearest' });   // desktop: scrolls the timeline column only
   }
   var dbl = {}, lastPointer = 'mouse';
   document.addEventListener('pointerdown', function (e) { lastPointer = e.pointerType || 'mouse'; }, true);

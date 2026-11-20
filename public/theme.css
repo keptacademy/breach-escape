@@ -541,3 +541,4 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
   .c-resstats{grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr))}
   .c-resstats .c-stat.c-span2{grid-column:auto}
 }
+
