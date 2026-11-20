@@ -5,7 +5,8 @@ Usage: tools/new_case <id> "<Title>"
 
 - Writes public/levels/<id>.json with placeholders only; every fact is pre-marked with a todo
   (or listed in "verify" where the game always shows the field, e.g. the hidden asset).
-- Adds the case to the Breach Map (public/levels.js) as SOON, so it isn't playable yet.
+- Adds the case to the Breach Map (public/levels.js) as SOON, so it isn't playable yet. If a SOON entry with the
+  same title already exists (and has no case file yet), that entry is converted instead of adding a second card.
 - Refuses to overwrite an existing file or reuse an id that is already on the map.
 Then: fill it in from primary sources, run tools/validate, and set status 'ready' only when it passes.
 Standard library only.
@@ -180,18 +181,39 @@ def main(argv):
         return 1
     start = src.index("window.LEVELS = [")
     end = src.index("\n];", start)
-    ids = [int(x) for x in re.findall(r"\{\s*id:\s*(\d+)", src[start:end])]
-    level_id = max(ids) + 1 if ids else 1
-    entry = "  { id: %d, name: %s, victim: 'TBA', year: 'TBA', teaser: 'Case file in preparation.', status: 'soon', case: 'levels/%s.json' }" % (
-        level_id, js_str(title), cid)
-    body = src[start:end].rstrip()
-    src = src[:start] + body + ",\n" + entry + src[end:]
+    block = src[start:end]
+    # An existing SOON entry with the same title (case-insensitive) becomes this case instead of a duplicate card.
+    name_re = re.compile(r"name:\s*'((?:[^'\\]|\\.)*)'")
+    same = []
+    for ln in block.split("\n"):
+        m = name_re.search(ln)
+        if m and m.group(1).replace("\\'", "'").strip().lower() == title.lower():
+            same.append(ln)
+    if same:
+        line = same[0]
+        if "case:" in line:
+            print("error: the map already has '%s' with a case file; refusing to change it" % title, file=sys.stderr)
+            return 1
+        if not re.search(r"status:\s*'soon'", line):
+            print("error: the map entry '%s' isn't SOON; refusing to change it" % title, file=sys.stderr)
+            return 1
+        level_id = int(re.search(r"id:\s*(\d+)", line).group(1))
+        new_line = re.sub(r"\s*\}(\s*,?)\s*$", lambda m: ", case: 'levels/%s.json' }%s" % (cid, m.group(1).strip()), line)
+        src = src[:start] + block.replace(line, new_line, 1) + src[end:]
+        how = "converted the existing SOON entry"
+    else:
+        ids = [int(x) for x in re.findall(r"\{\s*id:\s*(\d+)", block)]
+        level_id = max(ids) + 1 if ids else 1
+        entry = "  { id: %d, name: %s, victim: 'TBA', year: 'TBA', teaser: 'Case file in preparation.', status: 'soon', case: 'levels/%s.json' }" % (
+            level_id, js_str(title), cid)
+        src = src[:start] + block.rstrip() + ",\n" + entry + src[end:]
+        how = "added as SOON"
     with open(out, "x", encoding="utf-8") as f:   # "x": fails if the file appeared meanwhile
         json.dump(template(cid, title, level_id), f, indent=2, ensure_ascii=False)
         f.write("\n")
     with open(lj, "w", encoding="utf-8") as f:
         f.write(src)
-    print("created %s (Level %d, SOON on the Breach Map)" % (os.path.relpath(out, ROOT), level_id))
+    print("created %s (Level %d on the Breach Map: %s)" % (os.path.relpath(out, ROOT), level_id, how))
     print("next: fill it from primary sources, then run tools/validate %s" % os.path.relpath(out, ROOT))
     return 0
 
