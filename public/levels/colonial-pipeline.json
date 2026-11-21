@@ -645,7 +645,7 @@
       "name": "Rehearsed incident response plan",
       "cost": 2,
       "stage": 5,
-      "effect": "detect",
+      "effect": "recover",
       "friction": 0,
       "why": "Trained staff acted at once: the note was reported, the response process started and the FBI was called that morning.",
       "teach": "Blount credited Colonial's incident response process and everyone's stop work authority."

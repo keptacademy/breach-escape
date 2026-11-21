@@ -23,9 +23,9 @@ const CASES = [
     runs: [
       { kind: 'succeeded', ids: ['mfa'], stars: 0, damage: 'CRITICAL' },
       { kind: 'prevented', ids: ['audit', 'disable'], stars: 2, damage: 'NONE' },
-      { kind: 'prevented', ids: ['audit', 'disable', 'irp', 'backup'], stars: 3, damage: 'NONE' },
+      { kind: 'prevented', ids: ['audit', 'disable', 'edr', 'irp'], stars: 3, damage: 'NONE' },
       { kind: 'contained', ids: ['seg'], stars: 1, damage: 'SEVERE' },
-      { kind: 'detected', ids: ['irp'], stars: 0, damage: 'CRITICAL' }
+      { kind: 'detected', ids: ['edr'], stars: 0, damage: 'CRITICAL' }
     ] },
   { id: 'uber-2022', level: 3,
     locked: 'nmext', misplace: { id: 'nmemp', n: 2 },
