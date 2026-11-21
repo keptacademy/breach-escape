@@ -599,8 +599,19 @@
       c.done = true; A.placed.push(c); A.next++; A.sel = null;
       addXP(s.place); BE.sound('blip'); toast('+' + s.place + ' XP \u00b7 sequence valid', true);
       afterMove();
-    } else if (!c.e.order) wrong(w.decoy, c.el);
-    else wrong(w.early, c.el);
+    } else if (!c.e.order) wrong(w.decoy + ' ' + why(c.e, 'decoy'), c.el);
+    else wrong(w.early + ' ' + why(c.e, 'early'), c.el);
+  }
+  // Why a card doesn't fit, worked out from the card itself (its source label and place in the order): no new facts.
+  function why(e, kind) {
+    var src = e.src || 'evidence';
+    if (kind === 'decoy') return 'This ' + src + ' card is a red herring: send it to Not related.';
+    if (kind === 'early') {
+      var k = e.order - A.next;
+      return 'This ' + src + ' card is ' + k + ' step' + (k > 1 ? 's' : '') + ' ahead: find what happened right after the last card you placed.';
+    }
+    // a real card sent to Not related
+    return fitsNext(e) ? 'This ' + src + ' card is the next step on the timeline.' : 'This ' + src + ' card belongs later on the timeline.';
   }
   function dismiss() {
     if (A.phase !== 'order' || needSel()) return;
@@ -609,7 +620,7 @@
       c.done = true; A.sel = null;
       addXP(s.dismiss); BE.sound('blip'); toast('+' + s.dismiss + ' XP \u00b7 red herring dismissed', true);
       afterMove();
-    } else wrong(C.d.act1.wrongLines.dismissReal, c.el);
+    } else wrong(C.d.act1.wrongLines.dismissReal + ' ' + why(c.e, 'real'), c.el);
   }
   function askHint() {
     var k = String(A.next), hint = C.d.act1.hints[k];
