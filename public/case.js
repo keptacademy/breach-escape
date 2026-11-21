@@ -34,6 +34,8 @@
   };
   function pad(n, w) { var s = String(Math.max(0, n)); while (s.length < (w || 4)) s = '0' + s; return s; }
   function cap(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
+  // Display only: internal labels such as damage 'SEVERE' are shown in sentence case ('Severe'); status pills stay upper case.
+  function sentence(t) { return cap(String(t || '').toLowerCase()); }
   function restart(el, cls) { if (!el || BE.reduceMotion()) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
   // Text from level JSON: `backticks` mark code (shown in <code>), the rest gets tappable glossary terms.
   // terms=false for text inside buttons (cards, timeline slots), where nested controls are not allowed.
@@ -237,7 +239,7 @@
       app.appendChild(panel('danger', [
         eyebrow('Error'),
         h('p', { text: 'Could not open the case file. Check your connection and try again.' }),
-        h('button', { class: 'c-btn', text: '> RETRY', onclick: function () { start(L); } }),
+        h('button', { class: 'c-btn', text: '> Retry', onclick: function () { start(L); } }),
         h('button', { class: 'c-ghost c-wide', text: '\u2039 back to the Breach Map', onclick: BE.renderMap })
       ]));
     });
@@ -263,7 +265,7 @@
     pages[page].blocks.forEach(function (b) { body.appendChild(block(b)); });
     app.appendChild(body);
     var last = page === pages.length - 1;
-    var next = h('button', { class: 'c-btn c-briefnext', text: last ? '> OPEN THE EVIDENCE' : 'NEXT \u203a', onclick: function () { if (last) finishBrief(); else renderBrief(page + 1); } });
+    var next = h('button', { class: 'c-btn c-briefnext', text: last ? '> Open the evidence' : 'Next \u203a', onclick: function () { if (last) finishBrief(); else renderBrief(page + 1); } });
     // Last page: the button follows the mission in the page, so it never sits on top of the mission text.
     if (last) body.appendChild(next);
     app.appendChild(defBox);
@@ -643,7 +645,7 @@
     var tl = h('ol', { class: 'c-reveal' });
     d.timeline.filter(shown).forEach(function (t) {
       var li = h('li', {}, [
-        h('div', { class: 'c-hud' }, [h('b', { text: 'STAGE ' + t.stage + (t.date ? ' \u00b7 ' + t.date.toUpperCase() : '') }),
+        h('div', { class: 'c-hud' }, [h('b', { text: 'Stage ' + t.stage + (t.date ? ' \u00b7 ' + t.date : '') }),
           h('span', { class: 'c-chips' }, (t.mitre || []).map(function (m) { return h('span', { class: 'c-chip', text: m }); }))]),
         withFn(para(t.text), t.source),
         h('p', { class: 'c-why' }, [h('span', { class: 't-g', text: 'why it worked: ' }), rich(t.why)])
@@ -746,7 +748,7 @@
       if (B.running || !B.on.length) return;
       B.on = []; say('k', fmt('[-] build cleared')); drawAct2();
     } });
-    F.run = h('button', { class: 'c-btn red c-run', text: '> EXECUTE ATTACK_SIM', onclick: runAttack });
+    F.run = h('button', { class: 'c-btn red c-run', text: '> Execute attack_sim', onclick: runAttack });
     app.appendChild(pinBar(h('div', { class: 'c-bar c-a2bar', role: 'toolbar', 'aria-label': 'Build actions' }, [h('div', { class: 'c-bar-in' }, [F.status, F.clear, F.run])])));
 
     F.log.appendChild(h('div', {}, [a2.logs.idle, h('span', { class: 'c-blink', text: '_' })]));
@@ -758,7 +760,7 @@
   function scaleHelp() {
     var st = C.d.stars || {};
     var dl = h('dl', { class: 'c-kv c-scale' });
-    DAMAGE_SCALE.forEach(function (d) { dl.appendChild(h('dt', { text: d[0] })); dl.appendChild(h('dd', { text: d[1] })); });
+    DAMAGE_SCALE.forEach(function (d) { dl.appendChild(h('dt', { text: sentence(d[0]) })); dl.appendChild(h('dd', { text: d[1] })); });
     return h('div', { class: 'c-stack' }, [
       h('p', { class: 'c-small', text: 'Stars:' }),
       h('ul', { class: 'c-starrules' }, [['\u2605', st.one], ['\u2605\u2605', st.two], ['\u2605\u2605\u2605', st.three]].map(function (x) {
@@ -822,8 +824,8 @@
   // Card label: the zone the control protects. A scoped control (scope in the JSON) names its real scope instead,
   // e.g. "PRODUCTION TENANT · SCOPED", so the trap reads as a policy boundary, not a typo. Placement rules are unchanged.
   function zoneLabel(c, z) {
-    if (c.scope) return c.scope.toUpperCase() + ' \u00b7 SCOPED';
-    return (z.short || z.name) + (c.effect === 'reveal' ? ' \u00b7 DISCOVERY' : '');
+    if (c.scope) return cap(c.scope) + ' \u00b7 scoped';
+    return (z.short || z.name) + (c.effect === 'reveal' ? ' \u00b7 discovery' : '');
   }
   function drawBudget() {
     var l = left();
@@ -886,7 +888,7 @@
     F.threat.style.width = p + '%';
     var lvl = p > 66 ? 'crit' : p > 33 ? 'elev' : p ? 'low' : '';
     F.threat.className = 'c-meterfill' + (lvl ? ' ' + lvl : '');
-    F.threatTxt.textContent = { crit: 'CRITICAL', elev: 'ELEVATED', low: 'LOW' }[lvl] || 'idle';
+    F.threatTxt.textContent = { crit: 'Critical', elev: 'Elevated', low: 'Low' }[lvl] || 'idle';
     F.meter.setAttribute('aria-valuenow', String(p));
   }
 
@@ -1078,10 +1080,10 @@
     ]));
     var dmgTone = r.damage === 'NONE' ? '' : r.damage === 'CONTAINED' ? 'b' : 'red';
     app.appendChild(h('div', { class: 'c-stats c-resstats' }, [
-      h('div', { class: 'c-stat c-span2' }, [h('span', { class: 'c-small', text: 'damage' }), tone(h('span', { class: 'c-v', text: r.damage }), dmgTone),
+      h('div', { class: 'c-stat c-span2' }, [h('span', { class: 'c-small', text: 'damage' }), tone(h('span', { class: 'c-v', text: sentence(r.damage) }), dmgTone),
         h('span', { class: 'c-small c-reach', text: r.reach })]),
       stat('budget used', pad(r.spent, 2) + '/' + d.budget),
-      stat('user friction', r.frictionLabel, r.frictionLabel === 'LOW' ? '' : 'y'),
+      stat('user friction', sentence(r.frictionLabel), r.frictionLabel === 'LOW' ? '' : 'y'),
       stat('decoys bought', pad(r.decoys, 2), r.decoys ? 'y' : '')
     ]));
 
@@ -1090,7 +1092,7 @@
     [['prevent', 'stops the attack'], ['detect', 'notices the attack if prevention fails'], ['recover', 'a way back after an attack']].forEach(function (ly) {
       var list = r.layers[ly[0]], has = list.length > 0;
       layers.appendChild(h('li', { class: has ? 'on' : '' }, [
-        h('div', { class: 'c-hud' }, [h('b', { text: ly[0].toUpperCase() }), h('span', { class: 'c-pill ' + (has ? 'g' : 'm'), text: has ? '✓ IN BUILD' : '— MISSING' })]),
+        h('div', { class: 'c-hud' }, [h('b', { text: cap(ly[0]) }), h('span', { class: 'c-pill ' + (has ? 'g' : 'm'), text: has ? '✓ IN BUILD' : '— MISSING' })]),
         h('p', { class: 'c-why' }, has ? [list.map(function (c) { return plain(c.name) + ' (stage ' + c.stage + ')'; }).join(' · ')] : [ly[1]])
       ]));
     });
@@ -1143,7 +1145,7 @@
     if (!B.on.length) build.appendChild(h('li', {}, [h('p', { class: 'c-why', text: 'No controls deployed.' })]));
     app.appendChild(panel('', [eyebrow('Your build · ' + B.on.length + ' controls'), build]));
 
-    app.appendChild(h('button', { class: 'c-btn', text: '> TRY ANOTHER BUILD', onclick: startAct2 }));
+    app.appendChild(h('button', { class: 'c-btn', text: '> Try another build', onclick: startAct2 }));
     app.appendChild(h('button', { class: 'c-ghost c-wide', text: './restart --case ' + d.caseNo, onclick: restartCase }));
     app.appendChild(sourcesPanel());
   }

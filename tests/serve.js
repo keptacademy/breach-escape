@@ -5,7 +5,7 @@
 const http = require('http'), fs = require('fs'), path = require('path');
 const root = fs.realpathSync(path.resolve(process.argv[2] || 'public')), port = +(process.argv[3] || 8765);
 const cfg = JSON.parse(fs.readFileSync(path.join(root, 'staticwebapp.config.json'), 'utf8'));
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.txt': 'text/plain' };
 // Second layer, as on Azure: the config's 404 routes.
 const blocked = cfg.routes.filter((r) => r.statusCode === 404).map((r) => new RegExp('^' + r.route.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$'));
 

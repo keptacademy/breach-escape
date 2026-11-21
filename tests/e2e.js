@@ -203,8 +203,8 @@ async function run(view, c, browser) {
   const head = await page.evaluate(() => ({ h: document.querySelector('.c-maphead').getBoundingClientRect().height, t: document.querySelector('.c-mapscreen .c-brand').getBoundingClientRect().height,
     fs: parseFloat(getComputedStyle(document.querySelector('.c-mapscreen .c-brand')).fontSize), sw: document.querySelector('.c-maphead').scrollWidth, cw: document.querySelector('.c-maphead').clientWidth }));
   if (head.h > 44 || head.t > head.fs * 1.6 || head.sw > head.cw) bad(tag + ' map header wraps: ' + JSON.stringify(head));
-  if ((await page.textContent('.c-herolabel')) !== 'NEXT CASE' || (await page.textContent('.c-herotitle')) !== 'The Forgotten Test Account') bad(tag + ' hero on first visit');
-  if ((await page.textContent('.c-herobtn')) !== '> OPEN CASE FILE') bad(tag + ' hero button');
+  if ((await page.textContent('.c-herolabel')) !== 'Next case' || (await page.textContent('.c-herotitle')) !== 'The Forgotten Test Account') bad(tag + ' hero on first visit');
+  if ((await page.textContent('.c-herobtn')) !== '> Open case file') bad(tag + ' hero button');
   if ((await page.textContent('.c-caseshead .c-count')) !== '3 of 7 playable') bad(tag + ' playable count');
   if ((await page.locator('div.c-case.soon').count()) !== 4 || (await page.locator('button.c-case').count()) !== 3) bad(tag + ' playable/soon rows');
   if (await page.locator('.c-intro').count()) bad(tag + ' intro paragraph still on the map');
@@ -343,7 +343,7 @@ async function run(view, c, browser) {
   if ((await ctlBtn(c.locked).getAttribute('class')).includes(' on')) bad(tag + ' locked control deployed before discovery');
   for (const run of c.runs) {
     const kind = run.kind, ids = run.ids;
-    if (!(await page.locator('.c-ctl').count())) { await page.click('text=> TRY ANOTHER BUILD'); await page.waitForSelector('.c-ctl'); }
+    if (!(await page.locator('.c-ctl').count())) { await page.click('text=> Try another build'); await page.waitForSelector('.c-ctl'); }
     if (await page.locator('.c-clear:not([disabled])').count()) await page.click('.c-clear');
     for (const id of ids) {
       if (desktop && id === ids[0] && (kind === 'contained' || run.drag)) {
@@ -379,7 +379,7 @@ async function run(view, c, browser) {
     const stars = await page.locator('.c-rescard .c-stars svg.on').count();
     if (stars !== run.stars) bad(tag + ' ' + ids + ': ' + stars + ' stars, want ' + run.stars);
     const dmg = await page.textContent('.c-stat.c-span2 .c-v');
-    if (dmg !== run.damage) bad(tag + ' ' + ids + ': damage ' + dmg + ', want ' + run.damage);
+    if (dmg.toUpperCase() !== run.damage) bad(tag + ' ' + ids + ': damage ' + dmg + ', want ' + run.damage);
     const page2 = await page.textContent('#app');
     if (/TODO/.test(page2)) bad(tag + ' placeholder or todo text visible on results');
     if (kind === 'succeeded' && !page2.includes('Entered via an asset not in your inventory')) bad(tag + ' no hidden-asset line');
@@ -417,7 +417,7 @@ async function run(view, c, browser) {
   await page.click('.c-exit'); await page.waitForSelector('.c-case');
   if (await page.evaluate(() => document.documentElement.getAttribute('data-case'))) bad(tag + ' map keeps the case colour after a case');
   const other = c.id === 'midnight-blizzard' ? 'The Legacy VPN' : 'The Forgotten Test Account';
-  if ((await page.textContent('.c-herolabel')) !== 'NEXT CASE' || (await page.textContent('.c-herotitle')) !== other) bad(tag + ' returning hero is not the next unfinished case');
+  if ((await page.textContent('.c-herolabel')) !== 'Next case' || (await page.textContent('.c-herotitle')) !== other) bad(tag + ' returning hero is not the next unfinished case');
   if (!(await page.textContent('.c-cases')).includes('\u2605')) bad(tag + ' stars not shown in the list after a case');
   if (c.level === 1) await shot('9map-returning');
   await page.click('.c-voicebtn');
@@ -503,6 +503,16 @@ async function run(view, c, browser) {
       await pg.click('text=> about'); await pg.click('.c-resetbtn'); await pg.click('.c-confirm .c-yes'); await pg.waitForSelector('.c-case');
       if (await pg.evaluate(() => localStorage.getItem('breach-escape-theme'))) bad('reset kept the theme choice');
       if ((await pg.evaluate(() => document.documentElement.getAttribute('data-theme'))) !== scheme) bad('reset did not return to the device theme');
+      if (scheme === 'dark') {
+        // Self-hosted IBM Plex: Sans for UI text, Mono for data; the files come from this site and the licence ships with them.
+        const f = await pg.evaluate(async () => { await document.fonts.ready; await new Promise((r) => setTimeout(r, 300));
+          return { loaded: [...document.fonts].filter((x) => x.status === 'loaded').map((x) => x.family.replace(/"/g, '') + ' ' + x.weight),
+            body: getComputedStyle(document.body).fontFamily, pill: getComputedStyle(document.querySelector('.c-cnum')).fontFamily }; });
+        if (!f.loaded.some((x) => /IBM Plex Sans 400/.test(x)) || !f.loaded.some((x) => /IBM Plex Mono/.test(x))) bad('Plex fonts not loaded: ' + f.loaded);
+        if (!/^"?IBM Plex Sans/.test(f.body) || !/^"?IBM Plex Mono/.test(f.pill)) bad('font families ' + f.body + ' / ' + f.pill);
+        const lic = await new Promise((res) => require('http').get(BASE + 'fonts/OFL.txt', (r) => { let d = ''; r.on('data', (c) => d += c); r.on('end', () => res(d)); }));
+        if (!/SIL Open Font License/.test(lic)) bad('fonts/OFL.txt missing');
+      }
       errs.forEach((e) => bad('theme test: ' + e));
       await ctx.close();
     }
@@ -577,7 +587,7 @@ async function run(view, c, browser) {
     await ctx.addInitScript(() => { sessionStorage.setItem('breach-escape-splash', '1');
       localStorage.setItem('breach-escape-progress-v1', JSON.stringify({ cases: { 'midnight-blizzard': { act2: { bestStars: 3 } }, 'colonial-pipeline': { act2: { bestStars: 1 } }, 'uber-2022': { act2: { bestStars: 2 } } } })); });
     const pg = await ctx.newPage(); await pg.goto(BASE); await pg.waitForSelector('.c-hero');
-    if ((await pg.textContent('.c-herolabel')) !== 'REPLAY A CASE' || (await pg.textContent('.c-herotitle')) !== 'The Legacy VPN' || (await pg.textContent('.c-herobtn')) !== '> REOPEN CASE') bad('all-finished hero');
+    if ((await pg.textContent('.c-herolabel')) !== 'Replay a case' || (await pg.textContent('.c-herotitle')) !== 'The Legacy VPN' || (await pg.textContent('.c-herobtn')) !== '> Reopen case') bad('all-finished hero');
     await ctx.close();
     console.log('ok replay hero');
   }

@@ -191,33 +191,33 @@
             "eyebrow": "Incident timeline",
             "items": [
               {
-                "d": "DATE NOT PUBLIC HERE",
+                "d": "Date not public here",
                 "t": "Attacker signs in through the legacy VPN profile.",
                 "tone": "red"
               },
               {
-                "d": "7 MAY · BEFORE 5:00 AM",
+                "d": "7 May · before 5:00 AM",
                 "t": "Employee finds the ransom note on an IT system.",
                 "tone": "red"
               },
               {
-                "d": "7 MAY · 5:55–6:10 AM",
+                "d": "7 May · 5:55–6:10 AM",
                 "t": "Operators shut down all 5,500 miles of pipeline."
               },
               {
-                "d": "7 MAY · MORNING",
+                "d": "7 May · morning",
                 "t": "Colonial contacts the FBI, then debriefs the FBI and CISA."
               },
               {
-                "d": "8 MAY",
+                "d": "8 May",
                 "t": "Colonial pays the ransom."
               },
               {
-                "d": "12 MAY · EVENING",
+                "d": "12 May · evening",
                 "t": "Pipelines begin returning to service."
               },
               {
-                "d": "JUNE 2021",
+                "d": "June 2021",
                 "t": "DOJ announces it seized 63.7 bitcoins (over $2.3M) of the ~75-bitcoin ransom paid on May 8.",
                 "source": "doj",
                 "quote": "seized 63.7 bitcoins currently valued at over $2.3 million"
@@ -241,7 +241,7 @@
                 "arrow": "▼ sign-in through a legacy VPN profile"
               },
               {
-                "zone": "IT NETWORK",
+                "zone": "IT network",
                 "boxes": [
                   "Legacy VPN profile · single-factor",
                   "Corporate IT systems"
@@ -251,7 +251,7 @@
                 "teaser": "? What happened next is in the evidence"
               },
               {
-                "zone": "BUSINESS SYSTEMS",
+                "zone": "Business systems",
                 "boxes": [
                   "Share drive",
                   "IT servers"
@@ -261,7 +261,7 @@
                 "arrow": "▼ could it spread?"
               },
               {
-                "zone": "PIPELINE OPERATIONS (OT)",
+                "zone": "Pipeline operations (OT)",
                 "tone": "g",
                 "boxes": [
                   "Control Center",
@@ -507,22 +507,22 @@
     "zones": [
       {
         "id": "out",
-        "name": "OUTSIDE",
-        "short": "OUTSIDE"
+        "name": "Outside",
+        "short": "Outside"
       },
       {
         "id": "it",
-        "name": "IT NETWORK · LEGACY VPN ACCOUNT",
-        "short": "IT NETWORK"
+        "name": "IT network · legacy VPN account",
+        "short": "IT network"
       },
       {
         "id": "biz",
-        "name": "BUSINESS SYSTEMS",
-        "short": "BUSINESS"
+        "name": "Business systems",
+        "short": "Business"
       },
       {
         "id": "ot",
-        "name": "PIPELINE OPERATIONS (OT)",
+        "name": "Pipeline operations (OT)",
         "tone": "g",
         "short": "OT"
       }
@@ -760,7 +760,7 @@
     "title": "Harden the network",
     "short": "Before the break-in. Deploy controls on a budget, then run the real attack against your build.",
     "help": "Tap a control to deploy or remove it, or drag it onto a stage in the zone it protects. Each control costs energy and the budget is 8, so you can't buy everything. Not every asset is in your inventory yet: discovery controls find what's missing. Then execute the attack: it replays stage by stage against your build, and the log explains every result.",
-    "rewindButton": "> REWIND TO BEFORE THE BREAK-IN",
+    "rewindButton": "> Rewind to before the break-in",
     "simName": "darkside",
     "stepMs": 700,
     "xpPerStar": 150,

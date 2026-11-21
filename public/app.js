@@ -203,7 +203,7 @@
       var open = helpBox.hidden; helpBox.hidden = !open; helpBtn.setAttribute('aria-expanded', String(open));
     } });
     app.appendChild(h('header', { class: 'c-maphead' }, [
-      h('span', { class: 'c-keptlabel', text: 'KEPT ACADEMY' }),
+      h('span', { class: 'c-keptlabel', text: 'KEPT Academy' }),
       h('span', { class: 'c-headright' }, [helpBtn, themeToggle(true), h('span', { class: 'c-xp', 'aria-label': totalStars + ' stars earned', text: totalStars + ' \u2605' })])
     ]));
     app.appendChild(h('h1', { class: 'c-brand', text: 'Breach Escape' }));
@@ -225,12 +225,12 @@
         }).catch(function () { /* offline or missing: the row stays hidden */ });
       }
       grid.appendChild(h('section', { class: 'c-hero', 'aria-labelledby': 'c-herotitle' }, [
-        h('div', { class: 'c-eyebrow c-herolabel', text: allDone ? 'REPLAY A CASE' : 'NEXT CASE' }),
+        h('div', { class: 'c-eyebrow c-herolabel', text: allDone ? 'Replay a case' : 'Next case' }),
         h('h2', { class: 'c-herotitle', id: 'c-herotitle', text: next.name }),
         h('p', { class: 'c-small c-herosub', text: next.victim + ' \u00b7 ' + next.year }),
         h('p', { class: 'c-heroteaser', text: next.teaser }),
         actorRow,
-        h('button', { class: 'c-btn c-herobtn', text: allDone ? '> REOPEN CASE' : '> OPEN CASE FILE', onclick: function () { openLevel(next); } })
+        h('button', { class: 'c-btn c-herobtn', text: allDone ? '> Reopen case' : '> Open case file', onclick: function () { openLevel(next); } })
       ]));
     }
 
@@ -251,7 +251,7 @@
       }
     });
     grid.appendChild(h('section', { class: 'c-allcases', 'aria-labelledby': 'c-casesh' }, [
-      h('div', { class: 'c-caseshead' }, [h('h2', { class: 'c-casesh', id: 'c-casesh', text: 'ALL CASES' }),
+      h('div', { class: 'c-caseshead' }, [h('h2', { class: 'c-casesh', id: 'c-casesh', text: 'All cases' }),
         h('span', { class: 'c-small c-count', text: ready.length + ' of ' + LEVELS.length + ' playable' })]),
       list
     ]));
@@ -280,7 +280,7 @@
     if (window.BreachCase) window.BreachCase.backdrop('brand');
     app.appendChild(h('div', { class: 'c-hud' }, [
       h('button', { class: 'c-ghost c-exit', onclick: renderMap }, ['\u2039 back to map']),
-      h('span', { class: 'c-act', text: 'ABOUT' }), themeToggle(true)
+      h('span', { class: 'c-act', text: 'About' }), themeToggle(true)
     ]));
     var site = window.SITE || {};
     var panel = function (cls, title, kids) { return h('div', { class: 'c-panel' + (cls ? ' ' + cls : '') }, [h('div', { class: 'c-eyebrow', text: title })].concat(kids)); };

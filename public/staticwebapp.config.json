@@ -51,7 +51,8 @@
     }
   ],
   "mimeTypes": {
-    ".webmanifest": "application/manifest+json"
+    ".webmanifest": "application/manifest+json",
+    ".woff2": "font/woff2"
   },
   "responseOverrides": {
     "404": {
