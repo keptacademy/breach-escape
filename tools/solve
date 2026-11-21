@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+"""Balance solver for Breach Escape cases (standard library only).
+
+Tries every Act 2 build that fits the budget (each control placed on its own stage, decoys left out since they never
+help) and reports, per case: the best stars reachable, the cheapest build for each star level, every cheapest 3-star
+build, and warnings.
+
+Mirrors simulate() and score() in public/case.js. If those rules change, change this file too.
+
+Usage (from the repo root):
+  tools/solve                       all cases in public/levels/
+  tools/solve public/levels/x.json  one case
+  tools/solve --all                 also list every 3-star build, not just the cheapest
+Exit 1 if a ready case has no 3-star build within its budget.
+"""
+import itertools
+import json
+import pathlib
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+SEV = ["none", "contained", "severe", "critical"]
+
+
+def simulate(d, build):
+    stages = d["map"]["stages"]
+    hid = d["map"].get("hidden")
+    rev = any(c["effect"] == "reveal" for c in build)
+    blocked, reached = 0, []
+    for s in stages:
+        here = [c for c in build if c["stage"] == s["n"]]
+        blocks = [c for c in here if c["effect"] == "block"]
+        if hid and s["n"] == hid["stage"]:
+            blocks = [c for c in blocks if c.get("needs") == "reveal" or (rev and c.get("coversHidden"))]
+        if blocks:
+            blocked = s["n"]
+            break
+        reached.append(s)
+    return blocked, reached
+
+
+def score(d, build):
+    a2 = d["act2"]
+    blocked, ran = simulate(d, build)
+    det = any(c["effect"] == "detect" for c in build)
+    rec = any(c["effect"] == "recover" for c in build)
+    entry = bool(blocked) and blocked <= a2["preventedMaxStage"]
+    stars = 0 if not blocked else 1 if not entry else 3 if det and rec else 2
+    if entry:
+        damage = "NONE"
+    else:
+        sev = 1
+        for s in ran:
+            sev = max(sev, max(0, SEV.index(s.get("severity", "contained"))))
+        damage = SEV[sev].upper()
+    return stars, blocked, damage
+
+
+def solve(path, list_all):
+    d = json.loads(pathlib.Path(path).read_text())
+    budget = d["budget"]
+    real = [c for c in d["controls"] if c["effect"] != "decoy"]
+    best = {}       # stars -> (cost, [builds])
+    three = []
+    for r in range(0, len(real) + 1):
+        for combo in itertools.combinations(real, r):
+            cost = sum(c["cost"] for c in combo)
+            if cost > budget:
+                continue
+            if any(c.get("needs") == "reveal" for c in combo) and not any(c["effect"] == "reveal" for c in combo):
+                continue
+            stars, blocked, damage = score(d, combo)
+            ids = tuple(sorted(c["id"] for c in combo))
+            cur = best.get(stars)
+            if cur is None or cost < cur[0]:
+                best[stars] = (cost, [(ids, blocked, damage)])
+            elif cost == cur[0]:
+                cur[1].append((ids, blocked, damage))
+            if stars == 3:
+                three.append((cost, ids))
+    name = pathlib.Path(path).stem
+    print(f"== {name}  (budget {budget}, {len(real)} real controls, {len(d['controls']) - len(real)} decoys)")
+    top = max(best) if best else 0
+    print(f"   best reachable: {'★' * top or '0 stars'}")
+    for s in sorted(best):
+        if s == 0:
+            continue
+        cost, builds = best[s]
+        print(f"   cheapest {'★' * s}: {cost}/{budget}  ({len(builds)} build{'s' if len(builds) > 1 else ''})")
+        for ids, blocked, damage in builds[:6]:
+            print(f"      {' + '.join(ids)}  -> stopped at stage {blocked}, damage {damage}")
+    warns = []
+    if top < 3:
+        warns.append("no ★★★ build fits the budget")
+    if 3 in best and best[3][0] < budget - 2:
+        warns.append(f"★★★ costs only {best[3][0]}/{budget}: budget may be too generous")
+    if 2 in best and best[2][0] <= 2:
+        warns.append("★★ needs only " + str(best[2][0]) + " energy")
+    print(f"   ★★★ builds within budget: {len(three)}")
+    if list_all:
+        for cost, ids in sorted(three):
+            print(f"      {cost}: {' + '.join(ids)}")
+    for w in warns:
+        print("   WARNING: " + w)
+    return top
+
+
+def main(argv):
+    list_all = "--all" in argv
+    files = [a for a in argv if not a.startswith("--")] or sorted(str(p) for p in (ROOT / "public" / "levels").glob("*.json"))
+    fail = False
+    for f in files:
+        if solve(f, list_all) < 3:
+            fail = True
+    return 1 if fail else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
