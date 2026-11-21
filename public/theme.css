@@ -282,7 +282,7 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-mzone{padding:8px;gap:4px;background:rgba(1,6,3,.85)}
 .c-node{border:1px solid var(--c-g4);background:var(--c-panel2);padding:6px 9px;font-size:max(0.75rem,var(--fs-b));display:flex;flex-direction:column;gap:4px;transition:background .25s,border-color .25s}
 .c-ntop{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap}
-.c-nname{flex:1;min-width:0}
+.c-nname{flex:1 1 12em;min-width:0}
 .c-nn{color:var(--c-g)}
 .c-mt{font-size:max(0.625rem,var(--fs-l));color:var(--c-mute);border:1px solid var(--c-g4);padding:0 4px}
 .c-nchips .c-chip{border-color:var(--c-g3);color:var(--c-txt)}

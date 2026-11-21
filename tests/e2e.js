@@ -337,8 +337,10 @@ async function run(view, c, browser) {
     await page.click('.c-run');
     if (firstRun) {
       if (!(await page.textContent('.c-log')).includes('SOC LEAD > ' + data.voice.run)) bad(tag + ' no run voice in log');
-      await page.waitForSelector('.c-node[data-n="1"] .c-pill');
-      const p1 = await page.textContent('.c-node[data-n="1"] .c-pill');
+      // the stage first shows the UNDER ATTACK marker, then its result pill
+      if (!(await page.locator('.c-node.active .c-attacking').count())) bad(tag + ' no UNDER ATTACK marker during the replay');
+      await page.waitForSelector('.c-node[data-n="1"] .c-pill:not(.c-attacking)');
+      const p1 = await page.textContent('.c-node[data-n="1"] .c-pill:not(.c-attacking)');
       if (!p1.includes('ATTEMPTED')) bad(tag + ' stage 1 pill is ' + p1);
       await page.waitForTimeout(1200); await checkFit('act2-run'); await shot('4replay');
     }
