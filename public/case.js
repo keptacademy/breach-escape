@@ -721,6 +721,11 @@
     return (t && t.mitre) || stageOf(n).mitre || [];
   }
   function deployed() { return C.d.controls.filter(function (c) { return B.on.indexOf(c.id) >= 0; }); }
+  // Placement: a control sits on the stage the player put it on (B.at), and only works on its own stage (c.stage).
+  // Discovery controls aren't placed (they act on the inventory). A control on the wrong stage does nothing.
+  function at(c) { return (B.at && B.at[c.id]) || c.stage; }
+  function placedOk(c) { return c.effect === 'reveal' || at(c) === c.stage; }
+  function zoneStages(c) { var z = ctlZone(c).id; return C.d.map.stages.filter(function (s) { return s.zone === z; }); }
   function spent() { return deployed().reduce(function (a, c) { return a + c.cost; }, 0); }
   function left() { return C.d.budget - spent(); }
   function hidden() { return C.d.map.hidden || null; }
@@ -729,7 +734,9 @@
   function layerOf(c) { return { block: 'prevent', detect: 'detect', recover: 'recover', reveal: 'discovery', decoy: 'decoy' }[c.effect] || c.effect; }
 
   function startAct2() {
-    if (!B) B = { on: [] };
+    if (!B) B = { on: [], at: {} };
+    if (!B.at) B.at = {};
+    B.pick = null;
     if (C.xpAct1 == null) C.xpAct1 = C.xp;
     C.xp = C.xpAct1;            // each run scores on its own; Act 1 XP is kept
     B.running = false;
@@ -776,7 +783,7 @@
     F.status = h('div', { class: 'c-status' }, [h('div', { class: 'c-budgetrow' }, [F.budget, F.left]), F.msg]);
     F.clear = h('button', { class: 'c-ghost c-clear', text: 'reset build', onclick: function () {
       if (B.running || !B.on.length) return;
-      B.on = []; say('k', fmt('[-] build cleared')); drawAct2();
+      B.on = []; B.at = {}; B.pick = null; say('k', fmt('[-] build cleared')); drawAct2();
     } });
     F.run = h('button', { class: 'c-btn red c-run', text: '> EXECUTE ATTACK_SIM', onclick: runAttack });
     F.skip = h('button', { class: 'c-ghost c-skip', hidden: true, text: 'skip replay \u203a', onclick: skipRun });
@@ -811,13 +818,21 @@
       var wrap = tone(h('div', { class: 'c-zone c-mzone' }, [h('span', { class: 'c-zt', text: z.name })]), z.tone);
       var list = C.d.map.stages.filter(function (s) { return s.zone === z.id; });
       list.forEach(function (s, i) {
-        var chips = deployed().filter(function (c) { return c.stage === s.n && c.effect !== 'reveal'; }).map(function (c) { return rich(c.name, h('span', { class: 'c-chip', 'data-id': c.id }), false); });
+        var chips = deployed().filter(function (c) { return at(c) === s.n && c.effect !== 'reveal'; }).map(function (c) { return rich(c.name, h('span', { class: 'c-chip', 'data-id': c.id }), false); });
         var codes = h('span', { class: 'c-chips' }, stageCodes(s.n).map(function (m) { return h('span', { class: 'c-mt', text: m }); }));
         var node = h('div', { class: 'c-node', 'data-drop': 'stage', 'data-n': String(s.n), 'data-zone': z.id }, [
           h('div', { class: 'c-ntop' }, [h('span', { class: 'c-nname' }, [h('b', { class: 'c-nn', text: s.n + ' · ' }), rich(s.name, null, false)]), codes]),
           chips.length ? h('div', { class: 'c-chips c-nchips' }, chips) : null
         ]);
         F.nodes[s.n] = node;
+        if (B.pick && z.id === ctlZone(B.pick).id) {
+          node.classList.add('c-pickable');
+          node.setAttribute('role', 'button'); node.setAttribute('tabindex', '0');
+          node.setAttribute('aria-label', 'Place ' + plain(B.pick.name) + ' on stage ' + s.n + ': ' + plain(s.name));
+          var go = function () { var c = B.pick; B.pick = null; tryDeploy(c, s.n); };
+          node.addEventListener('click', go);
+          node.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+        }
         wrap.appendChild(node);
         // A discovered asset appears under its stage.
         if (hid && rev && s.n === hid.stage) wrap.appendChild(h('div', { class: 'c-asset' }, [h('span', { class: 'c-pill o', text: 'FOUND' }), rich(hid.name, h('span', {}), false)]));
@@ -832,8 +847,8 @@
     F.deck.textContent = '';
     C.d.controls.forEach(function (c) {
       var on = B.on.indexOf(c.id) >= 0, z = ctlZone(c), lock = locked(c);
-      var b = h('button', { class: 'c-ctl' + (on ? ' on' : '') + (lock ? ' locked' : ''), 'aria-pressed': String(on),
-        'aria-label': plain(c.name) + '. ' + (c.scope ? 'Scoped to ' + c.scope + ' only; goes on stage ' + c.stage + '.' : 'Protects the ' + (z.short || z.name).toLowerCase() + '.') +
+      var b = h('button', { class: 'c-ctl' + (on ? ' on' : '') + (lock ? ' locked' : '') + (B.pick === c ? ' picking' : ''), 'aria-pressed': String(on),
+        'aria-label': plain(c.name) + '. ' + (c.scope ? 'Scoped to ' + c.scope + ' only.' : 'Protects the ' + (z.short || z.name).toLowerCase() + '.') +
           ' Costs ' + c.cost + '.' + (lock ? ' Needs discovery first.' : '') }, [
         // Desktop: zone label and cost share the top row (the cost row below is hidden) so the whole deck fits on one screen.
         h('span', { class: 'c-ztop' }, [h('span', { class: 'c-z', text: zoneLabel(c, z) }),
@@ -880,24 +895,42 @@
   }
   function toggle(c) {
     if (B.running) return;
-    var logs = C.d.act2.logs, i = B.on.indexOf(c.id), hid = hidden();
+    var logs = C.d.act2.logs, i = B.on.indexOf(c.id);
+    if (B.pick === c) { B.pick = null; say('k', '[-] placement cancelled'); drawAct2(); return; }
+    B.pick = null;
     if (i >= 0) {
-      B.on.splice(i, 1); say('k', fmt(logs.removed, { name: c.name }));
+      B.on.splice(i, 1); delete B.at[c.id]; say('k', fmt(logs.removed, { name: c.name }));
       // Losing the last discovery control also drops the controls that depend on it.
       if (c.effect === 'reveal' && !revealed()) {
         deployed().filter(function (d) { return d.needs === 'reveal'; }).forEach(function (d) {
-          B.on.splice(B.on.indexOf(d.id), 1); logLine('k', fmt(logs.removed, { name: d.name }), logs.removedDeps);
+          B.on.splice(B.on.indexOf(d.id), 1); delete B.at[d.id]; logLine('k', fmt(logs.removed, { name: d.name }), logs.removedDeps);
         });
       }
+      drawAct2(); return;
     }
-    else if (locked(c)) { say('red', fmt(logs.locked, { name: c.name })); restart(F.status, 'c-shake'); return; }
-    else if (c.cost > left()) { overBudget(c); return; }
-    else {
-      var wasRevealed = revealed();
-      B.on.push(c.id); BE.sound('blip');
-      say('k', fmt(c.effect === 'reveal' ? logs.deployedReveal : logs.deployed, { name: c.name, n: c.stage }));
-      if (c.effect === 'reveal' && !wasRevealed && hid) logLine('k', fmt(logs.revealed, { asset: hid.name }), c.why);
+    if (locked(c)) { say('red', fmt(logs.locked, { name: c.name })); restart(F.status, 'c-shake'); return; }
+    if (c.cost > left()) { overBudget(c); return; }
+    var zs = zoneStages(c);
+    if (c.effect === 'reveal' || zs.length === 1) { tryDeploy(c, zs[0].n); return; }
+    // Several stages in this zone: the player picks one on the map.
+    B.pick = c;
+    say('k', fmt(logs.pick || '[?] pick a stage for {name}: tap a stage in the {zone}.', { name: c.name, zone: (ctlZone(c).short || ctlZone(c).name).toLowerCase() }));
+    drawAct2();
+    var first = F.nodes[zs[0].n]; if (first) { follow(first); first.focus({ preventScroll: true }); }
+  }
+  // Deploy on stage n (or move an already deployed control there).
+  function tryDeploy(c, n) {
+    var logs = C.d.act2.logs, hid = hidden();
+    if (B.on.indexOf(c.id) >= 0) {
+      if (c.effect !== 'reveal' && at(c) !== n) { B.at[c.id] = n; say('k', fmt(logs.moved || '[>] moved: {name} \u2192 stage {n}', { name: c.name, n: n })); }
+      drawAct2(); return;
     }
+    if (locked(c)) { say('red', fmt(logs.locked, { name: c.name })); restart(F.status, 'c-shake'); drawAct2(); return; }
+    if (c.cost > left()) { overBudget(c); drawAct2(); return; }
+    var wasRevealed = revealed();
+    B.on.push(c.id); if (c.effect !== 'reveal') B.at[c.id] = n; BE.sound('blip');
+    say('k', fmt(c.effect === 'reveal' ? logs.deployedReveal : logs.deployed, { name: c.name, n: n }));
+    if (c.effect === 'reveal' && !wasRevealed && hid) logLine('k', fmt(logs.revealed, { asset: hid.name }), c.why);
     drawAct2();
   }
   function overBudget(c) {
@@ -909,11 +942,12 @@
     var z = ctlZone(c);
     if (t.getAttribute('data-zone') !== z.id) {
       var lg = C.d.act2.logs;
-      say('red', c.scope && lg.wrongZoneScoped ? fmt(lg.wrongZoneScoped, { name: c.name, scope: c.scope, n: c.stage })
+      say('red', c.scope && lg.wrongZoneScoped ? fmt(lg.wrongZoneScoped, { name: c.name, scope: c.scope, zone: (z.short || z.name).toLowerCase() })
         : fmt(lg.wrongZone, { name: c.name, zone: (z.short || z.name).toLowerCase() }));
       restart(t, 'c-shake'); return;
     }
-    if (B.on.indexOf(c.id) < 0) toggle(c);
+    B.pick = null;
+    tryDeploy(c, +t.getAttribute('data-n'));
   }
   function threat(p) {
     F.threat.style.width = p + '%';
@@ -929,10 +963,12 @@
     var out = { steps: [], blocked: 0, detected: false, viaHidden: false, unknown: false };
     C.d.map.stages.forEach(function (s) {
       if (out.blocked) return;
-      var here = on.filter(function (c) { return c.stage === s.n; });
+      var placed = on.filter(function (c) { return c.effect !== 'reveal' && at(c) === s.n; });
+      var here = placed.filter(function (c) { return c.effect === 'decoy' || placedOk(c); });
       var blocks = here.filter(function (c) { return c.effect === 'block'; });
       var st = {
         s: s, scoped: [],
+        misplaced: placed.filter(function (c) { return c.effect !== 'decoy' && !placedOk(c); }),
         decoys: here.filter(function (c) { return c.effect === 'decoy'; }),
         detect: here.filter(function (c) { return c.effect === 'detect'; })[0],
         recover: here.filter(function (c) { return c.effect === 'recover'; })[0],
@@ -959,8 +995,9 @@
     var fr = on.reduce(function (a, c) { return a + (c.friction || 0); }, 0);
     var r = { decoys: decoys, friction: fr, spent: spent(), total: total };
     var stopper = res.blocked ? res.steps[res.steps.length - 1].block : null;
-    var det = on.filter(function (c) { return c.effect === 'detect'; });
-    var rec = on.filter(function (c) { return c.effect === 'recover'; });
+    var det = on.filter(function (c) { return c.effect === 'detect' && placedOk(c); });
+    var rec = on.filter(function (c) { return c.effect === 'recover' && placedOk(c); });
+    r.misplaced = on.filter(function (c) { return c.effect !== 'decoy' && !placedOk(c); });
     r.layers = { prevent: stopper ? [stopper] : [], detect: det, recover: rec };
     r.entry = !!res.blocked && res.blocked <= a2.preventedMaxStage;
     r.stars = !res.blocked ? 0 : !r.entry ? 1 : det.length && rec.length ? 3 : 2;
@@ -985,7 +1022,9 @@
 
   function runAttack() {
     if (B.running) return;
-    var a2 = C.d.act2, res = simulate();
+    var a2 = C.d.act2;
+    if (B.pick) { B.pick = null; drawAct2(); }
+    var res = simulate();
     B.running = true; B.alarmed = false; app.classList.add('c-running'); drawBudget();
     lastVoice = null;   // each run is a new outcome, so its results line may repeat the previous run's
     // Reduced motion: no animation. The results screen lists every stage instead.
@@ -1036,7 +1075,8 @@
     var L = C.d.act2.logs, n = st.s.n;
     st.decoys.forEach(function (c) { logLine('y', fmt(L.decoy, { name: c.name }), c.why); });
     st.scoped.forEach(function (c) { logLine('y', fmt(L.scoped, { name: c.name }), c.whyScoped); });
-    st.decoys.concat(st.scoped).forEach(function (c) { fired(node, c, 'dud'); });
+    st.misplaced.forEach(function (c) { logLine('y', fmt(L.misplaced || '[~] {name}: wrong stage, no effect here.', { name: c.name })); });
+    st.decoys.concat(st.scoped, st.misplaced).forEach(function (c) { fired(node, c, 'dud'); });
     if (st.detect) { logLine('k', fmt(L.detect, { n: n }), st.detect.why); pill(node, 'y', '! DETECTED'); fired(node, st.detect, 'det'); }
     if (st.recover) { logLine('k', fmt(L.recover, { n: n }), st.recover.why); fired(node, st.recover, 'rec'); }
     if (st.block) {
@@ -1150,6 +1190,7 @@
     if (res.unknown) tips.push(['k', tipText(T.unknownAsset)]);
     if (res.blocked && !r.entry) tips.push(['k', tipText(T.notEntry)]);
     if (r.stars === 2) tips.push(['k', tipText(T.needLayers)]);
+    if (r.misplaced.length) tips.push(['y', fmt(tipText(T.misplaced) || '{n} control{s} on the wrong stage did nothing. Each control protects one stage: match it to the step it stops.', { n: r.misplaced.length, s: r.misplaced.length > 1 ? 's' : '' })]);
     if (r.decoys) tips.push(['y', fmt(tipText(T.decoys), { n: r.decoys })]);
     if (r.frictionLabel === 'HIGH') tips.push(['y', tipText(T.friction)]);
     [].concat(T.always || []).forEach(function (x) { tips.push(['k', tipText(x), x && x.source]); });   // one tip or a list
@@ -1171,6 +1212,8 @@
       if (kind === 'impact' && st.s.impactNote) li.appendChild(h('p', { class: 'c-why', text: st.s.impactNote }));
       st.decoys.forEach(function (c) { li.appendChild(h('p', { class: 'c-why' }, [h('span', { class: 't-y', text: '[~] ' }), rich(c.name, null, false), ': no effect. ', rich(c.why, null, false)])); });
       st.scoped.forEach(function (c) { li.appendChild(h('p', { class: 'c-why' }, [h('span', { class: 't-y', text: '[~] ' }), rich(c.name, null, false), ': ', rich(c.whyScoped, null, false)])); });
+      st.misplaced.forEach(function (c) { li.appendChild(h('p', { class: 'c-why' }, [h('span', { class: 't-y', text: '[~] ' }), rich(c.name, null, false),
+        ': placed here, but it protects stage ' + c.stage + ' (', rich(stageOf(c.stage).name, null, false), '). No effect.'])); });
       if (st.viaHidden && hid) li.appendChild(h('p', { class: 'c-why' }, [h('span', { class: 't-red', text: '[!] ' }),
         (st.unknown ? 'Entered via an asset not in your inventory: ' : 'Entered via a known but unprotected asset: '), rich(hid.name, null, false), '.']));
       [['detect', 'detected at stage ' + n + ' by '], ['recover', 'recovery ready at stage ' + n + ': '], ['block', 'blocked by ']].forEach(function (k) {
@@ -1184,8 +1227,10 @@
     // The build, with what each control actually did and the lesson behind it.
     var build = h('ul', { class: 'c-buildlist' });
     deployed().forEach(function (c) {
+      var wrongSpot = c.effect !== 'decoy' && !placedOk(c);
       build.appendChild(h('li', {}, [
-        h('div', { class: 'c-hud' }, [rich(c.name, h('b', {}), false), h('span', { class: 'c-pill ' + (c.effect === 'decoy' ? 'y' : 'o'), text: layerOf(c).toUpperCase() })]),
+        h('div', { class: 'c-hud' }, [rich(c.name, h('b', {}), false), h('span', { class: 'c-pill ' + (c.effect === 'decoy' || wrongSpot ? 'y' : 'o'), text: wrongSpot ? 'WRONG STAGE' : layerOf(c).toUpperCase() })]),
+        wrongSpot ? h('p', { class: 'c-why' }, [h('span', { class: 't-y', text: '[~] ' }), 'Placed on stage ' + at(c) + '; it works on stage ' + c.stage + ' (', rich(stageOf(c.stage).name, null, false), ').']) : null,
         withFn(h('p', { class: 'c-why' }, [rich(c.why, null, false), c.teach ? ' ' + c.teach : '']), c.source)
       ]));
     });
@@ -1277,6 +1322,9 @@
     D = null;
   }
 
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && B && B.pick && app.classList.contains('c-a2screen')) { B.pick = null; say('k', '[-] placement cancelled'); drawAct2(); }
+  });
   /* ---------- keyboard: A adds, X marks not related, H asks for a hint ---------- */
   document.addEventListener('keydown', function (e) {
     if (!A || !app.classList.contains('c-a1screen') || A.phase !== 'order' || !E.deck || E.deck.hidden || e.altKey || e.ctrlKey || e.metaKey) return;

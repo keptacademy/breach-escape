@@ -801,7 +801,7 @@
   "act2": {
     "title": "Harden the tenant",
     "short": "October 2023. Deploy controls on a budget, then run the real attack against your build.",
-    "help": "Tap a control to deploy or remove it, or drag it onto a stage in the zone it protects. Each control costs energy and the budget is 9, so you can't buy everything. Not every asset is in your inventory yet: discovery controls find what's missing. Then execute the attack: it replays stage by stage against your build, and the log explains every result.",
+    "help": "Drag a control onto the stage it protects, or tap it and then tap a stage. A control only works on its own stage: on the wrong one it does nothing. Tap a deployed control to remove it. Each control costs energy and the budget is 9, so you can't buy everything. Not every asset is in your inventory yet: discovery controls find what's missing. Then execute the attack: it replays stage by stage against your build, and the log explains every result.",
     "rewindButton": "> REWIND TO OCTOBER 2023",
     "simName": "midnight_blizzard",
     "stepMs": 1100,
@@ -847,7 +847,7 @@
       "breach": "[!!] intrusion · stage {n} · {stage}",
       "overBudget": "[!] over budget: {name} costs {cost}, you have {left} left. Remove a control first.",
       "wrongZone": "[!] {name} protects the {zone}. Drop it on a stage there.",
-      "wrongZoneScoped": "[!] {name} is scoped to {scope} only, but it is set on stage {n}. Drop it there.",
+      "wrongZoneScoped": "[!] {name} is scoped to {scope} only. Drop it on a stage in the {zone}.",
       "deployed": "[+] deployed: {name} → stage {n}",
       "removed": "[-] removed: {name}",
       "attempted": "[~] stage {n} · {stage}: attempted from outside. Can't be blocked here; defense starts at stage 2.",

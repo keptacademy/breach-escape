@@ -288,6 +288,9 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-nchips .c-chip{border-color:var(--c-g3);color:var(--c-txt)}
 .c-node.active{border-color:var(--c-y);box-shadow:0 0 0 2px var(--c-y)}
 .c-nchips .c-chip.c-fired{border-width:2px}
+.c-node.c-pickable{cursor:pointer;border-style:dashed;border-color:var(--c-title)}
+.c-node.c-pickable:hover,.c-node.c-pickable:focus-visible{background:linear-gradient(var(--c-wash),var(--c-wash)),var(--c-panel2);outline:2px solid var(--c-title);outline-offset:1px}
+.c-ctl.picking{outline:2px dashed var(--c-title);outline-offset:2px}
 .c-nchips .c-chip.blk{border-color:var(--c-g);background:var(--c-wash)}
 .c-nchips .c-chip.det{border-color:var(--c-y)}
 .c-nchips .c-chip.rec{border-color:var(--c-g2)}

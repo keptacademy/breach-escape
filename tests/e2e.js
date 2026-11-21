@@ -9,7 +9,7 @@ const REPO = path.join(__dirname, '..', 'public') + '/';   // the deployed folde
 const SHOTS = process.argv[2] || require('os').tmpdir();
 const CASES = [
   { id: 'midnight-blizzard', level: 1,
-    locked: 'testmfa',
+    locked: 'testmfa', misplace: { id: 'appperms', n: 2 },
     runs: [
       { kind: 'succeeded', ids: ['caprod'], stars: 0, damage: 'SEVERE' },
       { kind: 'prevented', ids: ['inventory', 'testmfa'], stars: 2, damage: 'NONE' },
@@ -19,7 +19,7 @@ const CASES = [
       { kind: 'contained', ids: ['appperms'], stars: 1, damage: 'CONTAINED' }
     ] },
   { id: 'colonial-pipeline', level: 2,
-    locked: 'disable',
+    locked: 'disable', misplace: { id: 'blockip', n: 5 },
     runs: [
       { kind: 'succeeded', ids: ['mfa'], stars: 0, damage: 'CRITICAL' },
       { kind: 'prevented', ids: ['audit', 'disable'], stars: 2, damage: 'NONE' },
@@ -28,7 +28,7 @@ const CASES = [
       { kind: 'detected', ids: ['irp'], stars: 0, damage: 'CRITICAL' }
     ] },
   { id: 'uber-2022', level: 3,
-    locked: 'nmext',
+    locked: 'nmext', misplace: { id: 'nmemp', n: 2 },
     runs: [
       { kind: 'succeeded', ids: ['nmemp'], stars: 0, damage: 'SEVERE' },
       { kind: 'prevented', ids: ['audit', 'nmext'], stars: 2, damage: 'NONE' },
@@ -302,6 +302,16 @@ async function run(view, c, browser) {
   await checkFit('act2'); await contrast('act2'); await theme('act2'); await barCheck('act2');
   await shot('3act2');
   const ctlBtn = (id) => page.locator('.c-ctl', { hasText: data.controls.find((x) => x.id === id).name.replace(/`/g, '').slice(0, 24) });
+  // Deploy by tap: zones with several stages ask for a stage (tap a highlighted stage); n defaults to the right one.
+  const deployCtl = async (id, n) => {
+    const ctl = data.controls.find((x) => x.id === id);
+    await ctlBtn(id).scrollIntoViewIfNeeded(); await ctlBtn(id).click();
+    if ((await ctlBtn(id).getAttribute('class')).includes('picking')) {
+      const node = page.locator('.c-node.c-pickable[data-n="' + (n || ctl.stage) + '"]');
+      await node.scrollIntoViewIfNeeded(); await node.click();
+    }
+    if (!(await ctlBtn(id).getAttribute('class')).includes(' on')) bad(tag + ' control ' + id + ' not deployed by tap');
+  };
   // first run animated: succeeded build, check the ATTEMPTED pill on stage 1
   let firstRun = true;
   await ctlBtn(c.locked).click();
@@ -320,7 +330,7 @@ async function run(view, c, browser) {
         await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2); await page.mouse.down();
         await page.mouse.move(a.x + 20, a.y + 20, { steps: 3 }); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 8 }); await page.mouse.up();
         if (!(await ctlBtn(id).getAttribute('class')).includes(' on')) bad(tag + ' drag control ' + id + ' did not deploy');
-      } else await ctlBtn(id).click();
+      } else await deployCtl(id);
     }
     if (!firstRun) await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.click('.c-run');
@@ -374,6 +384,21 @@ async function run(view, c, browser) {
     if (kind === 'contained') await shot('6contained');
     if (run.stars === 3) await shot('7threestar');
     firstRun = false;
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+  }
+  // Placement matters: a control on the wrong stage does nothing and is flagged on the results.
+  if (c.misplace) {
+    await page.click('text=> TRY ANOTHER BUILD'); await page.waitForSelector('.c-ctl');
+    if (await page.locator('.c-clear:not([disabled])').count()) await page.click('.c-clear');
+    await deployCtl(c.misplace.id, c.misplace.n);
+    const chipOn = await page.locator('.c-node[data-n="' + c.misplace.n + '"] .c-chip[data-id="' + c.misplace.id + '"]').count();
+    if (!chipOn) bad(tag + ' misplaced control not shown on stage ' + c.misplace.n);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.click('.c-run');
+    await page.waitForSelector('.c-rescard', { timeout: 20000 });
+    if ((await page.textContent('.c-rescard .c-display')) !== TITLES.succeeded) bad(tag + ' misplaced control still worked');
+    if (!(await page.textContent('.c-buildlist:not(.c-layers)')).includes('WRONG STAGE')) bad(tag + ' no WRONG STAGE on the build list');
+    if (!(await page.textContent('.c-tips')).includes('wrong stage')) bad(tag + ' no wrong-stage tip');
     await page.emulateMedia({ reducedMotion: 'no-preference' });
   }
   // code style: neutral, not yellow
