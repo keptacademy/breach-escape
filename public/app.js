@@ -302,7 +302,9 @@
     var site = window.SITE || {};
     var panel = function (cls, title, kids) { return h('div', { class: 'c-panel' + (cls ? ' ' + cls : '') }, [h('div', { class: 'c-eyebrow', text: title })].concat(kids)); };
     app.appendChild(panel('hl c-abouthead', 'cat about.txt', [
-      h('img', { class: 'c-brandmark', src: 'brand/kept-mark.svg', alt: 'KEPT Academy', width: '160', height: '160' }),
+      // One mark per colour theme; CSS shows the one that fits.
+      h('img', { class: 'c-brandmark c-ondark', src: 'brand/kept-mark.svg', alt: 'KEPT Academy', width: '160', height: '160' }),
+      h('img', { class: 'c-brandmark c-onlight', src: 'brand/kept-mark-light.svg', alt: 'KEPT Academy', width: '160', height: '160' }),
       h('h1', { class: 'c-h2', text: 'Breach Escape' }),
       h('p', { text: 'Real breaches, replayed from public records. Each case has a briefing, an investigation and a defense round.' })
     ]));

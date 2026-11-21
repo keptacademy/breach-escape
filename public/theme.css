@@ -599,3 +599,6 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
   .c-mark{font-size:0.8125rem;padding:1px 4px}
   .c-top .c-headright{gap:6px}
 }
+.c-abouthead .c-brandmark.c-onlight{display:none}
+:root[data-theme="light"] .c-abouthead .c-brandmark.c-ondark{display:none}
+:root[data-theme="light"] .c-abouthead .c-brandmark.c-onlight{display:block}

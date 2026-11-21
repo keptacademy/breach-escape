@@ -159,7 +159,15 @@ async function run(view, c, browser) {
     if (t.th !== scheme) bad(tag + ' ' + where + ' colour theme ' + t.th + ', device is ' + scheme);
     if (t.rain) bad(tag + ' ' + where + ' code rain canvas still in the page');
   };
-  const shot = (n) => page.screenshot({ path: SHOTS + '/' + view.name + '-' + c.id + '-' + n + '.png' });
+  // Key screens are saved in both colour themes (<name>-dark.png, <name>-light.png); the others in the device theme.
+  const shot = async (n, both) => {
+    if (!both) return page.screenshot({ path: SHOTS + '/' + view.name + '-' + c.id + '-' + n + '.png' });
+    for (const th of ['dark', 'light']) {
+      await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), th); await page.waitForTimeout(450);
+      await page.screenshot({ path: SHOTS + '/' + view.name + '-' + c.id + '-' + n + '-' + th + '.png' });
+    }
+    await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), scheme); await page.waitForTimeout(450);
+  };
 
   await page.goto(BASE);
   await page.waitForSelector('.c-case');
@@ -219,7 +227,7 @@ async function run(view, c, browser) {
   } else if (await page.locator('.c-heroactor').isVisible()) bad(tag + ' threat actor row visible on a phone');
   if (await page.evaluate(() => document.documentElement.getAttribute('data-case'))) bad(tag + ' map has a case colour');
   await bottomCheck('map');
-  if (c.level === 1) await shot('0map');
+  if (c.level === 1) await shot('0map', true);
   await page.click('text=> about'); await page.waitForSelector('.c-aboutscreen');
   await contrast('about'); await bottomCheck('about');
   const rels = await page.$$eval('.c-aboutscreen a[target]', (a) => a.map((x) => x.rel));
@@ -257,13 +265,13 @@ async function run(view, c, browser) {
         return { inBar: !!b.closest('.c-bar'), after: !!(m && (m.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)) }; });
       if (order.inBar || !order.after) bad(tag + ' last briefing page: Open the evidence must follow the mission ' + JSON.stringify(order));
     }
-    if (i === 0 || i === 3) await shot('1brief' + (i + 1));
+    if (i === 0 || i === 3) await shot('1brief' + (i + 1), i === 0);
     await page.click('.c-briefnext');
   }
   // Act 1
   await page.waitForSelector('.c-card');
   await checkFit('act1'); await contrast('act1'); await barCheck('act1');
-  await shot('2act1');
+  await shot('2act1', true);
   const ordered = data.evidence.filter((e) => e.order).sort((a, b) => a.order - b.order);
   // Unordered groups (anyOrder): place them in reverse, which must still count as correct.
   const grouped = ordered.filter((e) => e.anyOrder);
@@ -330,6 +338,7 @@ async function run(view, c, browser) {
   if (!(await page.locator('.c-reveal .c-fn').count())) bad(tag + ' no footnote markers in the debrief timeline');
   if (!(await page.textContent('.c-toast')).includes('SOC LEAD > ' + data.voice.patientZero)) bad(tag + ' no patient zero voice');
   await contrast('debrief');
+  await shot('2act1-debrief', true);
   const xp = await page.textContent('.c-xp');
   if (!/0430|0460/.test(xp)) console.log('  note', tag, 'act1 xp', xp);
   await page.click('text=' + data.act2.rewindButton);
@@ -365,7 +374,7 @@ async function run(view, c, browser) {
       await page.waitForSelector('.c-node[data-n="1"] .c-pill');
       const p1 = await page.textContent('.c-node[data-n="1"] .c-pill');
       if (!p1.includes('ATTEMPTED')) bad(tag + ' stage 1 pill is ' + p1);
-      await page.waitForTimeout(1200); await checkFit('act2-run'); await shot('4replay');
+      await page.waitForTimeout(1200); await checkFit('act2-run'); await shot('4replay', true);
     }
     await page.waitForSelector('.c-rescard', { timeout: 20000 });
     const title = await page.textContent('.c-rescard .c-display');
@@ -404,7 +413,7 @@ async function run(view, c, browser) {
     if (run.stars === 2) await shot('8twostar');
     await contrast('results-' + kind);
     await bottomCheck('results-' + kind);
-    if (firstRun) await shot('5results');
+    if (firstRun) await shot('5results', true);
     if (firstRun && /source:/.test(await page.textContent('#app'))) bad(tag + ' inline "source:" link on the results');
     if (firstRun && !(await page.locator('.c-srclist li').count())) bad(tag + ' no sources panel on the results');
     if (kind === 'contained') await shot('6contained');
