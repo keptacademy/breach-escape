@@ -325,6 +325,7 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-msg{font-size:max(0.6875rem,var(--fs-l));min-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .case .c-btn.red{background:var(--c-red);color:var(--c-bg)}
 .case .c-btn.red:disabled{background:var(--c-g4);color:var(--c-g2)}
+.case .c-btn.red.c-dim:not(:disabled){background:transparent;color:var(--c-red);border:1px solid var(--c-red)}
 .case .c-a2bar .c-run{font-size:0.9375rem;min-height:52px}
 @media (max-width: 899px){
   .c-a2bar .c-bar-in{grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr)}

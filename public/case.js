@@ -891,6 +891,9 @@
     F.left.textContent = l + ' / ' + C.d.budget + ' energy left';
     F.clear.disabled = B.running || !B.on.length;
     F.run.disabled = B.running;
+    // Empty build: EXECUTE is dimmed (outlined) but still works, so a player can watch the attack run unopposed.
+    F.run.classList.toggle('c-dim', !B.on.length && !B.running);
+    F.run.title = !B.on.length ? 'No controls deployed yet' : '';
   }
   function say(cls, text) {
     F.msg.textContent = ''; F.msg.className = 'c-msg t-' + cls; rich(text, F.msg, false);

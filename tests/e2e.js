@@ -301,6 +301,7 @@ async function run(view, c, browser) {
   await page.waitForSelector('.c-ctl');
   await checkFit('act2'); await contrast('act2'); await theme('act2'); await barCheck('act2');
   await shot('3act2');
+  if (!(await page.getAttribute('.c-run', 'class')).includes('c-dim')) bad(tag + ' EXECUTE not dimmed with an empty build');
   const ctlBtn = (id) => page.locator('.c-ctl', { hasText: data.controls.find((x) => x.id === id).name.replace(/`/g, '').slice(0, 24) });
   // Deploy by tap: zones with several stages ask for a stage (tap a highlighted stage); n defaults to the right one.
   const deployCtl = async (id, n) => {
