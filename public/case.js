@@ -138,13 +138,13 @@
     app.textContent = ''; app.className = 'app case';
     enterTerminal(C.d && (C.d.theme || 'green'));
     BE.onLeave(endDrag);
-    hud.act = h('span', { class: 'c-act', text: label });
     // During the briefing there is no score yet: show a BRIEFING tag instead of the XP badge.
     hud.xp = opts.briefing ? null : h('span', { class: 'c-xp', text: 'XP ' + pad(C.xp) });
-    app.appendChild(h('div', { class: 'c-hud' }, [
-      h('button', { class: 'c-ghost c-exit', onclick: BE.renderMap }, ['\u2039 exit to map']),
-      hud.act, h('span', { class: 'c-headright' }, [BE.themeToggle(true), hud.xp || h('span', { class: 'c-tagb', text: 'BRIEFING' })])
-    ]));
+    var parts = [{ text: 'cases', label: 'Exit to map', onclick: BE.renderMap }];
+    if (C.d) parts.push({ text: C.d.id, cls: 'c-crcase', caseColor: C.d.theme || 'green' });
+    parts.push({ text: label, cls: 'c-act' });
+    app.appendChild(BE.topBar(parts, [BE.themeToggle(true), hud.xp || h('span', { class: 'c-tagb', text: 'BRIEFING' })]));
+    hud.act = app.querySelector('.c-top .c-act .c-crtxt');
     // Glossary taps on this screen show their definition in a terminal panel.
     defBox = h('div', { class: 'c-def', role: 'status', hidden: true, onclick: function () { defBox.hidden = true; } });
     BE.setTermSink(function (term, text) {
@@ -226,7 +226,7 @@
   }
   function start(L) {
     C = { L: L, d: null, xp: 0 }; lastVoice = null;
-    frame('LOADING');
+    frame('loading');
     app.appendChild(panel('', [h('p', {}, ['> fetching case file', h('span', { class: 'c-blink', text: '_' })])]));
     var url = L.case;
     var p = loadCase(url);
@@ -255,7 +255,7 @@
   /* ---------- Intel briefing ---------- */
   function renderBrief(page, alert) {
     var pages = C.d.briefing.pages;
-    frame('INTEL', { briefing: true });
+    frame('briefing', { briefing: true });
     app.classList.add('c-briefscreen');
     if (alert) BE.sound('alert');   // SEV 1 tone when the case opens (not on page navigation)
     var dots = h('div', { class: 'c-dots', role: 'progressbar', 'aria-label': 'Briefing page', 'aria-valuemin': '1', 'aria-valuemax': String(pages.length), 'aria-valuenow': String(page + 1) });
@@ -303,14 +303,14 @@
     switch (b.type) {
       case 'alert':
         kids.push(h('div', { class: 'c-classbar' }, b.bar.map(function (t) { return h('span', { text: t }); })));
-        kids.push(eyebrow(b.eyebrow));
+        kids.push(eyebrow(b.eyebrow, 'c-casebadge c-cc-' + (C.d.theme || 'green')));
         kids.push(h('h1', { class: 'c-display', text: b.title || C.d.briefing.opening }));
         kids.push(para(b.text));
         // The threat actor row comes from briefing.threatActor and goes right after the first row (Victim).
         var kv = (b.kv || []).slice(), ta = C.d.briefing.threatActor;
         if (ta && shown(ta)) kv.splice(Math.min(1, kv.length), 0, { k: 'Threat actor', v: ta.v, source: ta.source });
         if (kv.length) kids.push(kvList(kv));
-        return panel('danger', kids);
+        return panel('danger c-brk', kids);
       case 'note':
         return para(b.text, 'c-small');
       case 'panel':
@@ -382,7 +382,7 @@
 
   function renderAct1() {
     var a1 = C.d.act1, rec = caseRec();
-    frame('ACT 1');
+    frame('act 1');
     app.classList.add('c-a1screen', 'c-fit');   // desktop: one screen, no page scroll
     if (A.collapsed == null) A.collapsed = window.matchMedia('(max-width: 899px)').matches;
 
@@ -634,6 +634,7 @@
   function renderDebrief() {
     var d = C.d, box = E.done;
     box.textContent = ''; box.hidden = false;
+    if (hud.act) hud.act.textContent = 'act 1 \u00b7 debrief';
     box.appendChild(panel('danger', [eyebrow('Case finding', 't-red'), para(d.act1.finding)]));
     var mm = Math.floor(A.secs / 60), ss = A.secs % 60;
     box.appendChild(h('div', { class: 'c-stats c-a1stats' }, [
@@ -708,11 +709,11 @@
 
   function renderAct2() {
     var a2 = C.d.act2, rec = caseRec();
-    frame('ACT 2');
+    frame('act 2');
     app.classList.add('c-a2screen', 'c-fit');
     BE.onLeave(stopRun);
 
-    F.title = h('h2', { class: 'c-h2', text: a2.title });
+    F.title = h('h2', { class: 'c-h2' }, [a2.title, h('span', { class: 'c-cursor', 'aria-hidden': 'true' })]);
     var helpBox = h('div', { class: 'c-helpbox', id: 'c-help2', hidden: true }, [para(a2.help), scaleHelp(), h('div', { class: 'c-toggles' }, [voiceToggle(), BE.soundToggle(), BE.themeToggle(false)])]);
     var helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How to play', 'aria-expanded': 'false', 'aria-controls': 'c-help2', text: '?', onclick: function () {
       var open = helpBox.hidden; helpBox.hidden = !open; helpBtn.setAttribute('aria-expanded', String(open));
@@ -734,7 +735,7 @@
     var mapBox = F.mapBox = h('div', { class: 'c-a2map' }, [h('div', { class: 'c-hud' }, [h('span', { text: a2.mapCmd || '> map ./network' }), h('span', { class: 'c-small', text: 'drop controls on a stage' })]), F.map]);
     var deckWrap = h('div', { class: 'c-gridwrap' }, [F.deck]);
     var deckBox = h('div', { class: 'c-deck c-a2deck' }, [h('div', { class: 'c-hud' }, [h('span', { text: '> ls ./controls' }), F.count]), deckWrap, scrollCue(deckWrap, 'more controls')]);
-    var mapCol = h('div', { class: 'c-a2mapcol' }, [mapBox, scrollCue(mapBox, 'more stages')]);
+    var mapCol = h('div', { class: 'c-a2mapcol c-brk' }, [mapBox, scrollCue(mapBox, 'more stages')]);
     F.main = h('div', { class: 'c-a2' }, [mapCol, F.log, deckBox]);
     app.appendChild(F.main);
     app.appendChild(defBox);
@@ -1064,12 +1065,12 @@
   }
   function renderResults(res, r, prevBest) {
     var a2 = C.d.act2, d = C.d, total = r.total, hid = hidden(), T = a2.tips;
-    frame('DEBRIEF');
+    frame('debrief');
     app.classList.add('c-resscreen');
     var good = !!res.blocked;
     var newBest = prevBest == null || r.stars > prevBest;
     app.appendChild(panel((good ? 'hl' : 'danger') + ' c-rescard', [
-      eyebrow('Case ' + d.caseNo + ' · Debrief'),
+      eyebrow('Case ' + d.caseNo + ' · Debrief', 'c-casebadge c-cc-' + (d.theme || 'green')),
       h('h1', { class: 'c-display' + (good ? '' : ' t-red'), text: r.title }),
       para(r.sub),
       voiceP(voiceLine(r.damage === 'NONE' ? 'prevented' : r.damage === 'CONTAINED' ? 'contained' : 'breached')),   // matches the damage label

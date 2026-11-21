@@ -115,13 +115,14 @@ async function run(view, c, browser) {
   // Contrast in BOTH colour themes at every check point: switch <html data-theme>, let transitions settle, measure, switch back.
   const contrast = async (where) => {
     const cur = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
-    for (const th of ['dark', 'light']) {
+    let prev = cur;
+    for (const th of cur === 'light' ? ['light', 'dark'] : ['dark', 'light']) {
       await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), th);
-      await page.waitForTimeout(th === cur ? 0 : 450);
+      await page.waitForTimeout(th === prev ? 0 : 450); prev = th;
       const f = await page.evaluate(CONTRAST); f.slice(0, 5).forEach((x) => bad(tag + ' ' + where + ' ' + th + ' contrast ' + x));
     }
     await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), cur || 'dark');
-    await page.waitForTimeout(450);
+    if (prev !== cur) await page.waitForTimeout(450);
   };
   // Scroll to the very end and sample the bottom rows of pixels: they must be the dark base, never the old blue gradient.
   const bottomCheck = async (where) => {

@@ -134,6 +134,26 @@
     return svgEl('svg', { viewBox: '0 0 16 16', width: '16', height: '16', 'aria-hidden': 'true', focusable: 'false' }, kids);
   }
 
+  /* ---------- header: the >K_ mark and a mono breadcrumb (cases / <case-id> / <screen>) ----------
+     parts: [{ text, onclick?, caseColor? }]. A part with onclick is a link back (the first one carries class c-exit). */
+  function mark() {
+    return h('span', { class: 'c-mark', 'aria-hidden': 'true' }, [h('span', { class: 'c-mk-a', text: '>' }), 'K', h('span', { class: 'c-mk-a', text: '_' })]);
+  }
+  function crumbs(parts) {
+    var nav = h('nav', { class: 'c-crumbs', 'aria-label': 'Breadcrumb' });
+    parts.forEach(function (p, i) {
+      if (i) nav.appendChild(h('span', { class: 'c-crsep', 'aria-hidden': 'true', text: '/' }));
+      var el = p.onclick ? h('button', { class: 'c-crlink' + (i === 0 ? ' c-exit' : ''), type: 'button', 'aria-label': p.label || null, onclick: p.onclick, text: p.text })
+        : h('span', { class: 'c-crumb' + (p.cls ? ' ' + p.cls : ''), 'aria-current': i === parts.length - 1 ? 'page' : null }, [
+          p.caseColor ? h('i', { class: 'c-casemark c-cc-' + p.caseColor, 'aria-hidden': 'true' }) : null, h('span', { class: 'c-crtxt', text: p.text })]);
+      nav.appendChild(el);
+    });
+    return nav;
+  }
+  function topBar(parts, right) {
+    return h('header', { class: 'c-hud c-top' }, [h('span', { class: 'c-topl' }, [mark(), crumbs(parts)]), h('span', { class: 'c-headright' }, right)]);
+  }
+
   /* ---------- glossary: tappable terms; the case screen shows the definition (termSink) ---------- */
   var GLOSSARY = window.GLOSSARY || {};
   var TERMS = Object.keys(GLOSSARY).sort(function (a, b) { return b.length - a.length; });
@@ -203,7 +223,7 @@
       var open = helpBox.hidden; helpBox.hidden = !open; helpBtn.setAttribute('aria-expanded', String(open));
     } });
     app.appendChild(h('header', { class: 'c-maphead' }, [
-      h('span', { class: 'c-keptlabel', text: 'KEPT Academy' }),
+      h('span', { class: 'c-topl' }, [mark(), crumbs([{ text: 'cases' }])]),
       h('span', { class: 'c-headright' }, [helpBtn, themeToggle(true), h('span', { class: 'c-xp', 'aria-label': totalStars + ' stars earned', text: totalStars + ' \u2605' })])
     ]));
     app.appendChild(h('h1', { class: 'c-brand', text: 'Breach Escape' }));
@@ -224,7 +244,7 @@
           actorRow.hidden = false;
         }).catch(function () { /* offline or missing: the row stays hidden */ });
       }
-      grid.appendChild(h('section', { class: 'c-hero', 'aria-labelledby': 'c-herotitle' }, [
+      grid.appendChild(h('section', { class: 'c-hero c-brk' + (next.theme ? ' c-cc-' + next.theme : ''), 'aria-labelledby': 'c-herotitle' }, [
         h('div', { class: 'c-eyebrow c-herolabel', text: allDone ? 'Replay a case' : 'Next case' }),
         h('h2', { class: 'c-herotitle', id: 'c-herotitle', text: next.name }),
         h('p', { class: 'c-small c-herosub', text: next.victim + ' \u00b7 ' + next.year }),
@@ -242,7 +262,7 @@
       var kids = [h('span', { class: 'c-cnum', text: pad2(L.id) }), h('span', { class: 'c-ctitle', text: L.name })];
       if (ok) {
         kids.push(h('span', { class: 'c-cright', 'aria-hidden': 'true' }, [stars > 0 ? h('span', { class: 'c-cstars', text: starText(stars) }) : null, h('span', { class: 'c-cgo', text: '\u203a' })]));
-        list.appendChild(h('li', {}, [h('button', { class: 'c-case',
+        list.appendChild(h('li', {}, [h('button', { class: 'c-case' + (L.theme ? ' c-cc-' + L.theme : ''),
           'aria-label': 'Case ' + pad2(L.id) + ': ' + L.name + ', ' + L.victim + ' ' + L.year + (stars != null ? ', ' + stars + ' of 3 stars' : ''),
           onclick: function () { openLevel(L); } }, kids)]));
       } else {
@@ -278,13 +298,10 @@
     leave();
     app.textContent = ''; app.className = 'app case c-aboutscreen';
     if (window.BreachCase) window.BreachCase.backdrop('brand');
-    app.appendChild(h('div', { class: 'c-hud' }, [
-      h('button', { class: 'c-ghost c-exit', onclick: renderMap }, ['\u2039 back to map']),
-      h('span', { class: 'c-act', text: 'About' }), themeToggle(true)
-    ]));
+    app.appendChild(topBar([{ text: 'cases', label: 'Back to map', onclick: renderMap }, { text: 'about', cls: 'c-act' }], [themeToggle(true)]));
     var site = window.SITE || {};
     var panel = function (cls, title, kids) { return h('div', { class: 'c-panel' + (cls ? ' ' + cls : '') }, [h('div', { class: 'c-eyebrow', text: title })].concat(kids)); };
-    app.appendChild(panel('hl c-abouthead', '> cat about.txt', [
+    app.appendChild(panel('hl c-abouthead', 'cat about.txt', [
       h('img', { class: 'c-brandmark', src: 'brand/kept-mark.svg', alt: 'KEPT Academy', width: '160', height: '160' }),
       h('h1', { class: 'c-h2', text: 'Breach Escape' }),
       h('p', { text: 'Real breaches, replayed from public records. Each case has a briefing, an investigation and a defense round.' })
@@ -445,7 +462,8 @@
     renderAbout: renderAbout,
     sound: sound,
     soundToggle: soundToggle,
-    themeToggle: themeToggle
+    themeToggle: themeToggle,
+    topBar: topBar
   };
 
   /* ---------- boot (after case.js has loaded too) ---------- */
