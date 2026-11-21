@@ -311,7 +311,7 @@
     ]);
     var cursor = h('span', { class: 'c-spl-cur', text: '_' });
     var skip = h('button', { class: 'c-ghost c-spl-skip', text: 'skip \u203a' });
-    var el = h('div', { class: 'c-splash' }, [h('div', { class: 'c-spl-art', role: 'img', 'aria-label': SPLASH_LABEL }, [term, logo]), skip]);
+    var el = h('div', { class: 'c-splash c-tsurf' }, [h('div', { class: 'c-spl-art', role: 'img', 'aria-label': SPLASH_LABEL }, [term, logo]), skip]);
     document.body.appendChild(el);
     var timers = [];
     function later(fn, ms) { timers.push(setTimeout(fn, ms)); }

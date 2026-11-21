@@ -37,7 +37,7 @@ const CASES = [
       { kind: 'detected', ids: ['mfaalert'], stars: 0, damage: 'SEVERE' }
     ] }
 ];
-const THEMES = { 'colonial-pipeline': 'amber', 'uber-2022': 'violet' };
+const THEMES = { 'midnight-blizzard': 'green', 'colonial-pipeline': 'amber', 'uber-2022': 'violet' };   // case colour (data-case)
 const IMPACT_STAGE = { 'colonial-pipeline': 6, 'uber-2022': 7 };
 const TITLES = { prevented: 'Breach prevented', contained: 'Breach contained', detected: 'Breach detected', succeeded: 'Breach succeeded' };
 const VIEWS = [{ name: '1280x720', vp: { width: 1280, height: 720 } }, { name: '1920x1080', vp: { width: 1920, height: 1080 } }, { name: '390x844', phone: true }];
@@ -67,6 +67,29 @@ const CONTRAST = () => {
   return out;
 };
 
+// Token contrast, both themes: every text/background token pair the stylesheet uses must be 4.5:1 or better.
+function tokenContrast() {
+  const css = fs.readFileSync(REPO + 'theme.css', 'utf8');
+  const block = (sel) => { const i = css.indexOf(sel + '{'); const b = css.slice(i + sel.length + 1, css.indexOf('}', i)); const o = {};
+    b.replace(/--([\w-]+):\s*(#[0-9A-Fa-f]{6})/g, (_, k, v) => { o[k] = v; }); return o; };
+  const lum = (hex) => [1, 3, 5].map((i) => parseInt(hex.substr(i, 2), 16) / 255).map((v) => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)).reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const themes = { dark: block(':root,:root[data-theme="dark"]'), light: block(':root[data-theme="light"]') };
+  const term = block('.c-tsurf');
+  const out = [];
+  for (const [name, t] of Object.entries(themes)) {
+    const pairs = [];
+    for (const fg of ['text', 'muted', 'accent']) for (const bg of ['bg', 'panel', 'raised']) pairs.push([fg, bg]);
+    pairs.push(['on-accent', 'accent'], ['on-accent', 'bad'], ['ok', 'ok-bg'], ['bad', 'bad-bg'], ['warn', 'warn-bg'], ['imp', 'imp-bg'],
+      ['bad', 'panel'], ['bad', 'bg'], ['warn', 'panel'], ['warn', 'bg'], ['ok', 'panel'], ['text', 'ok-bg'], ['text', 'bad-bg'], ['text', 'warn-bg'], ['muted', 'bad-bg'], ['muted', 'warn-bg'], ['muted', 'ok-bg'], ['accent', 'bad-bg'], ['accent', 'warn-bg'], ['accent', 'ok-bg'], ['muted', 'imp-bg']);
+    for (const [f, b] of pairs) { if (!t[f] || !t[b]) { out.push(name + ' missing token ' + f + '/' + b); continue; } const r = ratio(t[f], t[b]); if (r < 4.5) out.push(name + ' ' + f + ' on ' + b + ' ' + r.toFixed(2)); }
+    // terminal surfaces: the term background of this theme, with the terminal text tokens
+    for (const f of ['term-text']) if (ratio(t[f], t.term) < 4.5) out.push(name + ' term-text on term');
+    for (const f of ['muted', 'accent', 'ok', 'bad', 'warn', 'imp']) { const r = ratio(term[f], t.term); if (r < 4.5) out.push(name + ' terminal ' + f + ' on term ' + r.toFixed(2)); }
+  }
+  return out;
+}
+
 async function run(view, c, browser) {
   const ctxOpts = view.phone ? { ...devices['iPhone 13'] } : { viewport: view.vp, deviceScaleFactor: 1 };
   const ctx = await browser.newContext(ctxOpts);
@@ -87,7 +110,17 @@ async function run(view, c, browser) {
     if (s.sw > s.iw) bad(tag + ' ' + where + ': horizontal scroll ' + s.sw + '>' + s.iw);
     if (desktop && s.sh > s.ih) bad(tag + ' ' + where + ': page scrolls ' + s.sh + '>' + s.ih);
   };
-  const contrast = async (where) => { const f = await page.evaluate(CONTRAST); f.slice(0, 5).forEach((x) => bad(tag + ' ' + where + ' contrast ' + x)); };
+  // Contrast in BOTH colour themes at every check point: switch <html data-theme>, let transitions settle, measure, switch back.
+  const contrast = async (where) => {
+    const cur = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+    for (const th of ['dark', 'light']) {
+      await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), th);
+      await page.waitForTimeout(th === cur ? 0 : 450);
+      const f = await page.evaluate(CONTRAST); f.slice(0, 5).forEach((x) => bad(tag + ' ' + where + ' ' + th + ' contrast ' + x));
+    }
+    await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), cur || 'dark');
+    await page.waitForTimeout(450);
+  };
   // Scroll to the very end and sample the bottom rows of pixels: they must be the dark base, never the old blue gradient.
   const bottomCheck = async (where) => {
     await page.evaluate(() => window.scrollTo(0, document.scrollingElement.scrollHeight));
@@ -118,10 +151,10 @@ async function run(view, c, browser) {
     if (r && r[0] > 1) bad(tag + ' ' + where + ': bottom bar covers ' + r[1] + ' by ' + r[0] + 'px');
   };
   const theme = async (where) => {
-    const t = await page.evaluate(() => ({ a: document.documentElement.getAttribute('data-theme'), rain: (document.querySelector('.c-rain') || {}).hidden }));
-    const want = THEMES[c.id] || null;
-    if (t.a !== want) bad(tag + ' ' + where + ' theme ' + t.a);
-    if (want === 'amber' && t.rain === false) bad(tag + ' amber shows code rain');
+    const t = await page.evaluate(() => ({ a: document.documentElement.getAttribute('data-case'), th: document.documentElement.getAttribute('data-theme'), rain: document.querySelectorAll('canvas').length }));
+    if (t.a !== THEMES[c.id]) bad(tag + ' ' + where + ' case colour ' + t.a);
+    if (t.th !== 'dark' && t.th !== 'light') bad(tag + ' ' + where + ' colour theme ' + t.th);
+    if (t.rain) bad(tag + ' ' + where + ' code rain canvas still in the page');
   };
   const shot = (n) => page.screenshot({ path: SHOTS + '/' + view.name + '-' + c.id + '-' + n + '.png' });
 
@@ -133,7 +166,7 @@ async function run(view, c, browser) {
     const lbl = await page.getAttribute('.c-spl-art', 'aria-label');
     if (lbl !== 'KEPT Academy \u2014 Know the Exposure, Patch the Threat') bad(tag + ' splash label ' + lbl);
     if (!(await page.locator('.c-spl-skip').count())) bad(tag + ' no skip button');
-    if ((await page.evaluate(() => document.documentElement.getAttribute('data-theme'))) !== 'brand') bad(tag + ' splash not brand theme');
+    if (await page.evaluate(() => document.documentElement.getAttribute('data-case'))) bad(tag + ' splash has a case colour');
     if (c.level === 1) {
       await page.waitForSelector('.c-spl-out >> text=real breaches loaded', { timeout: 5000 });
       const out = await page.textContent('.c-spl-term');
@@ -181,7 +214,7 @@ async function run(view, c, browser) {
     await checkFit('map');
     await page.waitForSelector('.c-heroactor:not([hidden])', { timeout: 3000 }).catch(() => bad(tag + ' desktop hero has no threat actor row'));
   } else if (await page.locator('.c-heroactor').isVisible()) bad(tag + ' threat actor row visible on a phone');
-  if ((await page.evaluate(() => document.documentElement.getAttribute('data-theme'))) !== 'brand') bad(tag + ' map is not the brand theme');
+  if (await page.evaluate(() => document.documentElement.getAttribute('data-case'))) bad(tag + ' map has a case colour');
   await bottomCheck('map');
   if (c.level === 1) await shot('0map');
   await page.click('text=> about'); await page.waitForSelector('.c-aboutscreen');
@@ -380,7 +413,7 @@ async function run(view, c, browser) {
   const codeColor = await page.evaluate(() => { const c = document.createElement('code'); document.getElementById('app').appendChild(c); const v = getComputedStyle(c).color; c.remove(); return v; });
   if (codeColor === 'rgb(255, 211, 77)') bad(tag + ' code is yellow');
   await page.click('.c-exit'); await page.waitForSelector('.c-case');
-  if ((await page.evaluate(() => document.documentElement.getAttribute('data-theme'))) !== 'brand') bad(tag + ' map theme not brand after a case');
+  if (await page.evaluate(() => document.documentElement.getAttribute('data-case'))) bad(tag + ' map keeps the case colour after a case');
   const other = c.id === 'midnight-blizzard' ? 'The Legacy VPN' : 'The Forgotten Test Account';
   if ((await page.textContent('.c-herolabel')) !== 'NEXT CASE' || (await page.textContent('.c-herotitle')) !== other) bad(tag + ' returning hero is not the next unfinished case');
   if (!(await page.textContent('.c-cases')).includes('\u2605')) bad(tag + ' stars not shown in the list after a case');
@@ -404,6 +437,8 @@ async function run(view, c, browser) {
 (async () => {
   const browser = await chromium.launch();
   sampler = await (await browser.newContext()).newPage();
+  tokenContrast().forEach((x) => bad('token contrast ' + x));
+  console.log('ok token contrast (dark + light)');
   // Sound: off by default, no AudioContext before a gesture, toggle saved, toggle in the help panel too.
   if (!process.env.CASE) {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });

@@ -111,48 +111,17 @@
     restart(li, 'c-hit');
   }
 
-  /* ---------- terminal backdrop: code rain + red edge flash ---------- */
-  var rain = { cv: null, ctx: null, cols: [], timer: null, red: false };
+  /* ---------- case colour + red edge flash ---------- */
   var edge = null;
-  function sizeRain() {
-    if (!rain.cv) return;
-    rain.cv.width = window.innerWidth; rain.cv.height = window.innerHeight;
-    rain.cols = []; for (var i = 0; i < Math.ceil(rain.cv.width / 16); i++) rain.cols.push(Math.floor(Math.random() * rain.cv.height / 16));
-  }
-  function tickRain() {
-    var c = rain.ctx, cv = rain.cv;
-    c.fillStyle = 'rgba(1,6,3,.2)'; c.fillRect(0, 0, cv.width, cv.height);
-    c.font = '14px ui-monospace, Menlo, Consolas, monospace';
-    rain.cols.forEach(function (y, i) {
-      c.fillStyle = rain.red ? '#FF3B4E' : rain.color;
-      c.fillText('0123456789abcdef'[Math.floor(Math.random() * 16)], i * 16, y * 16);
-      rain.cols[i] = (y * 16 > cv.height && Math.random() > 0.97) ? 0 : y + 1;
-    });
-  }
-  // Case theme: <html data-theme="..."> switches the accent tokens in theme.css. The map and About use the default (green).
-  function setTheme(name) {
+  // Case colour: <html data-case="green|amber|violet"> sets the case accent (top stripe, breadcrumb marker) in theme.css.
+  // It never changes the light/dark theme (data-theme). The map and About have no case colour.
+  function setCase(name) {
     var root = document.documentElement;
-    if (name && name !== 'green') root.setAttribute('data-theme', name); else root.removeAttribute('data-theme');
-    rain.color = getComputedStyle(root).getPropertyValue('--c-rain').trim() || '#39FF7A';
-    rain.off = rain.color === 'none';
-    if (rain.cv) { rain.cv.hidden = rain.off; if (rain.off) rain.ctx.clearRect(0, 0, rain.cv.width, rain.cv.height); }
+    if (name && name !== 'brand') root.setAttribute('data-case', name); else root.removeAttribute('data-case');
   }
   function enterTerminal(theme) {
-    setTheme(theme);
+    setCase(theme);
     if (!edge) { edge = h('div', { class: 'c-edge', 'aria-hidden': 'true' }); document.body.appendChild(edge); }
-    if (!BE.reduceMotion() && !rain.cv) {
-      rain.cv = h('canvas', { class: 'c-rain', 'aria-hidden': 'true' });
-      rain.ctx = rain.cv.getContext('2d');
-      document.body.insertBefore(rain.cv, document.body.firstChild);
-      sizeRain(); window.addEventListener('resize', sizeRain);
-    }
-    if (rain.cv) rain.cv.hidden = rain.off;
-    if (rain.cv && !rain.off && !rain.timer) rain.timer = setInterval(tickRain, 110);
-  }
-  // Runs on every screen change; the next screen re-enters right away (every screen uses the terminal backdrop).
-  // The canvas stays in the page so the rain does not restart on each page.
-  function leaveTerminal() {
-    if (rain.timer) { clearInterval(rain.timer); rain.timer = null; }
   }
   function flash() {
     if (!edge || BE.reduceMotion()) return;
@@ -165,8 +134,7 @@
     opts = opts || {};
     BE.leave();                         // runs the previous screen's cleanups
     app.textContent = ''; app.className = 'app case';
-    enterTerminal(C.d && C.d.theme);
-    BE.onLeave(leaveTerminal);
+    enterTerminal(C.d && (C.d.theme || 'green'));
     BE.onLeave(endDrag);
     hud.act = h('span', { class: 'c-act', text: label });
     // During the briefing there is no score yet: show a BRIEFING tag instead of the XP badge.
@@ -448,7 +416,7 @@
     // Right: the evidence grid scrolls inside its own panel.
     E.left = h('span', {});
     E.grid = h('div', { class: 'c-grid', role: 'group', 'aria-label': 'Evidence cards' });
-    E.inspect = h('div', { class: 'c-inspect', hidden: true });
+    E.inspect = h('div', { class: 'c-inspect c-tsurf', hidden: true });
     var gridWrap = h('div', { class: 'c-gridwrap' }, [E.grid]);
     E.deck = h('div', { class: 'c-deck' }, [
       h('div', { class: 'c-hud' }, [h('span', { text: '> ls ./evidence' }), E.left]),
@@ -758,7 +726,7 @@
     ]));
 
     F.map = h('div', { class: 'c-map' });
-    F.log = h('div', { class: 'c-log', role: 'log', 'aria-label': 'Attack log', 'aria-live': 'polite' });
+    F.log = h('div', { class: 'c-log c-tsurf', role: 'log', 'aria-label': 'Attack log', 'aria-live': 'polite' });
     F.deck = h('div', { class: 'c-ctlgrid', role: 'group', 'aria-label': 'Control deck' });
     F.count = h('span', {});
     var mapBox = F.mapBox = h('div', { class: 'c-a2map' }, [h('div', { class: 'c-hud' }, [h('span', { text: a2.mapCmd || '> map ./network' }), h('span', { class: 'c-small', text: 'drop controls on a stage' })]), F.map]);
@@ -1028,7 +996,7 @@
     if (st.block) {
       node.classList.add('block'); pill(node, 'g', '✓ BLOCKED'); BE.sound('contained');
       logLine('k', fmt(L.block, { n: n }), st.block.why);
-      rain.red = false; threat(Math.round(n / total * 50));
+      threat(Math.round(n / total * 50));
       return;
     }
     // A stage the defender cannot block (e.g. a spray from outside) is shown as attempted, not breached.
@@ -1048,7 +1016,7 @@
     // A stage that ran but didn't let the attacker in yet (map stage "neutral", e.g. Uber's approval requests, which at
     // first blocked access): neutral pill with the stage's own label and sourced note, never BREACHED.
     if (st.s.neutral) {
-      node.classList.add('impact', 'neutral'); pill(node, 'o', '\u26a0 ' + st.s.neutral.label);
+      node.classList.add('neutral'); pill(node, 'y', '\u26a0 ' + st.s.neutral.label);
       withFn(logLine('b', '[~] stage ' + n + ' \u00b7 ' + st.s.name + ':', st.s.neutral.note), st.s.neutral.source);
       threat(Math.round(n / total * 100));
       return;
@@ -1057,13 +1025,12 @@
     node.classList.add('breach'); pill(node, 'r', '✕ BREACHED');
     if (!B.alarmed) { B.alarmed = true; BE.sound('alarm'); }   // once per run
     logLine('red', fmt(L.breach, { n: n, stage: st.s.name }));
-    flash(); restart(node, 'c-glitch'); rain.red = true;
+    flash(); restart(node, 'c-glitch');
     threat(Math.round(n / total * 100));
   }
   function stopRun() {
     if (B && B.timer) { clearTimeout(B.timer); B.timer = null; }
     if (B) B.running = false;
-    rain.red = false;
   }
   function finishRun(res) {
     stopRun();
@@ -1123,7 +1090,7 @@
     [['prevent', 'stops the attack'], ['detect', 'notices the attack if prevention fails'], ['recover', 'a way back after an attack']].forEach(function (ly) {
       var list = r.layers[ly[0]], has = list.length > 0;
       layers.appendChild(h('li', { class: has ? 'on' : '' }, [
-        h('div', { class: 'c-hud' }, [h('b', { text: ly[0].toUpperCase() }), h('span', { class: 'c-pill ' + (has ? 'g' : 'o'), text: has ? '✓ IN BUILD' : '— MISSING' })]),
+        h('div', { class: 'c-hud' }, [h('b', { text: ly[0].toUpperCase() }), h('span', { class: 'c-pill ' + (has ? 'g' : 'm'), text: has ? '✓ IN BUILD' : '— MISSING' })]),
         h('p', { class: 'c-why' }, has ? [list.map(function (c) { return plain(c.name) + ' (stage ' + c.stage + ')'; }).join(' · ')] : [ly[1]])
       ]));
     });
@@ -1145,9 +1112,9 @@
     var list = h('ol', { class: 'c-replay' });
     res.steps.forEach(function (st) {
       var n = st.s.n, kind = st.block ? 'block' : st.s.unblockable ? 'attempt' : st.s.impact ? 'impact' : st.s.neutral ? 'neutral' : 'breach';
-      var li = h('li', { class: kind === 'neutral' ? 'impact neutral' : kind }, [
+      var li = h('li', { class: kind }, [
         h('div', { class: 'c-hud' }, [h('b', {}, [n + ' · ', rich(st.s.name, null, false)]),
-          h('span', { class: 'c-pill ' + { block: 'g', attempt: 'y', impact: 'o', neutral: 'o', breach: 'r' }[kind],
+          h('span', { class: 'c-pill ' + { block: 'g', attempt: 'y', impact: 'o', neutral: 'y', breach: 'r' }[kind],
             text: { block: '✓ BLOCKED', attempt: '⚠ ATTEMPTED', impact: '◆ IMPACT', neutral: '\u26a0 ' + (st.s.neutral && st.s.neutral.label), breach: '✕ BREACHED' }[kind] })])
       ]);
       if (kind === 'neutral') li.appendChild(withFn(h('p', { class: 'c-why', text: st.s.neutral.note }), st.s.neutral.source));
@@ -1271,5 +1238,5 @@
     else if (k === 'escape') endDrag();
   });
 
-  window.BreachCase = { start: start, caseData: loadCase, voiceToggle: voiceToggle, backdrop: function (theme) { enterTerminal(theme); BE.onLeave(leaveTerminal); BE.onLeave(endDrag); } };
+  window.BreachCase = { start: start, caseData: loadCase, voiceToggle: voiceToggle, backdrop: function (theme) { enterTerminal(theme); BE.onLeave(endDrag); } };
 })();
