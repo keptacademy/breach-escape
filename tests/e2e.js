@@ -113,16 +113,16 @@ async function run(view, c, browser) {
     if (desktop && s.sh > s.ih) bad(tag + ' ' + where + ': page scrolls ' + s.sh + '>' + s.ih);
   };
   // Contrast in BOTH colour themes at every check point: switch <html data-theme>, let transitions settle, measure, switch back.
-  const contrast = async (where) => {
+  const contrast = async (where, settle = 450) => {
     const cur = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
     let prev = cur;
     for (const th of cur === 'light' ? ['light', 'dark'] : ['dark', 'light']) {
       await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), th);
-      await page.waitForTimeout(th === prev ? 0 : 450); prev = th;
+      await page.waitForTimeout(th === prev ? 0 : settle); prev = th;
       const f = await page.evaluate(CONTRAST); f.slice(0, 5).forEach((x) => bad(tag + ' ' + where + ' ' + th + ' contrast ' + x));
     }
     await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), cur || 'dark');
-    if (prev !== cur) await page.waitForTimeout(450);
+    if (prev !== cur) await page.waitForTimeout(settle);
   };
   // Scroll to the very end and sample the bottom rows of pixels: they must be the dark base, never the old blue gradient.
   const bottomCheck = async (where) => {
@@ -182,8 +182,8 @@ async function run(view, c, browser) {
       await page.waitForSelector('.c-spl-out >> text=real breaches loaded', { timeout: 5000 });
       const out = await page.textContent('.c-spl-term');
       if (!out.includes('[ok] 3 real breaches loaded')) bad(tag + ' splash load line: ' + out);
-      if (view.name === '1280x720') await contrast('splash');
       if (await page.locator('.c-spl-logo').isVisible()) bad(tag + ' KEPT logo visible while the commands type');
+      if (view.name === '1280x720') await contrast('splash', 0);   // the splash has no colour transitions: no settle time
       await shot('0splash');
       await page.waitForSelector('.c-spl-logo:not([hidden])', { timeout: 5000 });
       if (await page.locator('.c-spl-term').isVisible()) bad(tag + ' terminal still visible with the logo');
@@ -197,7 +197,7 @@ async function run(view, c, browser) {
       await page.waitForSelector('.c-spl-tagrow.on', { timeout: 3000 });
       const shown = Date.now();
       await page.waitForTimeout(600);
-      if (view.name === '1280x720') await contrast('splash-final');
+      if (view.name === '1280x720') await contrast('splash-final', 0);
       await shot('0splash-logo');
       await page.waitForSelector('.c-splash', { state: 'detached', timeout: 7000 }).catch(() => {});
       const held = Date.now() - shown;
