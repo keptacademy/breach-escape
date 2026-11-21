@@ -11,7 +11,9 @@ Only `public/` is deployed (an allow-list): the Azure workflow uses `app_locatio
 | File | What it does |
 |---|---|
 | `public/index.html` | The page shell. Loads the theme, level list and app code. |
-| `public/theme.css` | The terminal theme for every screen, with colour tokens on `:root`. |
+| `public/theme.css` | Design D for every screen: one token set per colour theme (`<html data-theme="dark|light">`), fixed status colours, the case colour as an accent only (`data-case`). |
+| `public/theme-init.js` | Sets the dark or light theme before the first paint (saved choice, else the device setting). |
+| `public/fonts/` | Self-hosted IBM Plex Sans and Mono (400/500/600, latin woff2) and their licence, `OFL.txt`. |
 | `public/levels.js` | The Breach Map list (one entry per breach, `case: 'levels/<id>.json'` for playable ones) and the shared glossary. |
 | `public/app.js` | App shell: Breach Map, saved progress, glossary terms, shared helpers. |
 | `public/case.js` | **Case engine:** Intel briefing, Act 1 Investigate, Act 2 Defend and Results. Reads a level JSON file. |
@@ -19,7 +21,7 @@ Only `public/` is deployed (an allow-list): the Azure workflow uses `app_locatio
 | `public/manifest.webmanifest` | Makes it installable ("Add to Home Screen"), with name, colors and icons. |
 | `public/sw.js` | Service worker: caches the app so it works offline. |
 | `public/icons/` | App icon `>K_`: SVG source and favicon, PNGs 192, 512, maskable 512, Apple touch 180, favicon 32. Made by `tools/make_icons.js`. |
-| `public/brand/` | KEPT brand mark (KE / PT block): SVG and a 1024 PNG. Shown on the About page. |
+| `public/brand/` | KEPT brand mark (KE / PT block): dark and light SVGs and a 1024 PNG. Shown on the About page. |
 | `public/staticwebapp.config.json` | Azure Static Web Apps settings: security headers and 404 routes. SWA reads it from `app_location`. |
 | `tools/` | Level tooling (Python, standard library): `level.schema.json`, `schema_check.py`, `validate`, `new_case`. Not deployed. |
 | `tests/` | `serve.js` (local server with the production headers) and `e2e.js` (Playwright end-to-end suite). Not deployed. |
@@ -28,7 +30,7 @@ Only `public/` is deployed (an allow-list): the Azure workflow uses `app_locatio
 ## Security choices
 
 - **No backend, no accounts, no tracking.** Progress is stored only in the player's own browser (`localStorage`).
-- **No third-party code.** No CDNs, fonts, analytics or trackers; every file is served from your own domain.
+- **No third-party code.** No CDNs, analytics or trackers; every file is served from your own domain. The IBM Plex fonts are self-hosted in `public/fonts/` (SIL Open Font License), so CSP `font-src 'self'` holds.
 - **Strict Content Security Policy** in `staticwebapp.config.json`: only same-origin scripts and styles, no inline scripts or inline styles, no framing (clickjacking), no form posts, no plugins.
 - **Other headers:** HSTS, `nosniff`, a strict referrer policy, a Permissions-Policy that turns off camera, mic, location and payment, and COOP.
 - **Safe rendering:** all text is inserted with `textContent`, never as HTML.
