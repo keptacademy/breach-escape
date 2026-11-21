@@ -286,7 +286,14 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .c-nn{color:var(--c-g)}
 .c-mt{font-size:max(0.625rem,var(--fs-l));color:var(--c-mute);border:1px solid var(--c-g4);padding:0 4px}
 .c-nchips .c-chip{border-color:var(--c-g3);color:var(--c-txt)}
-.c-node.active{border-color:var(--c-y)}
+.c-node.active{border-color:var(--c-y);box-shadow:0 0 0 2px var(--c-y)}
+.c-nchips .c-chip.c-fired{border-width:2px}
+.c-nchips .c-chip.blk{border-color:var(--c-g);background:var(--c-wash)}
+.c-nchips .c-chip.det{border-color:var(--c-y)}
+.c-nchips .c-chip.rec{border-color:var(--c-g2)}
+.c-nchips .c-chip.dud{border-style:dashed;border-color:var(--c-y)}
+.c-running .c-a2bar .c-clear{display:none}
+.c-a2bar .c-skip[hidden]{display:none}
 .c-node.breach{border:1px dashed var(--c-red);background:linear-gradient(var(--c-redbg),var(--c-redbg)),var(--c-panel2)}
 .c-node.block{border:2px solid var(--c-g);background:linear-gradient(var(--c-wash),var(--c-wash)),var(--c-panel2)}
 .c-node.c-over{border-color:var(--c-y);box-shadow:0 0 0 1px var(--c-y)}

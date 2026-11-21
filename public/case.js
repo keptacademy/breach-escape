@@ -779,7 +779,8 @@
       B.on = []; say('k', fmt('[-] build cleared')); drawAct2();
     } });
     F.run = h('button', { class: 'c-btn red c-run', text: '> EXECUTE ATTACK_SIM', onclick: runAttack });
-    app.appendChild(pinBar(h('div', { class: 'c-bar c-a2bar', role: 'toolbar', 'aria-label': 'Build actions' }, [h('div', { class: 'c-bar-in' }, [F.status, F.clear, F.run])])));
+    F.skip = h('button', { class: 'c-ghost c-skip', hidden: true, text: 'skip replay \u203a', onclick: skipRun });
+    app.appendChild(pinBar(h('div', { class: 'c-bar c-a2bar', role: 'toolbar', 'aria-label': 'Build actions' }, [h('div', { class: 'c-bar-in' }, [F.status, F.clear, F.skip, F.run])])));
 
     F.log.appendChild(h('div', {}, [a2.logs.idle, h('span', { class: 'c-blink', text: '_' })]));
     threat(0);
@@ -810,7 +811,7 @@
       var wrap = tone(h('div', { class: 'c-zone c-mzone' }, [h('span', { class: 'c-zt', text: z.name })]), z.tone);
       var list = C.d.map.stages.filter(function (s) { return s.zone === z.id; });
       list.forEach(function (s, i) {
-        var chips = deployed().filter(function (c) { return c.stage === s.n && c.effect !== 'reveal'; }).map(function (c) { return rich(c.name, h('span', { class: 'c-chip' }), false); });
+        var chips = deployed().filter(function (c) { return c.stage === s.n && c.effect !== 'reveal'; }).map(function (c) { return rich(c.name, h('span', { class: 'c-chip', 'data-id': c.id }), false); });
         var codes = h('span', { class: 'c-chips' }, stageCodes(s.n).map(function (m) { return h('span', { class: 'c-mt', text: m }); }));
         var node = h('div', { class: 'c-node', 'data-drop': 'stage', 'data-n': String(s.n), 'data-zone': z.id }, [
           h('div', { class: 'c-ntop' }, [h('span', { class: 'c-nname' }, [h('b', { class: 'c-nn', text: s.n + ' · ' }), rich(s.name, null, false)]), codes]),
@@ -996,18 +997,30 @@
     if (window.matchMedia('(max-width: 899px)').matches) F.map.scrollIntoView({ behavior: 'smooth', block: 'start' });
     else F.mapBox.scrollTop = 0;
     var i = 0, total = C.d.map.stages.length;
+    B.res = res; F.skip.hidden = false;
+    // Each stage: highlighted as "under attack" for stepMs, then its result shows and holds for holdMs before the next.
+    var hold = a2.holdMs != null ? a2.holdMs : Math.round(a2.stepMs * 0.6);
     (function next() {
       var st = res.steps[i], node = F.nodes[st.s.n];
       node.classList.add('active');
+      var tag = h('span', { class: 'c-pill y c-attacking', text: '\u25b6 UNDER ATTACK' });
+      node.querySelector('.c-ntop').appendChild(tag);
       follow(node);
       B.timer = setTimeout(function () {
-        node.classList.remove('active');
+        node.classList.remove('active'); tag.remove();
         showStep(st, node, total);
         follow(node);
-        if (++i >= res.steps.length) { B.timer = setTimeout(function () { finishRun(res); }, 1000); return; }
-        next();
+        if (++i >= res.steps.length) { B.timer = setTimeout(function () { finishRun(res); }, 1200); return; }
+        B.timer = setTimeout(next, hold);
       }, a2.stepMs);
     })();
+  }
+  // Skip the rest of the replay: straight to the results (which list every stage anyway).
+  function skipRun() { if (B && B.running && B.res) finishRun(B.res); }
+  // Mark the control that acted on this stage (chip on the map node).
+  function fired(node, c, cls) {
+    var chip = c && node.querySelector('.c-chip[data-id="' + c.id + '"]');
+    if (chip) chip.classList.add('c-fired', cls);
   }
   // Keep the stage under attack visible: scroll the map panel on desktop, the page on phones.
   function follow(node) {
@@ -1023,9 +1036,11 @@
     var L = C.d.act2.logs, n = st.s.n;
     st.decoys.forEach(function (c) { logLine('y', fmt(L.decoy, { name: c.name }), c.why); });
     st.scoped.forEach(function (c) { logLine('y', fmt(L.scoped, { name: c.name }), c.whyScoped); });
-    if (st.detect) { logLine('k', fmt(L.detect, { n: n }), st.detect.why); pill(node, 'y', '! DETECTED'); }
-    if (st.recover) logLine('k', fmt(L.recover, { n: n }), st.recover.why);
+    st.decoys.concat(st.scoped).forEach(function (c) { fired(node, c, 'dud'); });
+    if (st.detect) { logLine('k', fmt(L.detect, { n: n }), st.detect.why); pill(node, 'y', '! DETECTED'); fired(node, st.detect, 'det'); }
+    if (st.recover) { logLine('k', fmt(L.recover, { n: n }), st.recover.why); fired(node, st.recover, 'rec'); }
     if (st.block) {
+      fired(node, st.block, 'blk');
       node.classList.add('block'); pill(node, 'g', '✓ BLOCKED'); BE.sound('contained');
       logLine('k', fmt(L.block, { n: n }), st.block.why);
       rain.red = false; threat(Math.round(n / total * 50));
@@ -1062,7 +1077,8 @@
   }
   function stopRun() {
     if (B && B.timer) { clearTimeout(B.timer); B.timer = null; }
-    if (B) B.running = false;
+    if (B) { B.running = false; B.res = null; }
+    if (F.skip) F.skip.hidden = true;
     rain.red = false;
   }
   function finishRun(res) {

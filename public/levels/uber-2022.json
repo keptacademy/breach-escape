@@ -780,7 +780,7 @@
     "simName": "mfa_fatigue",
     "mapCmd": "> map ./corp",
     "attemptedNote": "Malware on a personal device and a sale on the dark web happen outside Uber's network, so you can't block them there. Defense starts at stage 2, when the password meets sign-in.",
-    "stepMs": 700,
+    "stepMs": 1100,
     "xpPerStar": 150,
     "preventedMaxStage": 3,
     "friction": {

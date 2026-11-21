@@ -804,7 +804,7 @@
     "help": "Tap a control to deploy or remove it, or drag it onto a stage in the zone it protects. Each control costs energy and the budget is 9, so you can't buy everything. Not every asset is in your inventory yet: discovery controls find what's missing. Then execute the attack: it replays stage by stage against your build, and the log explains every result.",
     "rewindButton": "> REWIND TO OCTOBER 2023",
     "simName": "midnight_blizzard",
-    "stepMs": 700,
+    "stepMs": 1100,
     "xpPerStar": 150,
     "friction": {
       "low": 1,
