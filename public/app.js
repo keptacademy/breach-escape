@@ -91,6 +91,49 @@
     return b;
   }
 
+  /* ---------- colour theme: dark / light ----------
+     theme-init.js sets <html data-theme> before the first paint. Default: the device setting (and it follows changes
+     to it live); a toggle choice is saved as 'breach-escape-theme' and wins until "Reset my progress" removes it. */
+  var THEME_KEY = 'breach-escape-theme';
+  var themeMq = window.matchMedia('(prefers-color-scheme: light)');
+  function savedTheme() { try { var t = localStorage.getItem(THEME_KEY); return t === 'light' || t === 'dark' ? t : null; } catch (e) { return null; } }
+  function deviceTheme() { return themeMq.matches ? 'light' : 'dark'; }
+  function currentTheme() { return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'; }
+  var themeButtons = [];
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', t === 'light' ? '#F4F6F8' : '#0B0E12');
+    themeButtons = themeButtons.filter(function (b) { return b.isConnected; });
+    themeButtons.forEach(function (b) { b._paint(); });
+  }
+  function setTheme(t) { try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* storage unavailable */ } applyTheme(t); }
+  var onDeviceTheme = function () { if (!savedTheme()) applyTheme(deviceTheme()); };
+  if (themeMq.addEventListener) themeMq.addEventListener('change', onDeviceTheme); else if (themeMq.addListener) themeMq.addListener(onDeviceTheme);
+  // compact: the header icon button (sun / moon); otherwise the "theme: dark" text button used in the "?" panels.
+  function themeToggle(compact) {
+    var b = h('button', { class: compact ? 'c-ghost c-themebtn' : 'c-ghost c-togglebtn c-themetxt', type: 'button' });
+    b._paint = function () {
+      var t = currentTheme(), other = t === 'light' ? 'dark' : 'light';
+      b.setAttribute('aria-label', 'Switch to ' + other + ' theme');
+      b.setAttribute('aria-pressed', String(t === 'light'));
+      b.textContent = '';
+      if (compact) b.appendChild(themeIcon(t));
+      else b.textContent = 'theme: ' + t;
+    };
+    b.addEventListener('click', function () { setTheme(currentTheme() === 'light' ? 'dark' : 'light'); });
+    b._paint();
+    themeButtons.push(b);
+    return b;
+  }
+  // Dark theme shows a sun (switch to light); light theme shows a moon (switch to dark). Shapes only, currentColor.
+  function themeIcon(t) {
+    var a = { fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5', 'stroke-linecap': 'square' };
+    var kids = t === 'light' ? [svgEl('path', Object.assign({ d: 'M13.5 10.2A5.5 5.5 0 0 1 5.8 2.5a5.5 5.5 0 1 0 7.7 7.7z' }, a))]
+      : [svgEl('circle', Object.assign({ cx: '8', cy: '8', r: '3' }, a)), svgEl('path', Object.assign({ d: 'M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M3 13l1.4-1.4M11.6 4.4L13 3' }, a))];
+    return svgEl('svg', { viewBox: '0 0 16 16', width: '16', height: '16', 'aria-hidden': 'true', focusable: 'false' }, kids);
+  }
+
   /* ---------- glossary: tappable terms; the case screen shows the definition (termSink) ---------- */
   var GLOSSARY = window.GLOSSARY || {};
   var TERMS = Object.keys(GLOSSARY).sort(function (a, b) { return b.length - a.length; });
@@ -153,14 +196,15 @@
       h('p', { text: 'Real breaches, replayed. Investigate, then defend.' }),
       h('p', { class: 'c-steps', 'aria-label': 'Each case: 1 brief, 2 investigate, 3 defend' }, [
         h('span', { class: 't-g', text: '01' }), ' brief \u2192 ', h('span', { class: 't-g', text: '02' }), ' investigate \u2192 ', h('span', { class: 't-g', text: '03' }), ' defend'
-      ])
+      ]),
+      h('div', { class: 'c-toggles' }, [themeToggle(false)])
     ]);
     var helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How it works', 'aria-expanded': 'false', 'aria-controls': 'c-maphelp', text: '?', onclick: function () {
       var open = helpBox.hidden; helpBox.hidden = !open; helpBtn.setAttribute('aria-expanded', String(open));
     } });
     app.appendChild(h('header', { class: 'c-maphead' }, [
       h('span', { class: 'c-keptlabel', text: 'KEPT ACADEMY' }),
-      h('span', { class: 'c-headright' }, [helpBtn, h('span', { class: 'c-xp', 'aria-label': totalStars + ' stars earned', text: totalStars + ' \u2605' })])
+      h('span', { class: 'c-headright' }, [helpBtn, themeToggle(true), h('span', { class: 'c-xp', 'aria-label': totalStars + ' stars earned', text: totalStars + ' \u2605' })])
     ]));
     app.appendChild(h('h1', { class: 'c-brand', text: 'Breach Escape' }));
     app.appendChild(helpBox);
@@ -227,7 +271,7 @@
   }
 
   /* ---------- About ---------- */
-  var STORE_KEYS = [STORE_KEY, 'breach-escape-voice', SOUND_KEY];   // every localStorage key this app writes
+  var STORE_KEYS = [STORE_KEY, 'breach-escape-voice', SOUND_KEY, THEME_KEY];   // every localStorage key this app writes
   var ABOUT_UPDATED = '2026-11-19';
   function extLink(href, text) { return h('a', { href: href, target: '_blank', rel: 'noopener noreferrer', text: text }); }
   function renderAbout() {
@@ -236,7 +280,7 @@
     if (window.BreachCase) window.BreachCase.backdrop('brand');
     app.appendChild(h('div', { class: 'c-hud' }, [
       h('button', { class: 'c-ghost c-exit', onclick: renderMap }, ['\u2039 back to map']),
-      h('span', { class: 'c-act', text: 'ABOUT' }), h('span', {})
+      h('span', { class: 'c-act', text: 'ABOUT' }), themeToggle(true)
     ]));
     var site = window.SITE || {};
     var panel = function (cls, title, kids) { return h('div', { class: 'c-panel' + (cls ? ' ' + cls : '') }, [h('div', { class: 'c-eyebrow', text: title })].concat(kids)); };
@@ -280,6 +324,7 @@
   function resetProgress() {
     STORE_KEYS.forEach(function (k) { try { localStorage.removeItem(k); } catch (e) { /* storage unavailable */ } });
     progress = {};
+    applyTheme(deviceTheme());   // back to the device setting
     renderMap();
   }
 
@@ -399,7 +444,8 @@
     renderMap: renderMap,
     renderAbout: renderAbout,
     sound: sound,
-    soundToggle: soundToggle
+    soundToggle: soundToggle,
+    themeToggle: themeToggle
   };
 
   /* ---------- boot (after case.js has loaded too) ---------- */

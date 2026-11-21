@@ -363,7 +363,9 @@ body.c-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 /* ---------- SOC LEAD voice ---------- */
 .c-toast .c-voice{display:block;font-weight:400;margin-top:2px}
 .case p.c-voice{font-size:max(0.75rem,var(--fs-b));color:var(--muted)}
-.case .c-voicebtn{align-self:flex-start;min-height:36px;padding:6px 10px}
+.case .c-voicebtn,.case .c-togglebtn{align-self:flex-start;min-height:36px;padding:6px 10px}
+.case .c-themebtn{min-height:36px;min-width:36px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.case .c-themebtn svg{display:block}
 
 /* ---------- Breach Map intro, footer, About ---------- */
 .case p.c-steps{font-size:max(0.75rem,var(--fs-l));color:var(--muted);letter-spacing:.04em}

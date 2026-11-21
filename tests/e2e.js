@@ -91,10 +91,12 @@ function tokenContrast() {
 }
 
 async function run(view, c, browser) {
-  const ctxOpts = view.phone ? { ...devices['iPhone 13'] } : { viewport: view.vp, deviceScaleFactor: 1 };
+  // Both colour themes are played: the device setting alternates by view and case (the contrast checks measure both anyway).
+  const scheme = (VIEWS.indexOf(view) + c.level) % 2 ? 'light' : 'dark';
+  const ctxOpts = { ...(view.phone ? devices['iPhone 13'] : { viewport: view.vp, deviceScaleFactor: 1 }), colorScheme: scheme };
   const ctx = await browser.newContext(ctxOpts);
   const page = await ctx.newPage();
-  const tag = view.name + ' ' + c.id;
+  const tag = view.name + ' ' + c.id + ' ' + scheme;
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.type() + ': ' + m.text()); });
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
@@ -153,7 +155,7 @@ async function run(view, c, browser) {
   const theme = async (where) => {
     const t = await page.evaluate(() => ({ a: document.documentElement.getAttribute('data-case'), th: document.documentElement.getAttribute('data-theme'), rain: document.querySelectorAll('canvas').length }));
     if (t.a !== THEMES[c.id]) bad(tag + ' ' + where + ' case colour ' + t.a);
-    if (t.th !== 'dark' && t.th !== 'light') bad(tag + ' ' + where + ' colour theme ' + t.th);
+    if (t.th !== scheme) bad(tag + ' ' + where + ' colour theme ' + t.th + ', device is ' + scheme);
     if (t.rain) bad(tag + ' ' + where + ' code rain canvas still in the page');
   };
   const shot = (n) => page.screenshot({ path: SHOTS + '/' + view.name + '-' + c.id + '-' + n + '.png' });
@@ -464,6 +466,47 @@ async function run(view, c, browser) {
     errs.forEach((e) => bad('sound test: ' + e));
     console.log('ok sound');
     await ctx.close();
+  }
+  // Colour theme: follows the device, set before the first paint (no flash), header and "?" toggles, saved, cleared by reset.
+  if (!process.env.CASE) {
+    for (const scheme of ['dark', 'light']) {
+      const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 }, colorScheme: scheme });
+      await ctx.addInitScript(() => {
+        sessionStorage.setItem('breach-escape-splash', '1');
+        // The theme attribute when <body> first appears, i.e. before anything can paint.
+        new MutationObserver((m, o) => { if (document.body) { window.__firstTheme = document.documentElement.getAttribute('data-theme'); o.disconnect(); } })
+          .observe(document, { childList: true, subtree: true });
+      });
+      const pg = await ctx.newPage(); const errs = [];
+      pg.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); }); pg.on('pageerror', (e) => errs.push(e.message));
+      await pg.goto(BASE); await pg.waitForSelector('.c-case');
+      const first = await pg.evaluate(() => window.__firstTheme);
+      if (first !== scheme) bad('theme before first paint is ' + first + ', device is ' + scheme);
+      const bg = await pg.evaluate(() => getComputedStyle(document.body).backgroundColor);
+      if (bg !== (scheme === 'light' ? 'rgb(244, 246, 248)' : 'rgb(11, 14, 18)')) bad(scheme + ' device: body background ' + bg);
+      const other = scheme === 'light' ? 'dark' : 'light';
+      await pg.click('.c-maphead .c-themebtn');
+      if ((await pg.evaluate(() => document.documentElement.getAttribute('data-theme'))) !== other) bad('header theme toggle did not switch to ' + other);
+      if ((await pg.evaluate(() => localStorage.getItem('breach-escape-theme'))) !== other) bad('theme choice not saved');
+      await pg.reload(); await pg.waitForSelector('.c-case');
+      if ((await pg.evaluate(() => window.__firstTheme)) !== other) bad('saved theme not applied before first paint: ' + (await pg.evaluate(() => window.__firstTheme)));
+      // "?" panel toggle (map help) and the same toggle in a case's help panel
+      await pg.click('.c-maphead .c-helpbtn');
+      if ((await pg.textContent('.c-maphelp .c-themetxt')) !== 'theme: ' + other) bad('map help theme toggle text ' + (await pg.textContent('.c-maphelp .c-themetxt')));
+      await pg.click('.c-maphelp .c-themetxt');
+      if ((await pg.evaluate(() => document.documentElement.getAttribute('data-theme'))) !== scheme) bad('help-panel theme toggle did not switch back');
+      if ((await pg.getAttribute('.c-maphead .c-themebtn', 'aria-label')) !== 'Switch to ' + other + ' theme') bad('header toggle label not repainted');
+      await pg.click('button.c-case >> nth=0'); await pg.waitForSelector('.c-briefbar');
+      if (!(await pg.locator('.c-hud .c-themebtn').count())) bad('no theme toggle in the case header');
+      await pg.click('.c-hud .c-themebtn');
+      await pg.click('.c-exit'); await pg.waitForSelector('.c-case');
+      await pg.click('text=> about'); await pg.click('.c-resetbtn'); await pg.click('.c-confirm .c-yes'); await pg.waitForSelector('.c-case');
+      if (await pg.evaluate(() => localStorage.getItem('breach-escape-theme'))) bad('reset kept the theme choice');
+      if ((await pg.evaluate(() => document.documentElement.getAttribute('data-theme'))) !== scheme) bad('reset did not return to the device theme');
+      errs.forEach((e) => bad('theme test: ' + e));
+      await ctx.close();
+    }
+    console.log('ok theme switching');
   }
   // Splash for a returning player, then reduced motion; About reset clears only this app's keys.
   if (!process.env.CASE) {

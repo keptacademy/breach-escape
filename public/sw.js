@@ -3,7 +3,7 @@
 const VERSION = 'v42';
 const CACHE = 'breach-escape-' + VERSION;
 const FILES = [
-  './', 'index.html', 'theme.css', 'levels.js', 'app.js', 'case.js', 'levels/midnight-blizzard.json', 'levels/colonial-pipeline.json', 'levels/uber-2022.json', 'manifest.webmanifest',
+  './', 'index.html', 'theme-init.js', 'theme.css', 'levels.js', 'app.js', 'case.js', 'levels/midnight-blizzard.json', 'levels/colonial-pipeline.json', 'levels/uber-2022.json', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png',
   'icons/icon.svg', 'icons/favicon.svg', 'icons/favicon-32.png', 'brand/kept-mark.svg'
 ];

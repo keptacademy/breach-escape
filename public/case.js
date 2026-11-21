@@ -141,7 +141,7 @@
     hud.xp = opts.briefing ? null : h('span', { class: 'c-xp', text: 'XP ' + pad(C.xp) });
     app.appendChild(h('div', { class: 'c-hud' }, [
       h('button', { class: 'c-ghost c-exit', onclick: BE.renderMap }, ['\u2039 exit to map']),
-      hud.act, hud.xp || h('span', { class: 'c-tagb', text: 'BRIEFING' })
+      hud.act, h('span', { class: 'c-headright' }, [BE.themeToggle(true), hud.xp || h('span', { class: 'c-tagb', text: 'BRIEFING' })])
     ]));
     // Glossary taps on this screen show their definition in a terminal panel.
     defBox = h('div', { class: 'c-def', role: 'status', hidden: true, onclick: function () { defBox.hidden = true; } });
@@ -391,7 +391,7 @@
       para(a1.help),
       h('p', { class: 'c-small', text: 'Tip: double-click a card (or press Enter) to add it to the timeline.' }),
       h('p', { class: 'c-small', text: 'Keys: A add to timeline \u00b7 X not related \u00b7 H hint. Tap a dotted word to see what it means.' }),
-      h('div', { class: 'c-toggles' }, [voiceToggle(), BE.soundToggle()])
+      h('div', { class: 'c-toggles' }, [voiceToggle(), BE.soundToggle(), BE.themeToggle(false)])
     ]);
     E.helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How to play', 'aria-expanded': 'false', 'aria-controls': 'c-help', text: '?', onclick: function () {
       var open = E.helpBox.hidden; E.helpBox.hidden = !open; E.helpBtn.setAttribute('aria-expanded', String(open));
@@ -711,7 +711,7 @@
     BE.onLeave(stopRun);
 
     F.title = h('h2', { class: 'c-h2', text: a2.title });
-    var helpBox = h('div', { class: 'c-helpbox', id: 'c-help2', hidden: true }, [para(a2.help), scaleHelp(), h('div', { class: 'c-toggles' }, [voiceToggle(), BE.soundToggle()])]);
+    var helpBox = h('div', { class: 'c-helpbox', id: 'c-help2', hidden: true }, [para(a2.help), scaleHelp(), h('div', { class: 'c-toggles' }, [voiceToggle(), BE.soundToggle(), BE.themeToggle(false)])]);
     var helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How to play', 'aria-expanded': 'false', 'aria-controls': 'c-help2', text: '?', onclick: function () {
       var open = helpBox.hidden; helpBox.hidden = !open; helpBtn.setAttribute('aria-expanded', String(open));
     } });
