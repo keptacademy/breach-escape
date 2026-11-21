@@ -1185,13 +1185,17 @@
       stat('decoys bought', pad(r.decoys, 2), r.decoys ? 'y' : '')
     ]));
 
-    // Defense layers the build had: prevent / detect / recover.
+    // Defense layers the build had: prevent / detect / recover. A control on a stage the attack never reached didn't act
+    // in this run: it's shown as standby (still counts for stars: it's the backup if prevention fails).
+    function reached(c) { return !res.blocked || c.stage <= res.blocked; }
     var layers = h('ul', { class: 'c-buildlist c-layers' });
     [['prevent', 'stops the attack'], ['detect', 'notices the attack if prevention fails'], ['recover', 'a way back after an attack']].forEach(function (ly) {
-      var list = r.layers[ly[0]], has = list.length > 0;
+      var list = r.layers[ly[0]], has = list.length > 0, acted = list.some(reached);
       layers.appendChild(h('li', { class: has ? 'on' : '' }, [
-        h('div', { class: 'c-hud' }, [h('b', { text: ly[0].toUpperCase() }), h('span', { class: 'c-pill ' + (has ? 'g' : 'o'), text: has ? '✓ IN BUILD' : '— MISSING' })]),
-        h('p', { class: 'c-why' }, has ? [list.map(function (c) { return plain(c.name) + ' (stage ' + c.stage + ')'; }).join(' · ')] : [ly[1]])
+        h('div', { class: 'c-hud' }, [h('b', { text: ly[0].toUpperCase() }),
+          h('span', { class: 'c-pill ' + (!has ? 'o' : acted ? 'g' : 'o'), text: !has ? '— MISSING' : acted ? '✓ ACTED' : '◇ STANDBY' })]),
+        h('p', { class: 'c-why' }, has ? [list.map(function (c) { return plain(c.name) + ' (stage ' + c.stage + (reached(c) ? '' : ', not reached this run') + ')'; }).join(' · ')] : [ly[1]]),
+        has && !acted ? h('p', { class: 'c-why c-small', text: 'The attack was stopped at stage ' + res.blocked + ', before this layer was needed. It stays your backup if prevention fails.' }) : null
       ]));
     });
     app.appendChild(panel('', [eyebrow('Defense layers'), layers]));
@@ -1239,9 +1243,11 @@
     var build = h('ul', { class: 'c-buildlist' });
     deployed().forEach(function (c) {
       var wrongSpot = c.effect !== 'decoy' && !placedOk(c);
+      var standby = !wrongSpot && c.effect !== 'decoy' && c.effect !== 'reveal' && !reached(c);
       build.appendChild(h('li', {}, [
         h('div', { class: 'c-hud' }, [rich(c.name, h('b', {}), false), h('span', { class: 'c-pill ' + (c.effect === 'decoy' || wrongSpot ? 'y' : 'o'), text: wrongSpot ? 'WRONG STAGE' : layerOf(c).toUpperCase() })]),
         wrongSpot ? h('p', { class: 'c-why' }, [h('span', { class: 't-y', text: '[~] ' }), 'Placed on stage ' + at(c) + '; it works on stage ' + c.stage + ' (', rich(stageOf(c.stage).name, null, false), ').']) : null,
+        standby ? h('p', { class: 'c-why' }, [h('span', { class: 't-b', text: '[\u25c7] ' }), 'Not reached this run: the attack stopped at stage ' + res.blocked + '.']) : null,
         withFn(h('p', { class: 'c-why' }, [rich(c.why, null, false), c.teach ? ' ' + c.teach : '']), c.source)
       ]));
     });

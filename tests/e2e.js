@@ -383,6 +383,9 @@ async function run(view, c, browser) {
     if (firstRun && !(await page.locator('.c-srclist li').count())) bad(tag + ' no sources panel on the results');
     if (kind === 'contained') await shot('6contained');
     if (run.stars === 3) await shot('7threestar');
+    // layers the attack never reached are shown as standby, not as if they acted
+    if (run.stars === 3 && !(await page.textContent('.c-layers')).includes('STANDBY')) bad(tag + ' 3-star build: no STANDBY layer');
+    if (!run.stars && (await page.textContent('.c-layers')).includes('STANDBY')) bad(tag + ' STANDBY shown when nothing stopped the attack');
     firstRun = false;
     await page.emulateMedia({ reducedMotion: 'no-preference' });
   }
