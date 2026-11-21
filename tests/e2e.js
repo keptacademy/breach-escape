@@ -380,6 +380,7 @@ async function run(view, c, browser) {
     await contrast('results-' + kind);
     await bottomCheck('results-' + kind);
     if (firstRun) await shot('5results');
+    if (!(await page.locator('.c-nextcase').count())) bad(tag + ' no NEXT CASE button on the results');
     if (firstRun && /source:/.test(await page.textContent('#app'))) bad(tag + ' inline "source:" link on the results');
     if (firstRun && !(await page.locator('.c-srclist li').count())) bad(tag + ' no sources panel on the results');
     if (kind === 'contained') await shot('6contained');

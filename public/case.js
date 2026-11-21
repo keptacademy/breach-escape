@@ -256,6 +256,7 @@
   }
   function start(L) {
     C = { L: L, d: null, xp: 0 }; lastVoice = null;
+    A = null; B = null;   // a new case never inherits the previous case's board or build (ids can repeat across cases)
     frame('LOADING');
     app.appendChild(panel('', [h('p', {}, ['> fetching case file', h('span', { class: 'c-blink', text: '_' })])]));
     var url = L.case;
@@ -1258,8 +1259,20 @@
     app.appendChild(panel('', [eyebrow('Your build · ' + B.on.length + ' controls'), build]));
 
     app.appendChild(h('button', { class: 'c-btn', text: '> TRY ANOTHER BUILD', onclick: startAct2 }));
+    var nx = nextCase();
+    if (nx) app.appendChild(h('button', { class: 'c-btn c-nextcase', text: '> NEXT CASE: ' + nx.name + ' \u203a', onclick: function () { start(nx); } }));
     app.appendChild(h('button', { class: 'c-ghost c-wide', text: './restart --case ' + d.caseNo, onclick: restartCase }));
     app.appendChild(sourcesPanel());
+  }
+  // The next case to play: the first playable case after this one (wrapping) that has no stars yet, else simply the next
+  // playable one in map order. Null when this is the only playable case.
+  function nextCase() {
+    var ready = (window.LEVELS || []).filter(function (L) { return L.status === 'ready' && L.case; });
+    var i = ready.indexOf(C.L); if (i < 0 || ready.length < 2) return null;
+    var order = ready.slice(i + 1).concat(ready.slice(0, i));
+    var cases = BE.progress().cases || {};
+    var open = order.filter(function (L) { var r = cases[L.case.replace(/^.*\//, '').replace(/\.json$/, '')]; return !(r && r.act2 && r.act2.bestStars > 0); });
+    return open[0] || order[0];
   }
   function voiceP(v) { return v ? h('p', { class: 'c-voice', role: 'status', text: v }) : null; }
   function restartCase() {
