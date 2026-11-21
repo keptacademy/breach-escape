@@ -21,7 +21,7 @@ Only `public/` is deployed (an allow-list): the Azure workflow uses `app_locatio
 | `public/icons/` | App icon `>K_`: SVG source and favicon, PNGs 192, 512, maskable 512, Apple touch 180, favicon 32. Made by `tools/make_icons.js`. |
 | `public/brand/` | KEPT brand mark (KE / PT block): SVG and a 1024 PNG. Shown on the About page. |
 | `public/staticwebapp.config.json` | Azure Static Web Apps settings: security headers and 404 routes. SWA reads it from `app_location`. |
-| `tools/` | Level tooling (Python, standard library): `level.schema.json`, `schema_check.py`, `validate`, `new_case`. Not deployed. |
+| `tools/` | Level tooling (Python, standard library): `level.schema.json`, `schema_check.py`, `validate`, `new_case`, `solve` (balance solver: cheapest build per star level). Not deployed. |
 | `tests/` | `serve.js` (local server with the production headers) and `e2e.js` (Playwright end-to-end suite). Not deployed. |
 | `docs/redesign/` | Spec, prototype and STATUS. Not deployed. |
 

@@ -1,6 +1,6 @@
 # Breach Escape v2 redesign: status and handoff
 
-Last updated: 2026-11-20. Branch `feature/desktop-polish`, PR https://github.com/keptacademy/breach-escape/pull/3 (into `main`). PR #1 and PR #2 (`claude/uber-2022`) are merged.
+Last updated: 2026-11-20. Branch `claude/gameplay-round` (PR to `main` opened by Nura). PRs #1, #2 and #3 are merged.
 Live v1 quiz is saved as tag `v1-quiz` (`e0df885`, main's commit before this work).
 
 ## Goal
@@ -191,6 +191,21 @@ On desktop (~1100–1440px) the game looked like a phone layout in the middle of
 - **Test runs this round (per CLAUDE.md):** full run 1: one failure, 1280×720 Midnight (the double-click bug above, an app bug); fixed, that test rerun alone: passed. Full run 2: one failure, 1280×720 Midnight again, a test bug: the desktop drag grabbed the shuffled first card without scrolling it into view, so when the shuffle put it below the evidence panel's fold the press missed (the knock-on failures followed). Fixed (scroll into view, like the phone branch) and made deterministic (above); checked that the pinned order fails without the fix (7 failures) and passes with it (rerun alone). Every other test passed in both full runs (sound, splash/reset, allow-list, symlinks, replay hero, bad links, all three cases at 1920×1080 and 390×844, Colonial and Uber at 1280×720). No third full run, per the two-run limit. **Before merging, one clean full run of the final code is still required.**
 - Screenshots (1280×720, Midnight Blizzard): `docs/redesign/screenshots/round14/` (briefing alert, briefing mission, Act 1, Act 1 timeline full, debrief, Act 2 with discovery deployed, results). Not deployed.
 - Validator: 0 errors, 50 warnings (quotes, unchanged). `sw.js` `v42`.
+
+## Round 15 (2026-11-20): gameplay round (`claude/gameplay-round`)
+1. **Balance solver** `tools/solve` (Python, standard library): tries every build within budget (controls on their own stage, decoys left out), prints the cheapest build per star level, every cheapest ★★★ build (`--all` lists all) and warnings; exit 1 if a case has no ★★★. Mirrors `simulate()`/`score()` in `case.js`: change both together. Current: Midnight ★★★ 9/9 (2 builds), Colonial 8/8 (1), Uber 7/7 (6).
+2. **Visible replay:** `stepMs` 1100 in all three cases; each stage shows "▶ UNDER ATTACK" for `stepMs`, then its result holds for `holdMs` (default 0.6 × `stepMs`). The control that acted is outlined on its map chip (block / detect / recover; dashed for decoys, scoped and misplaced). "skip replay ›" in the bar (replaces reset build while running) jumps to the results.
+3. **Placement matters:** controls sit where the player puts them (`B.at`) and only work on their own `stage`. Drag onto a stage, or tap the card and then a highlighted stage in its zone (one-stage zones deploy at once; tap the card again or Escape cancels); dragging a deployed control moves it. Discovery (`reveal`) controls aren't placed. A misplaced control does nothing: replay log line, dashed chip, "[~] placed here, but it protects stage n" in the stage list, WRONG STAGE pill in the build, and a tip. Detect/recover count for stars only when placed right. Card aria-labels and `logs.wrongZoneScoped` no longer give the stage away; help text updated in all three cases. The solver assumes correct placement (the best case).
+4. **Act 1 wrong-card messages** add a reason built from the card itself (its `src` label and place in the order), after the case's own wrong line: red herring → "send it to Not related"; too early → "n steps ahead"; real card sent to Not related → "the next step" or "belongs later". No new facts.
+5. **Results match the run:** defense layers show ✓ ACTED or ◇ STANDBY; a control on a stage the attack never reached says "not reached this run" (layers and build list). Star rules unchanged (★★★ still needs a detect and a recover layer as backup).
+6. **Colonial:** "Rehearsed incident response plan" is now `recover` (was `detect`). Only ★★★ build: audit + disable + EDR + IR plan (8/8). Offline backups (3) no longer fit in any ★★★ build.
+7. **EXECUTE** is outlined (dimmed) while the build is empty; it still runs.
+8. **NEXT CASE** button on the results: the next playable case without stars (after this one, wrapping), else the next one in map order.
+- **Bug fixed:** opening another case kept the previous case's Act 1 board and Act 2 build in memory (ids like `audit` repeat across cases). `start()` resets both.
+- Layout: a stage name no longer shrinks to one word per line beside its pills (`.c-nname` flex-basis 12em; pills wrap under it).
+- Tests: tap deploy goes through the stage picker; misplaced-control run per case (no effect, WRONG STAGE, tip); UNDER ATTACK marker; STANDBY on ★★★ builds and never on unstopped runs; EXECUTE dimmed when empty; NEXT CASE present. Colonial runs updated for item 6.
+- **Test runs (per CLAUDE.md):** full run 1: one failure in all 9 case runs, a test bug (the replay check read the new UNDER ATTACK marker as stage 1's result); fixed, rerun alone (1280×720 Midnight): passed. A new-screen screenshot showed stage names squeezed to one word per line beside the pills; CSS fixed, same test rerun alone: passed. **Full run 2: all passing** (sound, splash/reset, allow-list, symlinks, replay hero, bad links, all three cases at 1280×720, 1920×1080, 390×844 under the production CSP). Before merging, one more clean full run of the final code is required.
+- Validator: 0 errors, 50 warnings (quotes, unchanged). Schema check: ok. `sw.js` `v43`.
 
 ## Decisions made
 - **Act 1 scoring:** +50 for each correct placement, +30 per red herring dismissed, −20 per mistake, −10 per hint, +100 for patient zero. XP never goes below 0.

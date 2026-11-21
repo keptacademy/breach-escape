@@ -12,7 +12,7 @@
 ## Project rules
 - **Primary sources only.** Every fact in a case comes from a primary source listed in its level JSON. A fact that can't be checked gets a `todo` field ("TODO: verify …"); never invent or fill gaps from memory. Recreated log rows are marked `illustrative: true` and shown as "recreated for training".
 - **Strict CSP, unchanged.** No `innerHTML` (build DOM with `h()` / `createElementNS`, text via `textContent`), no inline `<script>` or `style=""`, no injected `<style>`, and no outside URLs in code (links to sources in content are fine). No new packages without asking.
-- **Never touch `main`.** Work on the session branch (currently `claude/uber-2022`, PR #2).
+- **Never touch `main`.** Work on the session branch (currently `claude/gameplay-round`); `main` is protected and changes only through a PR that Nura merges.
 - **Only `public/` is deployed** (`app_location: "public"`). Shipped game files live there and nowhere else; tools, tests and docs stay outside it.
 - **Bump `VERSION` in `public/sw.js`** whenever shipped files change.
 - **Update `docs/redesign/STATUS.md`** every round.
