@@ -1,6 +1,6 @@
 # Breach Escape v2 redesign: status and handoff
 
-Last updated: 2026-11-20. Branch `feature/desktop-polish`, PR https://github.com/keptacademy/breach-escape/pull/3 (into `main`). PR #1 and PR #2 (`claude/uber-2022`) are merged.
+Last updated: 2026-11-21. Branch `feature/restyle-d`, PR https://github.com/keptacademy/breach-escape/pull/4 (into `main`). PR #1, #2 and #3 are merged.
 Live v1 quiz is saved as tag `v1-quiz` (`e0df885`, main's commit before this work).
 
 ## Goal
@@ -29,15 +29,17 @@ The Breach Map itself scrolls at 720 px high (it lists 7 levels); that's allowed
 ## File map
 | File | What it does |
 |---|---|
-| `public/index.html` | Shell: loads `theme.css`, `levels.js`, `app.js`, `case.js`. `<main class="app case">`. |
-| `theme.css` | The only stylesheet: terminal theme for every screen. Colour tokens on `:root` (`--c-*`), classes prefixed `c-`. One-screen desktop layouts (`.c-fit`, 900px+), pinned bars, phone layouts, Breach Map. `<code>` uses a neutral style; yellow is only for decoys, the test tenant and ATTEMPTED. |
+| `public/index.html` | Shell: loads `theme-init.js` (blocking, in `<head>`), `theme.css`, `levels.js`, `app.js`, `case.js`. `<main class="app case">`. |
+| `theme-init.js` | Sets `<html data-theme="dark|light">` before the first paint: saved choice (`breach-escape-theme`), else the device setting. |
+| `fonts/` | IBM Plex Sans + Mono 400/500/600 (latin woff2, from @fontsource 5.3.0) and `OFL.txt`. |
+| `theme.css` | The only stylesheet, design D (round 15). Tokens per colour theme: `--bg --panel --raised --line --text --muted --accent --on-accent --sel-bg`, status `--ok/--ok-bg` (blocked) `--bad/--bad-bg` (breached) `--warn/--warn-bg` (attempted, PROMPTED) `--imp/--imp-bg` (impact), `--term --term-text`, `--case` (case colour from `data-case`), `--sans --mono`. `.c-tsurf` = terminal surface (dark in both themes). Classes prefixed `c-`. One-screen desktop layouts (`.c-fit`, 900px+), pinned bars, phone layouts, Breach Map. `<code>` uses a neutral style; yellow is only for decoys, the test tenant and ATTEMPTED. |
 | `app.js` | App shell: Breach Map, progress in localStorage (`breach-escape-progress-v1`), glossary `termify`, shared helpers. Exposes `window.BreachEscape` (h, termify, shuffle, progress, onLeave, leave, renderMap, …). Boots on `DOMContentLoaded` so `case.js` is loaded first. |
-| `case.js` | Case engine: code rain + red edge flash (`BreachCase.backdrop()` is also used by the map), briefing renderer (block types: alert, note, panel, facts, timeline, diagram, glossary, mission), Act 1, Act 2 (`simulate()` then animate), results, shared drag-and-drop (Pointer Events, press-and-hold on touch). Text in backticks is rendered as `<code>`. |
+| `case.js` | Case engine: case colour (`data-case`) + red edge flash (`BreachCase.backdrop()` is also used by the map), briefing renderer (block types: alert, note, panel, facts, timeline, diagram, glossary, mission), Act 1, Act 2 (`simulate()` then animate), results, shared drag-and-drop (Pointer Events, press-and-hold on touch). Text in backticks is rendered as `<code>`. |
 | `levels.js` | `window.LEVELS` (map list; playable levels have `case: 'levels/<id>.json'`) and `window.GLOSSARY` (shared by all cases). |
 | `levels/*.json` | All case content and rules. Act 2 stage codes are read from `timeline[].mitre` (single source). Act 2 keys added this pass: `preventedMaxStage`, `lossLabel`, `attemptedNote`, `mapCmd`, `outcomes.{prevented,contained,detected,succeeded}`, `logs.attempted`, `map.stages[].unblockable`. |
-| `icons/` | App icon `>K_` in corner brackets (silver brackets and K, ice-blue `>` and `_`): `icon.svg`, `favicon.svg`, PNGs 192/512/maskable 512/Apple 180/favicon 32. Made by `tools/make_icons.js` (shapes only, no fonts). |
-| `brand/` | KEPT brand mark (KE / PT, silver, ice-blue brackets): SVG + 1024 PNG. About header only; the map header stays one-line "KEPT ACADEMY". |
-| `sw.js` | Offline cache, network-first. Currently `v42`; bump on every deploy. Caches all three case files and the icons. |
+| `icons/` | App icon `>K_` in corner brackets on `#0B0E12` (silver brackets and K, ice-blue `>` and `_`): `icon.svg`, `favicon.svg`, PNGs 192/512/maskable 512/Apple 180/favicon 32. Made by `tools/make_icons.js` (shapes only, no fonts). |
+| `brand/` | KEPT brand mark (KE / PT): `kept-mark.svg` (silver, ice-blue brackets) for dark, `kept-mark-light.svg` (ink, blue brackets) for light, + 1024 PNG. About header only. |
+| `sw.js` | Offline cache, network-first. Currently `v43`; bump on every deploy. Caches all three case files, the icons, both brand marks and the six font files. |
 | `staticwebapp.config.json` | Strict CSP and security headers; 404 for `/docs/*`, `/*.md`, `/.github/*`. Unchanged. |
 | `.github/workflows/deploy.yml` | CodeQL → production deploy (push to main only, `production` environment). PRs: `preview` job deploys an Azure preview environment, and `close_preview` removes it when the PR closes. Fork PRs are skipped. |
 | `.github/dependabot.yml` | Weekly updates for the pinned Actions. |
@@ -241,10 +243,21 @@ On desktop (~1100–1440px) the game looked like a phone layout in the middle of
   - Microsoft Security Blog, Jan 25 2024: https://www.microsoft.com/en-us/security/blog/2024/01/25/midnight-blizzard-guidance-for-responders-on-nation-state-attack/
   - SEC Form 8-K, filed Jan 19 2024 (date of report Jan 17 2024): https://www.sec.gov/Archives/edgar/data/789019/000119312524011295/d708866d8k.htm (verified by Nura, 2026-11-20)
 
+## Round 15 (2026-11-21): restyle "D · Modern + KEPT signature", dark and light themes
+Behaviour and content are unchanged; only styling, plus the theme toggle.
+1. **Tokens.** One token set per colour theme on `<html data-theme="dark|light">` (values from the design spec). Status colours are fixed in every case (pill text on tint): blocked, breached, attempted (also PROMPTED and other `neutral` stages, which no longer borrow the impact style), impact, not reached (muted outline; used for "— MISSING"). The case colour (green / amber / violet) moved to `<html data-case>` and is only an accent: the 3px top stripe, the case marker in the breadcrumb and the "Case NN" badges, and the map cards (hero top stripe, list row left stripe; `theme` added to the ready entries in `levels.js`, same values as the JSON). Terminal surfaces (`.c-tsurf`: attack log, evidence log preview, splash) stay dark in both themes (term `#080A0D` dark, `#0F141A` light, text `#D7DEE6`). Selection and focus use the accent instead of yellow.
+   - **Differs from the spec:** light "blocked" text is `#107B4C`, not `#11804F`: `#11804F` on `#DDF5E8` is 4.33:1, under the 4.5:1 rule.
+2. **Theme switching.** `theme-init.js` (blocking script in `<head>`, before the stylesheet; no inline script) sets the theme before the first paint: saved choice, else `prefers-color-scheme`, and it follows live device changes while nothing is saved. Toggle: sun/moon button in every header, "theme: dark|light" in each "?" panel (map, Act 1, Act 2). Saved as `breach-escape-theme`; "Reset my progress" removes it and returns to the device theme. `theme-color` meta follows the theme.
+3. **Type.** IBM Plex Sans (UI) and Mono (data: logs, IDs, MITRE codes, timestamps, XP, breadcrumbs, status pills), 400/500/600, latin woff2 self-hosted in `public/fonts/` with `OFL.txt` (files copied from @fontsource 5.3.0; no dependency added). CSP unchanged. Sentence case for labels, buttons, zone names, timeline dates and stat values (damage "Severe", friction "Low", threat "Critical"; internal values unchanged); status pills, the alert bar and the clearance pill stay upper case.
+4. **Signature.** 2-3px corners, 1px rules. Corner brackets (2px accent, 14px) only on the Act 2 attack-path map, the map's hero card and the briefing alert. `>` in mono accent before section titles. Header: `>K_` mark + mono breadcrumb `cases / <case-id> / <screen>`; "cases" is the link back to the map (aria-label "Exit to map"; it replaces the "‹ exit to map" button). Blinking block cursor after the Act 2 title and after the stage under attack in the replay (static with reduced motion). Code rain and scanlines removed.
+5. **All screens:** splash, map, About, briefing, Act 1, Act 2 + replay, debriefs, help and sources panels. Layouts from round 14 unchanged. App icons and favicon redrawn on `#0B0E12`; a light KE/PT mark (`brand/kept-mark-light.svg`) for About in the light theme. `sw.js` `v43`.
+6. **Checks.** Validator: 0 errors, 50 warnings (quotes, as before). There is no separate balance script; balance is the e2e build table (every build per case gives its expected outcome, stars and damage), which passes. New tests: token contrast for both themes (every text/background token pair, terminal tokens included); the DOM contrast walk now measures dark *and* light at every check point; theme before first paint for both device settings, toggles, saving, reset; fonts load from this site with the right family per role; no code-rain canvas; case colour per case. Case runs alternate the device theme (dark/light) across views. Key screens are saved in both themes: map, briefing, Act 1, Act 1 debrief, Act 2 replay, results (`docs/redesign/screenshots/round15/`).
+   - Full run 1: one failure, a test timing bug (the splash contrast check, now done in both themes, took ~1 s, so the splash had moved on to the logo). Fixed in the test, the case rerun passed. **Full run 2: all passing** (3 sizes × 3 cases, both themes, production CSP headers). Screenshots: 1280×720 and 390×844, map (Midnight) and Uber briefing, Act 1, Act 1 debrief, replay, results, each dark and light.
+
 ## Rules that always apply
 - Strict CSP, unchanged: no inline `<script>` and no `style=""` attributes (setting styles from JS, e.g. `el.style.width`, is fine). No `innerHTML`; build DOM with `h()` or `createElementNS`, text via `textContent`.
-- No outside requests: system monospace fonts, no CDNs or analytics. No new packages without asking.
-- Never push to `main`. Work on `claude/uber-2022`; PR #2 is the review vehicle.
+- No outside requests: self-hosted IBM Plex only (`font-src 'self'`), no CDNs or analytics. No new packages without asking.
+- Never push to `main`. Work on `feature/restyle-d`; PR #4 is the review vehicle.
 - Every fact comes from a primary source; recreated log rows stay labelled "recreated for training".
 - Bump `sw.js` `VERSION` on every change that ships.
 - Tip for edits: the Write tool stores `‹`-style escapes as the literal characters. Both work in JS, but patterns you search for must match what's actually in the file.

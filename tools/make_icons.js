@@ -7,7 +7,8 @@ const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
 
-const BG = '#010603', SILVER = '#E8EDF2', ICE = '#8DB7FF';
+// Dark theme tokens (design D): bg, text, accent. The light brand mark uses the light theme's text and accent.
+const BG = '#0B0E12', SILVER = '#E8EDF2', ICE = '#8DB7FF', INK = '#12161C', BLUE = '#2B64C8';
 const pub = path.join(__dirname, '..', 'public');
 
 // ">K_" on a 512 grid. Content spans about 72..440 so it can be scaled into the maskable safe zone.
@@ -26,11 +27,12 @@ function iconSvg(opts) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Breach Escape">${bg}${c}</svg>\n`;
 }
 
-// "KE / PT" block, 1024 grid: silver letters, ice-blue corner brackets, transparent ground.
-function brandSvg(withBg) {
+// "KE / PT" block, 1024 grid: silver letters, ice-blue corner brackets, transparent ground (light: ink letters, blue brackets).
+function brandSvg(withBg, light) {
+  const SILVER_ = light ? INK : SILVER, ICE_ = light ? BLUE : ICE;
   const i = 64, L = 168, w = 44, e = 1024 - i;
-  const br = `<path d="M${i} ${i + L}V${i}H${i + L}M${e - L} ${i}H${e}V${i + L}M${e} ${e - L}V${e}H${e - L}M${i + L} ${e}H${i}V${e - L}" fill="none" stroke="${ICE}" stroke-width="${w}" stroke-linecap="square"/>`;
-  const s = 'fill="none" stroke="' + SILVER + '" stroke-width="72" stroke-linecap="square" stroke-linejoin="miter"';
+  const br = `<path d="M${i} ${i + L}V${i}H${i + L}M${e - L} ${i}H${e}V${i + L}M${e} ${e - L}V${e}H${e - L}M${i + L} ${e}H${i}V${e - L}" fill="none" stroke="${ICE_}" stroke-width="${w}" stroke-linecap="square"/>`;
+  const s = 'fill="none" stroke="' + SILVER_ + '" stroke-width="72" stroke-linecap="square" stroke-linejoin="miter"';
   // cells: x 228..484 and 540..796; rows: y 196..460 and 564..828
   const K = `<path d="M264 196V460M448 196L300 328L448 460" ${s}/>`;
   const E = `<path d="M760 196H576V460H760M576 328H728" ${s}/>`;
@@ -43,7 +45,8 @@ function brandSvg(withBg) {
 const files = {
   'icons/icon.svg': iconSvg(),
   'icons/favicon.svg': iconSvg(),
-  'brand/kept-mark.svg': brandSvg(false)
+  'brand/kept-mark.svg': brandSvg(false),
+  'brand/kept-mark-light.svg': brandSvg(false, true)
 };
 for (const [f, s] of Object.entries(files)) fs.writeFileSync(path.join(pub, f), s);
 

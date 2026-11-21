@@ -34,6 +34,8 @@
   };
   function pad(n, w) { var s = String(Math.max(0, n)); while (s.length < (w || 4)) s = '0' + s; return s; }
   function cap(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
+  // Display only: internal labels such as damage 'SEVERE' are shown in sentence case ('Severe'); status pills stay upper case.
+  function sentence(t) { return cap(String(t || '').toLowerCase()); }
   function restart(el, cls) { if (!el || BE.reduceMotion()) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
   // Text from level JSON: `backticks` mark code (shown in <code>), the rest gets tappable glossary terms.
   // terms=false for text inside buttons (cards, timeline slots), where nested controls are not allowed.
@@ -111,48 +113,17 @@
     restart(li, 'c-hit');
   }
 
-  /* ---------- terminal backdrop: code rain + red edge flash ---------- */
-  var rain = { cv: null, ctx: null, cols: [], timer: null, red: false };
+  /* ---------- case colour + red edge flash ---------- */
   var edge = null;
-  function sizeRain() {
-    if (!rain.cv) return;
-    rain.cv.width = window.innerWidth; rain.cv.height = window.innerHeight;
-    rain.cols = []; for (var i = 0; i < Math.ceil(rain.cv.width / 16); i++) rain.cols.push(Math.floor(Math.random() * rain.cv.height / 16));
-  }
-  function tickRain() {
-    var c = rain.ctx, cv = rain.cv;
-    c.fillStyle = 'rgba(1,6,3,.2)'; c.fillRect(0, 0, cv.width, cv.height);
-    c.font = '14px ui-monospace, Menlo, Consolas, monospace';
-    rain.cols.forEach(function (y, i) {
-      c.fillStyle = rain.red ? '#FF3B4E' : rain.color;
-      c.fillText('0123456789abcdef'[Math.floor(Math.random() * 16)], i * 16, y * 16);
-      rain.cols[i] = (y * 16 > cv.height && Math.random() > 0.97) ? 0 : y + 1;
-    });
-  }
-  // Case theme: <html data-theme="..."> switches the accent tokens in theme.css. The map and About use the default (green).
-  function setTheme(name) {
+  // Case colour: <html data-case="green|amber|violet"> sets the case accent (top stripe, breadcrumb marker) in theme.css.
+  // It never changes the light/dark theme (data-theme). The map and About have no case colour.
+  function setCase(name) {
     var root = document.documentElement;
-    if (name && name !== 'green') root.setAttribute('data-theme', name); else root.removeAttribute('data-theme');
-    rain.color = getComputedStyle(root).getPropertyValue('--c-rain').trim() || '#39FF7A';
-    rain.off = rain.color === 'none';
-    if (rain.cv) { rain.cv.hidden = rain.off; if (rain.off) rain.ctx.clearRect(0, 0, rain.cv.width, rain.cv.height); }
+    if (name && name !== 'brand') root.setAttribute('data-case', name); else root.removeAttribute('data-case');
   }
   function enterTerminal(theme) {
-    setTheme(theme);
+    setCase(theme);
     if (!edge) { edge = h('div', { class: 'c-edge', 'aria-hidden': 'true' }); document.body.appendChild(edge); }
-    if (!BE.reduceMotion() && !rain.cv) {
-      rain.cv = h('canvas', { class: 'c-rain', 'aria-hidden': 'true' });
-      rain.ctx = rain.cv.getContext('2d');
-      document.body.insertBefore(rain.cv, document.body.firstChild);
-      sizeRain(); window.addEventListener('resize', sizeRain);
-    }
-    if (rain.cv) rain.cv.hidden = rain.off;
-    if (rain.cv && !rain.off && !rain.timer) rain.timer = setInterval(tickRain, 110);
-  }
-  // Runs on every screen change; the next screen re-enters right away (every screen uses the terminal backdrop).
-  // The canvas stays in the page so the rain does not restart on each page.
-  function leaveTerminal() {
-    if (rain.timer) { clearInterval(rain.timer); rain.timer = null; }
   }
   function flash() {
     if (!edge || BE.reduceMotion()) return;
@@ -165,16 +136,15 @@
     opts = opts || {};
     BE.leave();                         // runs the previous screen's cleanups
     app.textContent = ''; app.className = 'app case';
-    enterTerminal(C.d && C.d.theme);
-    BE.onLeave(leaveTerminal);
+    enterTerminal(C.d && (C.d.theme || 'green'));
     BE.onLeave(endDrag);
-    hud.act = h('span', { class: 'c-act', text: label });
     // During the briefing there is no score yet: show a BRIEFING tag instead of the XP badge.
     hud.xp = opts.briefing ? null : h('span', { class: 'c-xp', text: 'XP ' + pad(C.xp) });
-    app.appendChild(h('div', { class: 'c-hud' }, [
-      h('button', { class: 'c-ghost c-exit', onclick: BE.renderMap }, ['\u2039 exit to map']),
-      hud.act, hud.xp || h('span', { class: 'c-tagb', text: 'BRIEFING' })
-    ]));
+    var parts = [{ text: 'cases', label: 'Exit to map', onclick: BE.renderMap }];
+    if (C.d) parts.push({ text: C.d.id, cls: 'c-crcase', caseColor: C.d.theme || 'green' });
+    parts.push({ text: label, cls: 'c-act' });
+    app.appendChild(BE.topBar(parts, [BE.themeToggle(true), hud.xp || h('span', { class: 'c-tagb', text: 'BRIEFING' })]));
+    hud.act = app.querySelector('.c-top .c-act .c-crtxt');
     // Glossary taps on this screen show their definition in a terminal panel.
     defBox = h('div', { class: 'c-def', role: 'status', hidden: true, onclick: function () { defBox.hidden = true; } });
     BE.setTermSink(function (term, text) {
@@ -256,7 +226,7 @@
   }
   function start(L) {
     C = { L: L, d: null, xp: 0 }; lastVoice = null;
-    frame('LOADING');
+    frame('loading');
     app.appendChild(panel('', [h('p', {}, ['> fetching case file', h('span', { class: 'c-blink', text: '_' })])]));
     var url = L.case;
     var p = loadCase(url);
@@ -269,7 +239,7 @@
       app.appendChild(panel('danger', [
         eyebrow('Error'),
         h('p', { text: 'Could not open the case file. Check your connection and try again.' }),
-        h('button', { class: 'c-btn', text: '> RETRY', onclick: function () { start(L); } }),
+        h('button', { class: 'c-btn', text: '> Retry', onclick: function () { start(L); } }),
         h('button', { class: 'c-ghost c-wide', text: '\u2039 back to the Breach Map', onclick: BE.renderMap })
       ]));
     });
@@ -285,7 +255,7 @@
   /* ---------- Intel briefing ---------- */
   function renderBrief(page, alert) {
     var pages = C.d.briefing.pages;
-    frame('INTEL', { briefing: true });
+    frame('briefing', { briefing: true });
     app.classList.add('c-briefscreen');
     if (alert) BE.sound('alert');   // SEV 1 tone when the case opens (not on page navigation)
     var dots = h('div', { class: 'c-dots', role: 'progressbar', 'aria-label': 'Briefing page', 'aria-valuemin': '1', 'aria-valuemax': String(pages.length), 'aria-valuenow': String(page + 1) });
@@ -295,7 +265,7 @@
     pages[page].blocks.forEach(function (b) { body.appendChild(block(b)); });
     app.appendChild(body);
     var last = page === pages.length - 1;
-    var next = h('button', { class: 'c-btn c-briefnext', text: last ? '> OPEN THE EVIDENCE' : 'NEXT \u203a', onclick: function () { if (last) finishBrief(); else renderBrief(page + 1); } });
+    var next = h('button', { class: 'c-btn c-briefnext', text: last ? '> Open the evidence' : 'Next \u203a', onclick: function () { if (last) finishBrief(); else renderBrief(page + 1); } });
     // Last page: the button follows the mission in the page, so it never sits on top of the mission text.
     if (last) body.appendChild(next);
     app.appendChild(defBox);
@@ -333,14 +303,14 @@
     switch (b.type) {
       case 'alert':
         kids.push(h('div', { class: 'c-classbar' }, b.bar.map(function (t) { return h('span', { text: t }); })));
-        kids.push(eyebrow(b.eyebrow));
+        kids.push(eyebrow(b.eyebrow, 'c-casebadge c-cc-' + (C.d.theme || 'green')));
         kids.push(h('h1', { class: 'c-display', text: b.title || C.d.briefing.opening }));
         kids.push(para(b.text));
         // The threat actor row comes from briefing.threatActor and goes right after the first row (Victim).
         var kv = (b.kv || []).slice(), ta = C.d.briefing.threatActor;
         if (ta && shown(ta)) kv.splice(Math.min(1, kv.length), 0, { k: 'Threat actor', v: ta.v, source: ta.source });
         if (kv.length) kids.push(kvList(kv));
-        return panel('danger', kids);
+        return panel('danger c-brk', kids);
       case 'note':
         return para(b.text, 'c-small');
       case 'panel':
@@ -412,7 +382,7 @@
 
   function renderAct1() {
     var a1 = C.d.act1, rec = caseRec();
-    frame('ACT 1');
+    frame('act 1');
     app.classList.add('c-a1screen', 'c-fit');   // desktop: one screen, no page scroll
     if (A.collapsed == null) A.collapsed = window.matchMedia('(max-width: 899px)').matches;
 
@@ -423,7 +393,7 @@
       para(a1.help),
       h('p', { class: 'c-small', text: 'Tip: double-click a card (or press Enter) to add it to the timeline.' }),
       h('p', { class: 'c-small', text: 'Keys: A add to timeline \u00b7 X not related \u00b7 H hint. Tap a dotted word to see what it means.' }),
-      h('div', { class: 'c-toggles' }, [voiceToggle(), BE.soundToggle()])
+      h('div', { class: 'c-toggles' }, [voiceToggle(), BE.soundToggle(), BE.themeToggle(false)])
     ]);
     E.helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How to play', 'aria-expanded': 'false', 'aria-controls': 'c-help', text: '?', onclick: function () {
       var open = E.helpBox.hidden; E.helpBox.hidden = !open; E.helpBtn.setAttribute('aria-expanded', String(open));
@@ -448,7 +418,7 @@
     // Right: the evidence grid scrolls inside its own panel.
     E.left = h('span', {});
     E.grid = h('div', { class: 'c-grid', role: 'group', 'aria-label': 'Evidence cards' });
-    E.inspect = h('div', { class: 'c-inspect', hidden: true });
+    E.inspect = h('div', { class: 'c-inspect c-tsurf', hidden: true });
     var gridWrap = h('div', { class: 'c-gridwrap' }, [E.grid]);
     E.deck = h('div', { class: 'c-deck' }, [
       h('div', { class: 'c-hud' }, [h('span', { text: '> ls ./evidence' }), E.left]),
@@ -664,6 +634,7 @@
   function renderDebrief() {
     var d = C.d, box = E.done;
     box.textContent = ''; box.hidden = false;
+    if (hud.act) hud.act.textContent = 'act 1 \u00b7 debrief';
     box.appendChild(panel('danger', [eyebrow('Case finding', 't-red'), para(d.act1.finding)]));
     var mm = Math.floor(A.secs / 60), ss = A.secs % 60;
     box.appendChild(h('div', { class: 'c-stats c-a1stats' }, [
@@ -675,7 +646,7 @@
     var tl = h('ol', { class: 'c-reveal' });
     d.timeline.filter(shown).forEach(function (t) {
       var li = h('li', {}, [
-        h('div', { class: 'c-hud' }, [h('b', { text: 'STAGE ' + t.stage + (t.date ? ' \u00b7 ' + t.date.toUpperCase() : '') }),
+        h('div', { class: 'c-hud' }, [h('b', { text: 'Stage ' + t.stage + (t.date ? ' \u00b7 ' + t.date : '') }),
           h('span', { class: 'c-chips' }, (t.mitre || []).map(function (m) { return h('span', { class: 'c-chip', text: m }); }))]),
         withFn(para(t.text), t.source),
         h('p', { class: 'c-why' }, [h('span', { class: 't-g', text: 'why it worked: ' }), rich(t.why)])
@@ -738,12 +709,12 @@
 
   function renderAct2() {
     var a2 = C.d.act2, rec = caseRec();
-    frame('ACT 2');
+    frame('act 2');
     app.classList.add('c-a2screen', 'c-fit');
     BE.onLeave(stopRun);
 
-    F.title = h('h2', { class: 'c-h2', text: a2.title });
-    var helpBox = h('div', { class: 'c-helpbox', id: 'c-help2', hidden: true }, [para(a2.help), scaleHelp(), h('div', { class: 'c-toggles' }, [voiceToggle(), BE.soundToggle()])]);
+    F.title = h('h2', { class: 'c-h2' }, [a2.title, h('span', { class: 'c-cursor', 'aria-hidden': 'true' })]);
+    var helpBox = h('div', { class: 'c-helpbox', id: 'c-help2', hidden: true }, [para(a2.help), scaleHelp(), h('div', { class: 'c-toggles' }, [voiceToggle(), BE.soundToggle(), BE.themeToggle(false)])]);
     var helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How to play', 'aria-expanded': 'false', 'aria-controls': 'c-help2', text: '?', onclick: function () {
       var open = helpBox.hidden; helpBox.hidden = !open; helpBtn.setAttribute('aria-expanded', String(open));
     } });
@@ -758,13 +729,13 @@
     ]));
 
     F.map = h('div', { class: 'c-map' });
-    F.log = h('div', { class: 'c-log', role: 'log', 'aria-label': 'Attack log', 'aria-live': 'polite' });
+    F.log = h('div', { class: 'c-log c-tsurf', role: 'log', 'aria-label': 'Attack log', 'aria-live': 'polite' });
     F.deck = h('div', { class: 'c-ctlgrid', role: 'group', 'aria-label': 'Control deck' });
     F.count = h('span', {});
     var mapBox = F.mapBox = h('div', { class: 'c-a2map' }, [h('div', { class: 'c-hud' }, [h('span', { text: a2.mapCmd || '> map ./network' }), h('span', { class: 'c-small', text: 'drop controls on a stage' })]), F.map]);
     var deckWrap = h('div', { class: 'c-gridwrap' }, [F.deck]);
     var deckBox = h('div', { class: 'c-deck c-a2deck' }, [h('div', { class: 'c-hud' }, [h('span', { text: '> ls ./controls' }), F.count]), deckWrap, scrollCue(deckWrap, 'more controls')]);
-    var mapCol = h('div', { class: 'c-a2mapcol' }, [mapBox, scrollCue(mapBox, 'more stages')]);
+    var mapCol = h('div', { class: 'c-a2mapcol c-brk' }, [mapBox, scrollCue(mapBox, 'more stages')]);
     F.main = h('div', { class: 'c-a2' }, [mapCol, F.log, deckBox]);
     app.appendChild(F.main);
     app.appendChild(defBox);
@@ -778,7 +749,7 @@
       if (B.running || !B.on.length) return;
       B.on = []; say('k', fmt('[-] build cleared')); drawAct2();
     } });
-    F.run = h('button', { class: 'c-btn red c-run', text: '> EXECUTE ATTACK_SIM', onclick: runAttack });
+    F.run = h('button', { class: 'c-btn red c-run', text: '> Execute attack_sim', onclick: runAttack });
     app.appendChild(pinBar(h('div', { class: 'c-bar c-a2bar', role: 'toolbar', 'aria-label': 'Build actions' }, [h('div', { class: 'c-bar-in' }, [F.status, F.clear, F.run])])));
 
     F.log.appendChild(h('div', {}, [a2.logs.idle, h('span', { class: 'c-blink', text: '_' })]));
@@ -790,7 +761,7 @@
   function scaleHelp() {
     var st = C.d.stars || {};
     var dl = h('dl', { class: 'c-kv c-scale' });
-    DAMAGE_SCALE.forEach(function (d) { dl.appendChild(h('dt', { text: d[0] })); dl.appendChild(h('dd', { text: d[1] })); });
+    DAMAGE_SCALE.forEach(function (d) { dl.appendChild(h('dt', { text: sentence(d[0]) })); dl.appendChild(h('dd', { text: d[1] })); });
     return h('div', { class: 'c-stack' }, [
       h('p', { class: 'c-small', text: 'Stars:' }),
       h('ul', { class: 'c-starrules' }, [['\u2605', st.one], ['\u2605\u2605', st.two], ['\u2605\u2605\u2605', st.three]].map(function (x) {
@@ -854,8 +825,8 @@
   // Card label: the zone the control protects. A scoped control (scope in the JSON) names its real scope instead,
   // e.g. "PRODUCTION TENANT · SCOPED", so the trap reads as a policy boundary, not a typo. Placement rules are unchanged.
   function zoneLabel(c, z) {
-    if (c.scope) return c.scope.toUpperCase() + ' \u00b7 SCOPED';
-    return (z.short || z.name) + (c.effect === 'reveal' ? ' \u00b7 DISCOVERY' : '');
+    if (c.scope) return cap(c.scope) + ' \u00b7 scoped';
+    return (z.short || z.name) + (c.effect === 'reveal' ? ' \u00b7 discovery' : '');
   }
   function drawBudget() {
     var l = left();
@@ -918,7 +889,7 @@
     F.threat.style.width = p + '%';
     var lvl = p > 66 ? 'crit' : p > 33 ? 'elev' : p ? 'low' : '';
     F.threat.className = 'c-meterfill' + (lvl ? ' ' + lvl : '');
-    F.threatTxt.textContent = { crit: 'CRITICAL', elev: 'ELEVATED', low: 'LOW' }[lvl] || 'idle';
+    F.threatTxt.textContent = { crit: 'Critical', elev: 'Elevated', low: 'Low' }[lvl] || 'idle';
     F.meter.setAttribute('aria-valuenow', String(p));
   }
 
@@ -1028,7 +999,7 @@
     if (st.block) {
       node.classList.add('block'); pill(node, 'g', '✓ BLOCKED'); BE.sound('contained');
       logLine('k', fmt(L.block, { n: n }), st.block.why);
-      rain.red = false; threat(Math.round(n / total * 50));
+      threat(Math.round(n / total * 50));
       return;
     }
     // A stage the defender cannot block (e.g. a spray from outside) is shown as attempted, not breached.
@@ -1048,7 +1019,7 @@
     // A stage that ran but didn't let the attacker in yet (map stage "neutral", e.g. Uber's approval requests, which at
     // first blocked access): neutral pill with the stage's own label and sourced note, never BREACHED.
     if (st.s.neutral) {
-      node.classList.add('impact', 'neutral'); pill(node, 'o', '\u26a0 ' + st.s.neutral.label);
+      node.classList.add('neutral'); pill(node, 'y', '\u26a0 ' + st.s.neutral.label);
       withFn(logLine('b', '[~] stage ' + n + ' \u00b7 ' + st.s.name + ':', st.s.neutral.note), st.s.neutral.source);
       threat(Math.round(n / total * 100));
       return;
@@ -1057,13 +1028,12 @@
     node.classList.add('breach'); pill(node, 'r', '✕ BREACHED');
     if (!B.alarmed) { B.alarmed = true; BE.sound('alarm'); }   // once per run
     logLine('red', fmt(L.breach, { n: n, stage: st.s.name }));
-    flash(); restart(node, 'c-glitch'); rain.red = true;
+    flash(); restart(node, 'c-glitch');
     threat(Math.round(n / total * 100));
   }
   function stopRun() {
     if (B && B.timer) { clearTimeout(B.timer); B.timer = null; }
     if (B) B.running = false;
-    rain.red = false;
   }
   function finishRun(res) {
     stopRun();
@@ -1095,12 +1065,12 @@
   }
   function renderResults(res, r, prevBest) {
     var a2 = C.d.act2, d = C.d, total = r.total, hid = hidden(), T = a2.tips;
-    frame('DEBRIEF');
+    frame('debrief');
     app.classList.add('c-resscreen');
     var good = !!res.blocked;
     var newBest = prevBest == null || r.stars > prevBest;
     app.appendChild(panel((good ? 'hl' : 'danger') + ' c-rescard', [
-      eyebrow('Case ' + d.caseNo + ' · Debrief'),
+      eyebrow('Case ' + d.caseNo + ' · Debrief', 'c-casebadge c-cc-' + (d.theme || 'green')),
       h('h1', { class: 'c-display' + (good ? '' : ' t-red'), text: r.title }),
       para(r.sub),
       voiceP(voiceLine(r.damage === 'NONE' ? 'prevented' : r.damage === 'CONTAINED' ? 'contained' : 'breached')),   // matches the damage label
@@ -1111,10 +1081,10 @@
     ]));
     var dmgTone = r.damage === 'NONE' ? '' : r.damage === 'CONTAINED' ? 'b' : 'red';
     app.appendChild(h('div', { class: 'c-stats c-resstats' }, [
-      h('div', { class: 'c-stat c-span2' }, [h('span', { class: 'c-small', text: 'damage' }), tone(h('span', { class: 'c-v', text: r.damage }), dmgTone),
+      h('div', { class: 'c-stat c-span2' }, [h('span', { class: 'c-small', text: 'damage' }), tone(h('span', { class: 'c-v', text: sentence(r.damage) }), dmgTone),
         h('span', { class: 'c-small c-reach', text: r.reach })]),
       stat('budget used', pad(r.spent, 2) + '/' + d.budget),
-      stat('user friction', r.frictionLabel, r.frictionLabel === 'LOW' ? '' : 'y'),
+      stat('user friction', sentence(r.frictionLabel), r.frictionLabel === 'LOW' ? '' : 'y'),
       stat('decoys bought', pad(r.decoys, 2), r.decoys ? 'y' : '')
     ]));
 
@@ -1123,7 +1093,7 @@
     [['prevent', 'stops the attack'], ['detect', 'notices the attack if prevention fails'], ['recover', 'a way back after an attack']].forEach(function (ly) {
       var list = r.layers[ly[0]], has = list.length > 0;
       layers.appendChild(h('li', { class: has ? 'on' : '' }, [
-        h('div', { class: 'c-hud' }, [h('b', { text: ly[0].toUpperCase() }), h('span', { class: 'c-pill ' + (has ? 'g' : 'o'), text: has ? '✓ IN BUILD' : '— MISSING' })]),
+        h('div', { class: 'c-hud' }, [h('b', { text: cap(ly[0]) }), h('span', { class: 'c-pill ' + (has ? 'g' : 'm'), text: has ? '✓ IN BUILD' : '— MISSING' })]),
         h('p', { class: 'c-why' }, has ? [list.map(function (c) { return plain(c.name) + ' (stage ' + c.stage + ')'; }).join(' · ')] : [ly[1]])
       ]));
     });
@@ -1145,9 +1115,9 @@
     var list = h('ol', { class: 'c-replay' });
     res.steps.forEach(function (st) {
       var n = st.s.n, kind = st.block ? 'block' : st.s.unblockable ? 'attempt' : st.s.impact ? 'impact' : st.s.neutral ? 'neutral' : 'breach';
-      var li = h('li', { class: kind === 'neutral' ? 'impact neutral' : kind }, [
+      var li = h('li', { class: kind }, [
         h('div', { class: 'c-hud' }, [h('b', {}, [n + ' · ', rich(st.s.name, null, false)]),
-          h('span', { class: 'c-pill ' + { block: 'g', attempt: 'y', impact: 'o', neutral: 'o', breach: 'r' }[kind],
+          h('span', { class: 'c-pill ' + { block: 'g', attempt: 'y', impact: 'o', neutral: 'y', breach: 'r' }[kind],
             text: { block: '✓ BLOCKED', attempt: '⚠ ATTEMPTED', impact: '◆ IMPACT', neutral: '\u26a0 ' + (st.s.neutral && st.s.neutral.label), breach: '✕ BREACHED' }[kind] })])
       ]);
       if (kind === 'neutral') li.appendChild(withFn(h('p', { class: 'c-why', text: st.s.neutral.note }), st.s.neutral.source));
@@ -1176,7 +1146,7 @@
     if (!B.on.length) build.appendChild(h('li', {}, [h('p', { class: 'c-why', text: 'No controls deployed.' })]));
     app.appendChild(panel('', [eyebrow('Your build · ' + B.on.length + ' controls'), build]));
 
-    app.appendChild(h('button', { class: 'c-btn', text: '> TRY ANOTHER BUILD', onclick: startAct2 }));
+    app.appendChild(h('button', { class: 'c-btn', text: '> Try another build', onclick: startAct2 }));
     app.appendChild(h('button', { class: 'c-ghost c-wide', text: './restart --case ' + d.caseNo, onclick: restartCase }));
     app.appendChild(sourcesPanel());
   }
@@ -1271,5 +1241,5 @@
     else if (k === 'escape') endDrag();
   });
 
-  window.BreachCase = { start: start, caseData: loadCase, voiceToggle: voiceToggle, backdrop: function (theme) { enterTerminal(theme); BE.onLeave(leaveTerminal); BE.onLeave(endDrag); } };
+  window.BreachCase = { start: start, caseData: loadCase, voiceToggle: voiceToggle, backdrop: function (theme) { enterTerminal(theme); BE.onLeave(endDrag); } };
 })();

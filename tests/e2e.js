@@ -37,7 +37,7 @@ const CASES = [
       { kind: 'detected', ids: ['mfaalert'], stars: 0, damage: 'SEVERE' }
     ] }
 ];
-const THEMES = { 'colonial-pipeline': 'amber', 'uber-2022': 'violet' };
+const THEMES = { 'midnight-blizzard': 'green', 'colonial-pipeline': 'amber', 'uber-2022': 'violet' };   // case colour (data-case)
 const IMPACT_STAGE = { 'colonial-pipeline': 6, 'uber-2022': 7 };
 const TITLES = { prevented: 'Breach prevented', contained: 'Breach contained', detected: 'Breach detected', succeeded: 'Breach succeeded' };
 const VIEWS = [{ name: '1280x720', vp: { width: 1280, height: 720 } }, { name: '1920x1080', vp: { width: 1920, height: 1080 } }, { name: '390x844', phone: true }];
@@ -67,11 +67,36 @@ const CONTRAST = () => {
   return out;
 };
 
+// Token contrast, both themes: every text/background token pair the stylesheet uses must be 4.5:1 or better.
+function tokenContrast() {
+  const css = fs.readFileSync(REPO + 'theme.css', 'utf8');
+  const block = (sel) => { const i = css.indexOf(sel + '{'); const b = css.slice(i + sel.length + 1, css.indexOf('}', i)); const o = {};
+    b.replace(/--([\w-]+):\s*(#[0-9A-Fa-f]{6})/g, (_, k, v) => { o[k] = v; }); return o; };
+  const lum = (hex) => [1, 3, 5].map((i) => parseInt(hex.substr(i, 2), 16) / 255).map((v) => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)).reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const themes = { dark: block(':root,:root[data-theme="dark"]'), light: block(':root[data-theme="light"]') };
+  const term = block('.c-tsurf');
+  const out = [];
+  for (const [name, t] of Object.entries(themes)) {
+    const pairs = [];
+    for (const fg of ['text', 'muted', 'accent']) for (const bg of ['bg', 'panel', 'raised']) pairs.push([fg, bg]);
+    pairs.push(['on-accent', 'accent'], ['on-accent', 'bad'], ['ok', 'ok-bg'], ['bad', 'bad-bg'], ['warn', 'warn-bg'], ['imp', 'imp-bg'],
+      ['bad', 'panel'], ['bad', 'bg'], ['warn', 'panel'], ['warn', 'bg'], ['ok', 'panel'], ['text', 'ok-bg'], ['text', 'bad-bg'], ['text', 'warn-bg'], ['muted', 'bad-bg'], ['muted', 'warn-bg'], ['muted', 'ok-bg'], ['accent', 'bad-bg'], ['accent', 'warn-bg'], ['accent', 'ok-bg'], ['muted', 'imp-bg']);
+    for (const [f, b] of pairs) { if (!t[f] || !t[b]) { out.push(name + ' missing token ' + f + '/' + b); continue; } const r = ratio(t[f], t[b]); if (r < 4.5) out.push(name + ' ' + f + ' on ' + b + ' ' + r.toFixed(2)); }
+    // terminal surfaces: the term background of this theme, with the terminal text tokens
+    for (const f of ['term-text']) if (ratio(t[f], t.term) < 4.5) out.push(name + ' term-text on term');
+    for (const f of ['muted', 'accent', 'ok', 'bad', 'warn', 'imp']) { const r = ratio(term[f], t.term); if (r < 4.5) out.push(name + ' terminal ' + f + ' on term ' + r.toFixed(2)); }
+  }
+  return out;
+}
+
 async function run(view, c, browser) {
-  const ctxOpts = view.phone ? { ...devices['iPhone 13'] } : { viewport: view.vp, deviceScaleFactor: 1 };
+  // Both colour themes are played: the device setting alternates by view and case (the contrast checks measure both anyway).
+  const scheme = (VIEWS.indexOf(view) + c.level) % 2 ? 'light' : 'dark';
+  const ctxOpts = { ...(view.phone ? devices['iPhone 13'] : { viewport: view.vp, deviceScaleFactor: 1 }), colorScheme: scheme };
   const ctx = await browser.newContext(ctxOpts);
   const page = await ctx.newPage();
-  const tag = view.name + ' ' + c.id;
+  const tag = view.name + ' ' + c.id + ' ' + scheme;
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.type() + ': ' + m.text()); });
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
@@ -87,7 +112,18 @@ async function run(view, c, browser) {
     if (s.sw > s.iw) bad(tag + ' ' + where + ': horizontal scroll ' + s.sw + '>' + s.iw);
     if (desktop && s.sh > s.ih) bad(tag + ' ' + where + ': page scrolls ' + s.sh + '>' + s.ih);
   };
-  const contrast = async (where) => { const f = await page.evaluate(CONTRAST); f.slice(0, 5).forEach((x) => bad(tag + ' ' + where + ' contrast ' + x)); };
+  // Contrast in BOTH colour themes at every check point: switch <html data-theme>, let transitions settle, measure, switch back.
+  const contrast = async (where, settle = 450) => {
+    const cur = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+    let prev = cur;
+    for (const th of cur === 'light' ? ['light', 'dark'] : ['dark', 'light']) {
+      await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), th);
+      await page.waitForTimeout(th === prev ? 0 : settle); prev = th;
+      const f = await page.evaluate(CONTRAST); f.slice(0, 5).forEach((x) => bad(tag + ' ' + where + ' ' + th + ' contrast ' + x));
+    }
+    await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), cur || 'dark');
+    if (prev !== cur) await page.waitForTimeout(settle);
+  };
   // Scroll to the very end and sample the bottom rows of pixels: they must be the dark base, never the old blue gradient.
   const bottomCheck = async (where) => {
     await page.evaluate(() => window.scrollTo(0, document.scrollingElement.scrollHeight));
@@ -118,12 +154,20 @@ async function run(view, c, browser) {
     if (r && r[0] > 1) bad(tag + ' ' + where + ': bottom bar covers ' + r[1] + ' by ' + r[0] + 'px');
   };
   const theme = async (where) => {
-    const t = await page.evaluate(() => ({ a: document.documentElement.getAttribute('data-theme'), rain: (document.querySelector('.c-rain') || {}).hidden }));
-    const want = THEMES[c.id] || null;
-    if (t.a !== want) bad(tag + ' ' + where + ' theme ' + t.a);
-    if (want === 'amber' && t.rain === false) bad(tag + ' amber shows code rain');
+    const t = await page.evaluate(() => ({ a: document.documentElement.getAttribute('data-case'), th: document.documentElement.getAttribute('data-theme'), rain: document.querySelectorAll('canvas').length }));
+    if (t.a !== THEMES[c.id]) bad(tag + ' ' + where + ' case colour ' + t.a);
+    if (t.th !== scheme) bad(tag + ' ' + where + ' colour theme ' + t.th + ', device is ' + scheme);
+    if (t.rain) bad(tag + ' ' + where + ' code rain canvas still in the page');
   };
-  const shot = (n) => page.screenshot({ path: SHOTS + '/' + view.name + '-' + c.id + '-' + n + '.png' });
+  // Key screens are saved in both colour themes (<name>-dark.png, <name>-light.png); the others in the device theme.
+  const shot = async (n, both) => {
+    if (!both) return page.screenshot({ path: SHOTS + '/' + view.name + '-' + c.id + '-' + n + '.png' });
+    for (const th of ['dark', 'light']) {
+      await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), th); await page.waitForTimeout(450);
+      await page.screenshot({ path: SHOTS + '/' + view.name + '-' + c.id + '-' + n + '-' + th + '.png' });
+    }
+    await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), scheme); await page.waitForTimeout(450);
+  };
 
   await page.goto(BASE);
   await page.waitForSelector('.c-case');
@@ -133,13 +177,13 @@ async function run(view, c, browser) {
     const lbl = await page.getAttribute('.c-spl-art', 'aria-label');
     if (lbl !== 'KEPT Academy \u2014 Know the Exposure, Patch the Threat') bad(tag + ' splash label ' + lbl);
     if (!(await page.locator('.c-spl-skip').count())) bad(tag + ' no skip button');
-    if ((await page.evaluate(() => document.documentElement.getAttribute('data-theme'))) !== 'brand') bad(tag + ' splash not brand theme');
+    if (await page.evaluate(() => document.documentElement.getAttribute('data-case'))) bad(tag + ' splash has a case colour');
     if (c.level === 1) {
       await page.waitForSelector('.c-spl-out >> text=real breaches loaded', { timeout: 5000 });
       const out = await page.textContent('.c-spl-term');
       if (!out.includes('[ok] 3 real breaches loaded')) bad(tag + ' splash load line: ' + out);
-      if (view.name === '1280x720') await contrast('splash');
       if (await page.locator('.c-spl-logo').isVisible()) bad(tag + ' KEPT logo visible while the commands type');
+      if (view.name === '1280x720') await contrast('splash', 0);   // the splash has no colour transitions: no settle time
       await shot('0splash');
       await page.waitForSelector('.c-spl-logo:not([hidden])', { timeout: 5000 });
       if (await page.locator('.c-spl-term').isVisible()) bad(tag + ' terminal still visible with the logo');
@@ -153,7 +197,7 @@ async function run(view, c, browser) {
       await page.waitForSelector('.c-spl-tagrow.on', { timeout: 3000 });
       const shown = Date.now();
       await page.waitForTimeout(600);
-      if (view.name === '1280x720') await contrast('splash-final');
+      if (view.name === '1280x720') await contrast('splash-final', 0);
       await shot('0splash-logo');
       await page.waitForSelector('.c-splash', { state: 'detached', timeout: 7000 }).catch(() => {});
       const held = Date.now() - shown;
@@ -168,8 +212,8 @@ async function run(view, c, browser) {
   const head = await page.evaluate(() => ({ h: document.querySelector('.c-maphead').getBoundingClientRect().height, t: document.querySelector('.c-mapscreen .c-brand').getBoundingClientRect().height,
     fs: parseFloat(getComputedStyle(document.querySelector('.c-mapscreen .c-brand')).fontSize), sw: document.querySelector('.c-maphead').scrollWidth, cw: document.querySelector('.c-maphead').clientWidth }));
   if (head.h > 44 || head.t > head.fs * 1.6 || head.sw > head.cw) bad(tag + ' map header wraps: ' + JSON.stringify(head));
-  if ((await page.textContent('.c-herolabel')) !== 'NEXT CASE' || (await page.textContent('.c-herotitle')) !== 'The Forgotten Test Account') bad(tag + ' hero on first visit');
-  if ((await page.textContent('.c-herobtn')) !== '> OPEN CASE FILE') bad(tag + ' hero button');
+  if ((await page.textContent('.c-herolabel')) !== 'Next case' || (await page.textContent('.c-herotitle')) !== 'The Forgotten Test Account') bad(tag + ' hero on first visit');
+  if ((await page.textContent('.c-herobtn')) !== '> Open case file') bad(tag + ' hero button');
   if ((await page.textContent('.c-caseshead .c-count')) !== '3 of 7 playable') bad(tag + ' playable count');
   if ((await page.locator('div.c-case.soon').count()) !== 4 || (await page.locator('button.c-case').count()) !== 3) bad(tag + ' playable/soon rows');
   if (await page.locator('.c-intro').count()) bad(tag + ' intro paragraph still on the map');
@@ -181,9 +225,9 @@ async function run(view, c, browser) {
     await checkFit('map');
     await page.waitForSelector('.c-heroactor:not([hidden])', { timeout: 3000 }).catch(() => bad(tag + ' desktop hero has no threat actor row'));
   } else if (await page.locator('.c-heroactor').isVisible()) bad(tag + ' threat actor row visible on a phone');
-  if ((await page.evaluate(() => document.documentElement.getAttribute('data-theme'))) !== 'brand') bad(tag + ' map is not the brand theme');
+  if (await page.evaluate(() => document.documentElement.getAttribute('data-case'))) bad(tag + ' map has a case colour');
   await bottomCheck('map');
-  if (c.level === 1) await shot('0map');
+  if (c.level === 1) await shot('0map', true);
   await page.click('text=> about'); await page.waitForSelector('.c-aboutscreen');
   await contrast('about'); await bottomCheck('about');
   const rels = await page.$$eval('.c-aboutscreen a[target]', (a) => a.map((x) => x.rel));
@@ -221,13 +265,13 @@ async function run(view, c, browser) {
         return { inBar: !!b.closest('.c-bar'), after: !!(m && (m.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)) }; });
       if (order.inBar || !order.after) bad(tag + ' last briefing page: Open the evidence must follow the mission ' + JSON.stringify(order));
     }
-    if (i === 0 || i === 3) await shot('1brief' + (i + 1));
+    if (i === 0 || i === 3) await shot('1brief' + (i + 1), i === 0);
     await page.click('.c-briefnext');
   }
   // Act 1
   await page.waitForSelector('.c-card');
   await checkFit('act1'); await contrast('act1'); await barCheck('act1');
-  await shot('2act1');
+  await shot('2act1', true);
   const ordered = data.evidence.filter((e) => e.order).sort((a, b) => a.order - b.order);
   // Unordered groups (anyOrder): place them in reverse, which must still count as correct.
   const grouped = ordered.filter((e) => e.anyOrder);
@@ -294,6 +338,7 @@ async function run(view, c, browser) {
   if (!(await page.locator('.c-reveal .c-fn').count())) bad(tag + ' no footnote markers in the debrief timeline');
   if (!(await page.textContent('.c-toast')).includes('SOC LEAD > ' + data.voice.patientZero)) bad(tag + ' no patient zero voice');
   await contrast('debrief');
+  await shot('2act1-debrief', true);
   const xp = await page.textContent('.c-xp');
   if (!/0430|0460/.test(xp)) console.log('  note', tag, 'act1 xp', xp);
   await page.click('text=' + data.act2.rewindButton);
@@ -308,7 +353,7 @@ async function run(view, c, browser) {
   if ((await ctlBtn(c.locked).getAttribute('class')).includes(' on')) bad(tag + ' locked control deployed before discovery');
   for (const run of c.runs) {
     const kind = run.kind, ids = run.ids;
-    if (!(await page.locator('.c-ctl').count())) { await page.click('text=> TRY ANOTHER BUILD'); await page.waitForSelector('.c-ctl'); }
+    if (!(await page.locator('.c-ctl').count())) { await page.click('text=> Try another build'); await page.waitForSelector('.c-ctl'); }
     if (await page.locator('.c-clear:not([disabled])').count()) await page.click('.c-clear');
     for (const id of ids) {
       if (desktop && id === ids[0] && (kind === 'contained' || run.drag)) {
@@ -329,7 +374,7 @@ async function run(view, c, browser) {
       await page.waitForSelector('.c-node[data-n="1"] .c-pill');
       const p1 = await page.textContent('.c-node[data-n="1"] .c-pill');
       if (!p1.includes('ATTEMPTED')) bad(tag + ' stage 1 pill is ' + p1);
-      await page.waitForTimeout(1200); await checkFit('act2-run'); await shot('4replay');
+      await page.waitForTimeout(1200); await checkFit('act2-run'); await shot('4replay', true);
     }
     await page.waitForSelector('.c-rescard', { timeout: 20000 });
     const title = await page.textContent('.c-rescard .c-display');
@@ -344,7 +389,7 @@ async function run(view, c, browser) {
     const stars = await page.locator('.c-rescard .c-stars svg.on').count();
     if (stars !== run.stars) bad(tag + ' ' + ids + ': ' + stars + ' stars, want ' + run.stars);
     const dmg = await page.textContent('.c-stat.c-span2 .c-v');
-    if (dmg !== run.damage) bad(tag + ' ' + ids + ': damage ' + dmg + ', want ' + run.damage);
+    if (dmg.toUpperCase() !== run.damage) bad(tag + ' ' + ids + ': damage ' + dmg + ', want ' + run.damage);
     const page2 = await page.textContent('#app');
     if (/TODO/.test(page2)) bad(tag + ' placeholder or todo text visible on results');
     if (kind === 'succeeded' && !page2.includes('Entered via an asset not in your inventory')) bad(tag + ' no hidden-asset line');
@@ -368,7 +413,7 @@ async function run(view, c, browser) {
     if (run.stars === 2) await shot('8twostar');
     await contrast('results-' + kind);
     await bottomCheck('results-' + kind);
-    if (firstRun) await shot('5results');
+    if (firstRun) await shot('5results', true);
     if (firstRun && /source:/.test(await page.textContent('#app'))) bad(tag + ' inline "source:" link on the results');
     if (firstRun && !(await page.locator('.c-srclist li').count())) bad(tag + ' no sources panel on the results');
     if (kind === 'contained') await shot('6contained');
@@ -380,9 +425,9 @@ async function run(view, c, browser) {
   const codeColor = await page.evaluate(() => { const c = document.createElement('code'); document.getElementById('app').appendChild(c); const v = getComputedStyle(c).color; c.remove(); return v; });
   if (codeColor === 'rgb(255, 211, 77)') bad(tag + ' code is yellow');
   await page.click('.c-exit'); await page.waitForSelector('.c-case');
-  if ((await page.evaluate(() => document.documentElement.getAttribute('data-theme'))) !== 'brand') bad(tag + ' map theme not brand after a case');
+  if (await page.evaluate(() => document.documentElement.getAttribute('data-case'))) bad(tag + ' map keeps the case colour after a case');
   const other = c.id === 'midnight-blizzard' ? 'The Legacy VPN' : 'The Forgotten Test Account';
-  if ((await page.textContent('.c-herolabel')) !== 'NEXT CASE' || (await page.textContent('.c-herotitle')) !== other) bad(tag + ' returning hero is not the next unfinished case');
+  if ((await page.textContent('.c-herolabel')) !== 'Next case' || (await page.textContent('.c-herotitle')) !== other) bad(tag + ' returning hero is not the next unfinished case');
   if (!(await page.textContent('.c-cases')).includes('\u2605')) bad(tag + ' stars not shown in the list after a case');
   if (c.level === 1) await shot('9map-returning');
   await page.click('.c-voicebtn');
@@ -404,6 +449,8 @@ async function run(view, c, browser) {
 (async () => {
   const browser = await chromium.launch();
   sampler = await (await browser.newContext()).newPage();
+  tokenContrast().forEach((x) => bad('token contrast ' + x));
+  console.log('ok token contrast (dark + light)');
   // Sound: off by default, no AudioContext before a gesture, toggle saved, toggle in the help panel too.
   if (!process.env.CASE) {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
@@ -429,6 +476,57 @@ async function run(view, c, browser) {
     errs.forEach((e) => bad('sound test: ' + e));
     console.log('ok sound');
     await ctx.close();
+  }
+  // Colour theme: follows the device, set before the first paint (no flash), header and "?" toggles, saved, cleared by reset.
+  if (!process.env.CASE) {
+    for (const scheme of ['dark', 'light']) {
+      const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 }, colorScheme: scheme });
+      await ctx.addInitScript(() => {
+        sessionStorage.setItem('breach-escape-splash', '1');
+        // The theme attribute when <body> first appears, i.e. before anything can paint.
+        new MutationObserver((m, o) => { if (document.body) { window.__firstTheme = document.documentElement.getAttribute('data-theme'); o.disconnect(); } })
+          .observe(document, { childList: true, subtree: true });
+      });
+      const pg = await ctx.newPage(); const errs = [];
+      pg.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); }); pg.on('pageerror', (e) => errs.push(e.message));
+      await pg.goto(BASE); await pg.waitForSelector('.c-case');
+      const first = await pg.evaluate(() => window.__firstTheme);
+      if (first !== scheme) bad('theme before first paint is ' + first + ', device is ' + scheme);
+      const bg = await pg.evaluate(() => getComputedStyle(document.body).backgroundColor);
+      if (bg !== (scheme === 'light' ? 'rgb(244, 246, 248)' : 'rgb(11, 14, 18)')) bad(scheme + ' device: body background ' + bg);
+      const other = scheme === 'light' ? 'dark' : 'light';
+      await pg.click('.c-maphead .c-themebtn');
+      if ((await pg.evaluate(() => document.documentElement.getAttribute('data-theme'))) !== other) bad('header theme toggle did not switch to ' + other);
+      if ((await pg.evaluate(() => localStorage.getItem('breach-escape-theme'))) !== other) bad('theme choice not saved');
+      await pg.reload(); await pg.waitForSelector('.c-case');
+      if ((await pg.evaluate(() => window.__firstTheme)) !== other) bad('saved theme not applied before first paint: ' + (await pg.evaluate(() => window.__firstTheme)));
+      // "?" panel toggle (map help) and the same toggle in a case's help panel
+      await pg.click('.c-maphead .c-helpbtn');
+      if ((await pg.textContent('.c-maphelp .c-themetxt')) !== 'theme: ' + other) bad('map help theme toggle text ' + (await pg.textContent('.c-maphelp .c-themetxt')));
+      await pg.click('.c-maphelp .c-themetxt');
+      if ((await pg.evaluate(() => document.documentElement.getAttribute('data-theme'))) !== scheme) bad('help-panel theme toggle did not switch back');
+      if ((await pg.getAttribute('.c-maphead .c-themebtn', 'aria-label')) !== 'Switch to ' + other + ' theme') bad('header toggle label not repainted');
+      await pg.click('button.c-case >> nth=0'); await pg.waitForSelector('.c-briefbar');
+      if (!(await pg.locator('.c-hud .c-themebtn').count())) bad('no theme toggle in the case header');
+      await pg.click('.c-hud .c-themebtn');
+      await pg.click('.c-exit'); await pg.waitForSelector('.c-case');
+      await pg.click('text=> about'); await pg.click('.c-resetbtn'); await pg.click('.c-confirm .c-yes'); await pg.waitForSelector('.c-case');
+      if (await pg.evaluate(() => localStorage.getItem('breach-escape-theme'))) bad('reset kept the theme choice');
+      if ((await pg.evaluate(() => document.documentElement.getAttribute('data-theme'))) !== scheme) bad('reset did not return to the device theme');
+      if (scheme === 'dark') {
+        // Self-hosted IBM Plex: Sans for UI text, Mono for data; the files come from this site and the licence ships with them.
+        const f = await pg.evaluate(async () => { await document.fonts.ready; await new Promise((r) => setTimeout(r, 300));
+          return { loaded: [...document.fonts].filter((x) => x.status === 'loaded').map((x) => x.family.replace(/"/g, '') + ' ' + x.weight),
+            body: getComputedStyle(document.body).fontFamily, pill: getComputedStyle(document.querySelector('.c-cnum')).fontFamily }; });
+        if (!f.loaded.some((x) => /IBM Plex Sans 400/.test(x)) || !f.loaded.some((x) => /IBM Plex Mono/.test(x))) bad('Plex fonts not loaded: ' + f.loaded);
+        if (!/^"?IBM Plex Sans/.test(f.body) || !/^"?IBM Plex Mono/.test(f.pill)) bad('font families ' + f.body + ' / ' + f.pill);
+        const lic = await new Promise((res) => require('http').get(BASE + 'fonts/OFL.txt', (r) => { let d = ''; r.on('data', (c) => d += c); r.on('end', () => res(d)); }));
+        if (!/SIL Open Font License/.test(lic)) bad('fonts/OFL.txt missing');
+      }
+      errs.forEach((e) => bad('theme test: ' + e));
+      await ctx.close();
+    }
+    console.log('ok theme switching');
   }
   // Splash for a returning player, then reduced motion; About reset clears only this app's keys.
   if (!process.env.CASE) {
@@ -499,7 +597,7 @@ async function run(view, c, browser) {
     await ctx.addInitScript(() => { sessionStorage.setItem('breach-escape-splash', '1');
       localStorage.setItem('breach-escape-progress-v1', JSON.stringify({ cases: { 'midnight-blizzard': { act2: { bestStars: 3 } }, 'colonial-pipeline': { act2: { bestStars: 1 } }, 'uber-2022': { act2: { bestStars: 2 } } } })); });
     const pg = await ctx.newPage(); await pg.goto(BASE); await pg.waitForSelector('.c-hero');
-    if ((await pg.textContent('.c-herolabel')) !== 'REPLAY A CASE' || (await pg.textContent('.c-herotitle')) !== 'The Legacy VPN' || (await pg.textContent('.c-herobtn')) !== '> REOPEN CASE') bad('all-finished hero');
+    if ((await pg.textContent('.c-herolabel')) !== 'Replay a case' || (await pg.textContent('.c-herotitle')) !== 'The Legacy VPN' || (await pg.textContent('.c-herobtn')) !== '> Reopen case') bad('all-finished hero');
     await ctx.close();
     console.log('ok replay hero');
   }

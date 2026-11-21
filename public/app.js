@@ -91,6 +91,69 @@
     return b;
   }
 
+  /* ---------- colour theme: dark / light ----------
+     theme-init.js sets <html data-theme> before the first paint. Default: the device setting (and it follows changes
+     to it live); a toggle choice is saved as 'breach-escape-theme' and wins until "Reset my progress" removes it. */
+  var THEME_KEY = 'breach-escape-theme';
+  var themeMq = window.matchMedia('(prefers-color-scheme: light)');
+  function savedTheme() { try { var t = localStorage.getItem(THEME_KEY); return t === 'light' || t === 'dark' ? t : null; } catch (e) { return null; } }
+  function deviceTheme() { return themeMq.matches ? 'light' : 'dark'; }
+  function currentTheme() { return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'; }
+  var themeButtons = [];
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', t === 'light' ? '#F4F6F8' : '#0B0E12');
+    themeButtons = themeButtons.filter(function (b) { return b.isConnected; });
+    themeButtons.forEach(function (b) { b._paint(); });
+  }
+  function setTheme(t) { try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* storage unavailable */ } applyTheme(t); }
+  var onDeviceTheme = function () { if (!savedTheme()) applyTheme(deviceTheme()); };
+  if (themeMq.addEventListener) themeMq.addEventListener('change', onDeviceTheme); else if (themeMq.addListener) themeMq.addListener(onDeviceTheme);
+  // compact: the header icon button (sun / moon); otherwise the "theme: dark" text button used in the "?" panels.
+  function themeToggle(compact) {
+    var b = h('button', { class: compact ? 'c-ghost c-themebtn' : 'c-ghost c-togglebtn c-themetxt', type: 'button' });
+    b._paint = function () {
+      var t = currentTheme(), other = t === 'light' ? 'dark' : 'light';
+      b.setAttribute('aria-label', 'Switch to ' + other + ' theme');
+      b.setAttribute('aria-pressed', String(t === 'light'));
+      b.textContent = '';
+      if (compact) b.appendChild(themeIcon(t));
+      else b.textContent = 'theme: ' + t;
+    };
+    b.addEventListener('click', function () { setTheme(currentTheme() === 'light' ? 'dark' : 'light'); });
+    b._paint();
+    themeButtons.push(b);
+    return b;
+  }
+  // Dark theme shows a sun (switch to light); light theme shows a moon (switch to dark). Shapes only, currentColor.
+  function themeIcon(t) {
+    var a = { fill: 'none', stroke: 'currentColor', 'stroke-width': '1.5', 'stroke-linecap': 'square' };
+    var kids = t === 'light' ? [svgEl('path', Object.assign({ d: 'M13.5 10.2A5.5 5.5 0 0 1 5.8 2.5a5.5 5.5 0 1 0 7.7 7.7z' }, a))]
+      : [svgEl('circle', Object.assign({ cx: '8', cy: '8', r: '3' }, a)), svgEl('path', Object.assign({ d: 'M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M3 13l1.4-1.4M11.6 4.4L13 3' }, a))];
+    return svgEl('svg', { viewBox: '0 0 16 16', width: '16', height: '16', 'aria-hidden': 'true', focusable: 'false' }, kids);
+  }
+
+  /* ---------- header: the >K_ mark and a mono breadcrumb (cases / <case-id> / <screen>) ----------
+     parts: [{ text, onclick?, caseColor? }]. A part with onclick is a link back (the first one carries class c-exit). */
+  function mark() {
+    return h('span', { class: 'c-mark', 'aria-hidden': 'true' }, [h('span', { class: 'c-mk-a', text: '>' }), 'K', h('span', { class: 'c-mk-a', text: '_' })]);
+  }
+  function crumbs(parts) {
+    var nav = h('nav', { class: 'c-crumbs', 'aria-label': 'Breadcrumb' });
+    parts.forEach(function (p, i) {
+      if (i) nav.appendChild(h('span', { class: 'c-crsep', 'aria-hidden': 'true', text: '/' }));
+      var el = p.onclick ? h('button', { class: 'c-crlink' + (i === 0 ? ' c-exit' : ''), type: 'button', 'aria-label': p.label || null, onclick: p.onclick, text: p.text })
+        : h('span', { class: 'c-crumb' + (p.cls ? ' ' + p.cls : ''), 'aria-current': i === parts.length - 1 ? 'page' : null }, [
+          p.caseColor ? h('i', { class: 'c-casemark c-cc-' + p.caseColor, 'aria-hidden': 'true' }) : null, h('span', { class: 'c-crtxt', text: p.text })]);
+      nav.appendChild(el);
+    });
+    return nav;
+  }
+  function topBar(parts, right) {
+    return h('header', { class: 'c-hud c-top' }, [h('span', { class: 'c-topl' }, [mark(), crumbs(parts)]), h('span', { class: 'c-headright' }, right)]);
+  }
+
   /* ---------- glossary: tappable terms; the case screen shows the definition (termSink) ---------- */
   var GLOSSARY = window.GLOSSARY || {};
   var TERMS = Object.keys(GLOSSARY).sort(function (a, b) { return b.length - a.length; });
@@ -153,14 +216,15 @@
       h('p', { text: 'Real breaches, replayed. Investigate, then defend.' }),
       h('p', { class: 'c-steps', 'aria-label': 'Each case: 1 brief, 2 investigate, 3 defend' }, [
         h('span', { class: 't-g', text: '01' }), ' brief \u2192 ', h('span', { class: 't-g', text: '02' }), ' investigate \u2192 ', h('span', { class: 't-g', text: '03' }), ' defend'
-      ])
+      ]),
+      h('div', { class: 'c-toggles' }, [themeToggle(false)])
     ]);
     var helpBtn = h('button', { class: 'c-ghost c-helpbtn', 'aria-label': 'How it works', 'aria-expanded': 'false', 'aria-controls': 'c-maphelp', text: '?', onclick: function () {
       var open = helpBox.hidden; helpBox.hidden = !open; helpBtn.setAttribute('aria-expanded', String(open));
     } });
     app.appendChild(h('header', { class: 'c-maphead' }, [
-      h('span', { class: 'c-keptlabel', text: 'KEPT ACADEMY' }),
-      h('span', { class: 'c-headright' }, [helpBtn, h('span', { class: 'c-xp', 'aria-label': totalStars + ' stars earned', text: totalStars + ' \u2605' })])
+      h('span', { class: 'c-topl' }, [mark(), crumbs([{ text: 'cases' }])]),
+      h('span', { class: 'c-headright' }, [helpBtn, themeToggle(true), h('span', { class: 'c-xp', 'aria-label': totalStars + ' stars earned', text: totalStars + ' \u2605' })])
     ]));
     app.appendChild(h('h1', { class: 'c-brand', text: 'Breach Escape' }));
     app.appendChild(helpBox);
@@ -180,13 +244,13 @@
           actorRow.hidden = false;
         }).catch(function () { /* offline or missing: the row stays hidden */ });
       }
-      grid.appendChild(h('section', { class: 'c-hero', 'aria-labelledby': 'c-herotitle' }, [
-        h('div', { class: 'c-eyebrow c-herolabel', text: allDone ? 'REPLAY A CASE' : 'NEXT CASE' }),
+      grid.appendChild(h('section', { class: 'c-hero c-brk' + (next.theme ? ' c-cc-' + next.theme : ''), 'aria-labelledby': 'c-herotitle' }, [
+        h('div', { class: 'c-eyebrow c-herolabel', text: allDone ? 'Replay a case' : 'Next case' }),
         h('h2', { class: 'c-herotitle', id: 'c-herotitle', text: next.name }),
         h('p', { class: 'c-small c-herosub', text: next.victim + ' \u00b7 ' + next.year }),
         h('p', { class: 'c-heroteaser', text: next.teaser }),
         actorRow,
-        h('button', { class: 'c-btn c-herobtn', text: allDone ? '> REOPEN CASE' : '> OPEN CASE FILE', onclick: function () { openLevel(next); } })
+        h('button', { class: 'c-btn c-herobtn', text: allDone ? '> Reopen case' : '> Open case file', onclick: function () { openLevel(next); } })
       ]));
     }
 
@@ -198,7 +262,7 @@
       var kids = [h('span', { class: 'c-cnum', text: pad2(L.id) }), h('span', { class: 'c-ctitle', text: L.name })];
       if (ok) {
         kids.push(h('span', { class: 'c-cright', 'aria-hidden': 'true' }, [stars > 0 ? h('span', { class: 'c-cstars', text: starText(stars) }) : null, h('span', { class: 'c-cgo', text: '\u203a' })]));
-        list.appendChild(h('li', {}, [h('button', { class: 'c-case',
+        list.appendChild(h('li', {}, [h('button', { class: 'c-case' + (L.theme ? ' c-cc-' + L.theme : ''),
           'aria-label': 'Case ' + pad2(L.id) + ': ' + L.name + ', ' + L.victim + ' ' + L.year + (stars != null ? ', ' + stars + ' of 3 stars' : ''),
           onclick: function () { openLevel(L); } }, kids)]));
       } else {
@@ -207,7 +271,7 @@
       }
     });
     grid.appendChild(h('section', { class: 'c-allcases', 'aria-labelledby': 'c-casesh' }, [
-      h('div', { class: 'c-caseshead' }, [h('h2', { class: 'c-casesh', id: 'c-casesh', text: 'ALL CASES' }),
+      h('div', { class: 'c-caseshead' }, [h('h2', { class: 'c-casesh', id: 'c-casesh', text: 'All cases' }),
         h('span', { class: 'c-small c-count', text: ready.length + ' of ' + LEVELS.length + ' playable' })]),
       list
     ]));
@@ -227,21 +291,20 @@
   }
 
   /* ---------- About ---------- */
-  var STORE_KEYS = [STORE_KEY, 'breach-escape-voice', SOUND_KEY];   // every localStorage key this app writes
+  var STORE_KEYS = [STORE_KEY, 'breach-escape-voice', SOUND_KEY, THEME_KEY];   // every localStorage key this app writes
   var ABOUT_UPDATED = '2026-11-19';
   function extLink(href, text) { return h('a', { href: href, target: '_blank', rel: 'noopener noreferrer', text: text }); }
   function renderAbout() {
     leave();
     app.textContent = ''; app.className = 'app case c-aboutscreen';
     if (window.BreachCase) window.BreachCase.backdrop('brand');
-    app.appendChild(h('div', { class: 'c-hud' }, [
-      h('button', { class: 'c-ghost c-exit', onclick: renderMap }, ['\u2039 back to map']),
-      h('span', { class: 'c-act', text: 'ABOUT' }), h('span', {})
-    ]));
+    app.appendChild(topBar([{ text: 'cases', label: 'Back to map', onclick: renderMap }, { text: 'about', cls: 'c-act' }], [themeToggle(true)]));
     var site = window.SITE || {};
     var panel = function (cls, title, kids) { return h('div', { class: 'c-panel' + (cls ? ' ' + cls : '') }, [h('div', { class: 'c-eyebrow', text: title })].concat(kids)); };
-    app.appendChild(panel('hl c-abouthead', '> cat about.txt', [
-      h('img', { class: 'c-brandmark', src: 'brand/kept-mark.svg', alt: 'KEPT Academy', width: '160', height: '160' }),
+    app.appendChild(panel('hl c-abouthead', 'cat about.txt', [
+      // One mark per colour theme; CSS shows the one that fits.
+      h('img', { class: 'c-brandmark c-ondark', src: 'brand/kept-mark.svg', alt: 'KEPT Academy', width: '160', height: '160' }),
+      h('img', { class: 'c-brandmark c-onlight', src: 'brand/kept-mark-light.svg', alt: 'KEPT Academy', width: '160', height: '160' }),
       h('h1', { class: 'c-h2', text: 'Breach Escape' }),
       h('p', { text: 'Real breaches, replayed from public records. Each case has a briefing, an investigation and a defense round.' })
     ]));
@@ -280,6 +343,7 @@
   function resetProgress() {
     STORE_KEYS.forEach(function (k) { try { localStorage.removeItem(k); } catch (e) { /* storage unavailable */ } });
     progress = {};
+    applyTheme(deviceTheme());   // back to the device setting
     renderMap();
   }
 
@@ -311,7 +375,7 @@
     ]);
     var cursor = h('span', { class: 'c-spl-cur', text: '_' });
     var skip = h('button', { class: 'c-ghost c-spl-skip', text: 'skip \u203a' });
-    var el = h('div', { class: 'c-splash' }, [h('div', { class: 'c-spl-art', role: 'img', 'aria-label': SPLASH_LABEL }, [term, logo]), skip]);
+    var el = h('div', { class: 'c-splash c-tsurf' }, [h('div', { class: 'c-spl-art', role: 'img', 'aria-label': SPLASH_LABEL }, [term, logo]), skip]);
     document.body.appendChild(el);
     var timers = [];
     function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
@@ -399,7 +463,9 @@
     renderMap: renderMap,
     renderAbout: renderAbout,
     sound: sound,
-    soundToggle: soundToggle
+    soundToggle: soundToggle,
+    themeToggle: themeToggle,
+    topBar: topBar
   };
 
   /* ---------- boot (after case.js has loaded too) ---------- */

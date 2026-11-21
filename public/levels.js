@@ -1,9 +1,10 @@
 /* Breach Escape level list (Breach Map). Each playable level is a case file in levels/<id>.json,
-   run by the case engine in case.js. Facts in each case come from the sources listed inside its JSON file. */
+   run by the case engine in case.js. Facts in each case come from the sources listed inside its JSON file.
+   theme: the case colour (green / amber / violet) for the map cards; keep it equal to "theme" in the level JSON. */
 window.LEVELS = [
-  { id: 1, name: 'The Forgotten Test Account', victim: 'Microsoft', year: 2024, teaser: 'A forgotten test account opens the door to executive email.', status: 'ready', case: 'levels/midnight-blizzard.json' },
-  { id: 2, name: 'The Legacy VPN', victim: 'Colonial Pipeline', year: 2021, teaser: 'One legacy VPN profile, password only.', status: 'ready', case: 'levels/colonial-pipeline.json' },
-  { id: 3, name: 'MFA Fatigue', victim: 'Uber', year: 2022, teaser: 'Approval requests until one was accepted.', status: 'ready', case: 'levels/uber-2022.json' },
+  { id: 1, name: 'The Forgotten Test Account', victim: 'Microsoft', year: 2024, teaser: 'A forgotten test account opens the door to executive email.', status: 'ready', case: 'levels/midnight-blizzard.json', theme: 'green' },
+  { id: 2, name: 'The Legacy VPN', victim: 'Colonial Pipeline', year: 2021, teaser: 'One legacy VPN profile, password only.', status: 'ready', case: 'levels/colonial-pipeline.json', theme: 'amber' },
+  { id: 3, name: 'MFA Fatigue', victim: 'Uber', year: 2022, teaser: 'Approval requests until one was accepted.', status: 'ready', case: 'levels/uber-2022.json', theme: 'violet' },
   { id: 4, name: 'The Help Desk Call', victim: 'MGM Resorts', year: 2023, teaser: 'A phone call becomes admin access.', status: 'soon' },
   { id: 5, name: 'Stolen Passwords at Scale', victim: 'Snowflake customers', year: 2024, teaser: 'Infostealer logins, no MFA.', status: 'soon' },
   { id: 6, name: 'The Open Portal', victim: 'Change Healthcare', year: 2024, teaser: 'Remote access without MFA.', status: 'soon' },
